@@ -234,16 +234,16 @@ void add_N_muts( queue_type & recycling_bin,
       if( mutations[idx].neutral )
 	{
 	  g.neutral.emplace(upper_bound(g.neutral.begin(),g.neutral.end(),mutations[idx].pos,
-					[&mutations](const double & __value,const size_t & i) {
-					  return __value < mutations[i].pos;
+					[&mutations](const double & __value,const size_t & index) {
+					  return __value < mutations[index].pos;
 					}),
 			    idx);
 	}
       else
 	{
 	  g.selected.emplace(upper_bound(g.selected.begin(),g.selected.end(),mutations[idx].pos,
-					 [&mutations](const double & __value,const size_t & i) {
-					   return __value < mutations[i].pos;
+					 [&mutations](const double & __value,const size_t & index) {
+					   return __value < mutations[index].pos;
 					 }),
 			     idx);
 	}
@@ -563,7 +563,7 @@ void sample(gsl_rng * r,
 	    const fmodel & f,
 	    const recmodel & rec)
 {
-    assert(p.diploids.size()==N);
+  assert(p.diploids.size()==N);
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
@@ -580,9 +580,16 @@ void sample(gsl_rng * r,
       wbar += fitnesses[i];
     }
 #ifndef NDEBUG
+  set<size_t> gams_in_dips1;
+  for(const auto & d : p.diploids )
+    {
+      gams_in_dips1.insert(d.first);
+      gams_in_dips1.insert(d.second);
+    }
   for(unsigned i=0;i<p.gametes.size();++i)
     {
-      if(!p.gametes[i].n) cout << i << ' ' << p.gametes[i].n << ' ' << p.gametes[i].neutral.size() << '\n';
+      if(gams_in_dips1.find(i)==gams_in_dips1.end()) assert(!p.gametes[i].n);
+      if(!p.gametes[i].n) cerr << i << ' ' << p.gametes[i].n << ' ' << p.gametes[i].neutral.size() << '\n';
       assert(!p.gametes[i].n);
     }
 #endif
@@ -592,7 +599,9 @@ void sample(gsl_rng * r,
   auto  parents=p.diploids;
   static_assert(typename std::is_same<decltype(parents),decltype(p.diploids)>::type(),"foo");
 
-  for( unsigned i=0;i<N;++i )
+  unsigned i = 0;
+  //UPDATE THE DIPLOIDS
+  for( ;i<N;++i )
     {
       size_t p1 = gsl_ran_discrete(r,lookup.get());
       size_t p2 = gsl_ran_discrete(r,lookup.get());
@@ -630,12 +639,15 @@ void sample(gsl_rng * r,
 
       p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
       					[](vector<gamete_t> & gams, gamete_t && g ) {
+					  assert(!g.neutral.empty());
 #ifndef NDEBUG
-    auto ss=gams.size();
+					  auto ss=gams.size();
+					  auto g2 = g;
 #endif
       					  gams.emplace_back(std::forward<gamete_t>(g));
 #ifndef NDEBUG
 					  assert(gams.size()-1==ss);
+					  assert(gams[gams.size()-1].neutral==g2.neutral);
 #endif
       					  return size_t(gams.size()-1);
       					});
@@ -655,6 +667,7 @@ void sample(gsl_rng * r,
       assert(p.gametes[p.diploids[i].second].n);
       assert(p.gametes.size()<=2*N);
     }
+  assert(i==p.diploids.size());
 #ifndef NDEBUG
   std::set<size_t> dgams;
   for( const auto & d : p.diploids )
@@ -667,7 +680,16 @@ void sample(gsl_rng * r,
   for( unsigned i = 0 ; i < p.gametes.size() ; ++i )
     {
     //AHA
-    if( dgams.find(i) == dgams.end() ) assert (!p.gametes[i].n);
+    if( dgams.find(i) == dgams.end() )
+      {
+	if(p.gametes[i].n) cerr << "I = " << i << ' ' << p.gametes[i].neutral.size() << ' '
+				<< p.mutations[p.gametes[i].neutral[0]].pos << ' '
+				<< p.mutations[p.gametes[i].neutral[0]].g << ' '
+				<< p.mutations[p.gametes[i].neutral[0]].n << ' '
+				<< '(' << p.mutations[p.gametes[i].neutral[0]].checked << ") "
+				<< (p.mut_lookup.find(p.mutations[p.gametes[i].neutral[0]].pos)==p.mut_lookup.end()) << '\n';
+	assert (!p.gametes[i].n);
+      }
     else assert(p.gametes[i].n);
   }
 #endif
@@ -704,8 +726,11 @@ void sample(gsl_rng * r,
       }
     }
 #ifndef NDEBUG
-  if(NN!=2*N) cout << NN << ' ' << 2*N << '\n';
-  for(const auto & g : p.gametes) cout << g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
+  if(NN!=2*N)
+    {
+      cerr << NN << ' ' << 2*N << '\n';
+      for(const auto & g : p.gametes) cerr << g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
+    }
 #endif
   assert(NN==2*N);
 #ifndef NDEBUG
@@ -754,6 +779,7 @@ int main(int argc, char ** argv)
 
   for(unsigned gen=0;gen<10*N;++gen)
     {
+      cout << gen << '\n';
       sample(r,pop,N,mu,littler,
 	     std::bind(mpol(),
 		       placeholders::_1,
@@ -769,6 +795,17 @@ int main(int argc, char ** argv)
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
 #ifndef NDEBUG
+      set<size_t> foo;
+      for( const auto & d : pop.diploids ) {
+	foo.insert(d.first);
+	foo.insert(d.second);
+	assert(pop.gametes[d.first].n);
+	assert(pop.gametes[d.second].n);
+      }
+      for(size_t i=0;i<pop.gametes.size();++i)
+	{
+	  if(foo.find(i)==foo.end()) assert(!pop.gametes[i].n);
+	}
       for( const auto & m : pop.mutations ) assert( pop.mut_lookup.find(m.pos) != pop.mut_lookup.end() );
 #endif
       update_mutations(pop.mutations,2*N,pop.mut_lookup);
