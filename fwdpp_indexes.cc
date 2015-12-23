@@ -1,5 +1,6 @@
 #include <fwdpp/sugar/popgenmut.hpp>
 #include <fwdpp/fwd_functional.hpp>
+#include <fwdpp/internal/gsl_discrete.hpp>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -29,7 +30,13 @@ struct gamete_t
 				     selected(mvec_t())
   {
   }
-  
+  gamete_t(unsigned n_,
+	   const mvec_t & neut_,
+	   const mvec_t & sel_) noexcept :
+				 n(n_),neutral(neut_),selected(sel_)
+  {
+  }
+								    
 };
 
 struct singlepop_t
@@ -96,12 +103,12 @@ struct site_dep_w
 	      }
 	    else
 	      {
-		het(w,g2.selected[b2]);
+		het(w,mutations[g2.selected[b2]]);
 	      }
 	  }
-	if(!found) het(w,g1.selected[b1]);
+	if(!found) het(w,mutations[g1.selected[b1]]);
       }
-    for( ; b2 < g2.selected.size() ; ++b2 ) het(w,g2.selected[b2]);
+    for( ; b2 < g2.selected.size() ; ++b2 ) het(w,mutations[g2.selected[b2]]);
     
     return w;
   }
@@ -144,7 +151,8 @@ struct mpol
 	   typename hdist_t>
   inline result_type operator()(queue_t & recycling_bin,
 				mvec_t & mutations,
-				gsl_rng * r, lookup_table_t * lookup,
+				gsl_rng * r,
+				lookup_table_t * lookup,
 				const unsigned & generation,
 				const double & neutral_mutation_rate,
 				const double & selected_mutation_rate,
@@ -152,6 +160,7 @@ struct mpol
 				const sdist_t & smaker,
 				const hdist_t & hmaker) const
   {
+    static_assert( std::is_same<typename queue_t::value_type,size_t>::type,"foo");
     auto pos = posmaker();
     while(lookup->find(pos) != lookup->end())
       {
@@ -247,7 +256,7 @@ size_t mut_recycle( queue_type & recycling_bin,
     }
   typename gvec_t::value_type ng(1,gametes[gamete_index].neutral,gametes[gamete_index].selected);
   add_N_muts(recycling_bin,mmodel,nm,mutations,ng);
-  return gpolicy(gametes,ng);
+  return gpolicy(gametes,std::move(ng));
 }
 
 //create recycling bins
@@ -320,14 +329,14 @@ void recombine_gametes_details( const vector<double> & pos,
   assert( std::is_sorted(pos.cbegin(),pos.cend()) );
   short SWITCH = 0;
 
-  auto itr = gametes[ibeg].mutations.cbegin(),
-    jtr = gametes[jbeg].mutations.cbegin(),
-    itr_s = gametes[ibeg].smutations.cbegin(),
-    jtr_s = gametes[jbeg].smutations.cbegin(),
-    itr_e = gametes[ibeg].mutations.cend(),
-    itr_s_e = gametes[ibeg].smutations.cend(),
-    jtr_e = gametes[jbeg].mutations.cend(),
-    jtr_s_e = gametes[jbeg].smutations.cend();
+  auto itr = gametes[ibeg].neutral.cbegin(),
+    jtr = gametes[jbeg].neutral.cbegin(),
+    itr_s = gametes[ibeg].selected.cbegin(),
+    jtr_s = gametes[jbeg].selected.cbegin(),
+    itr_e = gametes[ibeg].neutral.cend(),
+    itr_s_e = gametes[ibeg].selected.cend(),
+    jtr_e = gametes[jbeg].neutral.cend(),
+    jtr_s_e = gametes[jbeg].selected.cend();
 
   for(const double dummy : pos )
     {
@@ -357,8 +366,7 @@ void recombine_gametes_details( const vector<double> & pos,
     }
 }
       
-template< typename iterator_type,
-	  typename recombination_map,
+template< typename recombination_map,
 	  typename gvec_t,
 	  typename mvec_t,
 	  typename glookup_t,
@@ -453,6 +461,7 @@ void sample(gsl_rng * r,
 	    poptype & p,
 	    const unsigned N,
 	    const double mutrate,
+	    const double littler,
 	    const mmodel & m,
 	    const fmodel & f,
 	    const recmodel & rec)
@@ -460,6 +469,64 @@ void sample(gsl_rng * r,
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
+
+  double wbar = 0.;
+  std::vector<double> fitnesses(p.diploids.size());
+  for(unsigned i=0;i<N;++i)
+    {
+      fitnesses[i] = f(p.gametes[p.diploids[i].first],
+		       p.gametes[p.diploids[i].second],
+		       p.mutations);
+      p.gametes[p.diploids[i].first] =
+	p.gametes[p.diploids[i].second] = 0;
+      wbar += fitnesses[i];
+    }
+  wbar /= double(N);
+  KTfwd::fwdpp_internal::gsl_ran_discrete_t_ptr lookup(gsl_ran_discrete_preproc(fitnesses.size(),&fitnesses[0]));
+
+  auto parents(p.diploids);
+
+  for( unsigned i=0;i<N;++i )
+    {
+      size_t p1 = gsl_ran_discrete(r,lookup.get());
+      size_t p2 = gsl_ran_discrete(r,lookup.get());
+
+      size_t p1g1 = p.diploids[p1].first;
+      size_t p1g2 = p.diploids[p1].second;
+      size_t p2g1 = p.diploids[p2].first;
+      size_t p2g2 = p.diploids[p2].second;
+
+      if(gsl_rng_uniform(r)<0.5) swap(p1g1,p1g2);
+      if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
+
+      recombine_gametes(r,littler,p.gametes,p.mutations,
+			p1g1,p1g2,glookup,grec,
+			p.neutral,p.selected,rec);
+
+      recombine_gametes(r,littler,p.gametes,p.mutations,
+			p2g1,p2g2,glookup,grec,
+			p.neutral,p.selected,rec);
+
+      p.diploids[i].first = p1g1;
+      p.diploids[i].second = p2g1;
+      p.gametes[p.diploids[i].first].n++;
+      p.gametes[p.diploids[i].second].n++;
+
+      // mut_recycle( queue_type & recycling_bin,
+      // 		    queue_type2 & gamete_recycling_bin,
+      // 		    gsl_rng * r,
+      // 		    const double & mu,
+      // 		    gvec_t & gametes,
+      // 		    mvec_t & mutations,
+      // 		    size_t & gamete_index,
+      // 		    const mutation_model & mmodel,
+      // 		    const gamete_insertion_policy & gpolicy)
+      p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m(mrec,p.mutations),
+					[](vector<gamete_t> & gams, gamete_t && g ) {
+					  gams.emplace_back(std::forward<gamete_t>(g));
+					  return size_t(gams.size()-1);
+					});
+    }
 }
 
 
@@ -468,15 +535,36 @@ int main(int argc, char ** argv)
 {
   unsigned N=10000;
   double mu = 0.01;
+  double littler=mu;
   singlepop_t pop(N);
   gsl_rng * r;
 
   for(unsigned gen=0;gen<10*N;++gen)
     {
-      sample(r,pop,N,mu,
-	     bind(mpol(),placeholders::_1,placeholders::_2,
-		  gen,mu,0.,[&r](){return gsl_rng_uniform(r);},
-		  [](){return 0.;},[](){return 0.;}),
+      sample(r,pop,N,mu,littler,
+	     /*
+	       queue_t & recycling_bin,
+	       mvec_t & mutations,
+	       gsl_rng * r,
+	       lookup_table_t * lookup,
+	       const unsigned & generation,
+	       const double & neutral_mutation_rate,
+	       const double & selected_mutation_rate,
+	       const position_t & posmaker,
+	       const sdist_t & smaker,
+	       const hdist_t & hmaker
+	     */
+	     bind(mpol(),
+		  placeholders::_1,
+		  placeholders::_2,
+		  r,
+		  &pop.mut_lookup,
+		  gen,
+		  mu,
+		  0.,
+		  [&r](){return gsl_rng_uniform(r);},
+		  [](){return 0.;},
+		  [](){return 0.;}),
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
     }	 
