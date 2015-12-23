@@ -8,7 +8,7 @@
 #include <numeric>
 #include <queue>
 #include <cassert>
-
+#include <map>
 using namespace std;
 
 /*
@@ -46,12 +46,15 @@ struct singlepop_t
   gvec_t gametes;
   dipvec_t diploids;
   lookup_t mut_lookup;
+  vector<size_t> neutral,selected;
   singlepop_t( unsigned N ) noexcept : mutations(mvec_t()),
 				       gametes(gvec_t(1,gamete_t(2*N))),
 				       diploids(dipvec_t(2*N, dip_t(0,0))),
 				       mut_lookup(lookup_t())
   {
     gametes.reserve(2*N);
+    neutral.reserve(100);
+    selected.reserve(100);
   }
 };
 
@@ -105,7 +108,7 @@ struct site_dep_w
 };
 
 //reworking of KTfwd::multiplicative_fitness
-struct mult_t
+struct mult_w
 {
   using result_type = double;
   template<typename mvec_t>
@@ -386,13 +389,95 @@ unsigned recombine_gametes( gsl_rng * r,
       neutral.clear();
       selected.clear();
       recombine_gametes_details(pos,g1,g2,gametes,mutations,neutral,selected);
+
+      //Gotta do lookup table thing here
     }
   
   return nbreaks;
 }
 
+template<typename mutation_t>
+struct glookup_t
+{
+  using lookup_table_t = std::multimap<double,size_t>;
+  using result_type = std::pair< lookup_table_t::iterator, lookup_table_t::iterator>;
+  lookup_table_t lookup_table;
+
+  inline double keyit( const std::vector<size_t> & mc,
+		       const std::vector<mutation_t> & mutations ) const
+  {
+    return (mc.empty()) ? -std::numeric_limits<double>::max() : mutations[mc[0]].pos;
+  }
+
+  inline void update_details( size_t g,
+			      const std::vector<gamete_t> & gametes,
+			      const std::vector<mutation_t> & mutations) 
+  {
+    lookup_table.emplace( std::make_pair( keyit(gametes[g].neutral,mutations)*double(gametes[g].neutral.size()) +
+					  keyit(gametes[g].selected,mutations)*double(gametes[g].selected.size()), g) );
+  }
+
+  inline result_type lookup( const std::vector<size_t> & n,
+			     const std::vector<size_t> & s,
+			     const std::vector<mutation_t> & mutations )
+  {
+    return lookup_table.equal_range(  keyit(n,mutations)*double(n.size()) + keyit(s,mutations)*double(s.size()) );
+  }
+  
+  explicit glookup_t( const std::vector<gamete_t> & gametes,
+		      const std::vector<mutation_t> & mutations )
+  {
+    //for(auto g = gametes.begin();g!=gametes.end();++g)
+    for(size_t g=0;g<gametes.size();++g)
+      {
+	if(gametes[g].n)
+	  {
+	    update_details(g,gametes,mutations);
+	  }
+      }
+  }
+};
+
+template<typename mutation_t>
+glookup_t<mutation_t> make_gamete_lookup( const std::vector<gamete_t> & gametes,
+					  const std::vector<mutation_t> & mutations )
+{
+  return glookup_t<mutation_t>(gametes,mutations);
+}
+
+template<typename poptype,
+	 typename mmodel,
+	 typename fmodel,
+	 typename recmodel>
+void sample(gsl_rng * r,
+	    poptype & p,
+	    const unsigned N,
+	    const double mutrate,
+	    const mmodel & m,
+	    const fmodel & f,
+	    const recmodel & rec)
+{
+  auto mrec = make_mut_recycling_bin(p.mutations);
+  auto grec = make_gamete_recycling_bin(p.gametes);
+  auto glookup = make_gamete_lookup(p.gametes,p.mutations);
+}
+
+
+  
 int main(int argc, char ** argv)
 {
-  singlepop_t pop(1000);
-  
+  unsigned N=10000;
+  double mu = 0.01;
+  singlepop_t pop(N);
+  gsl_rng * r;
+
+  for(unsigned gen=0;gen<10*N;++gen)
+    {
+      sample(r,pop,N,mu,
+	     bind(mpol(),placeholders::_1,placeholders::_2,
+		  gen,mu,0.,[&r](){return gsl_rng_uniform(r);},
+		  [](){return 0.;},[](){return 0.;}),
+	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
+	     [&r](){return gsl_rng_uniform(r);});
+    }	 
 }
