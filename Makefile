@@ -1,5 +1,7 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -O2 -Wall -W -DNDEBUG
+DEBUG=-DNDEBUG
+DEBUG=
+CXXFLAGS=-std=c++11 -O2 -Wall -W $(DEBUG)
 
 all: shared_ptr_test.o fwdpp_lite.o fwdpp_indexes.o
 	$(CXX) $(CXXFLAGS) -o shared_ptr_test shared_ptr_test.o

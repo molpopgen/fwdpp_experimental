@@ -62,6 +62,7 @@ struct singlepop_t
 				       mut_lookup(lookup_t())
   {
     gametes.reserve(2*N);
+    assert(gametes[0].n==2*N);
     neutral.reserve(100);
     selected.reserve(100);
   }
@@ -175,32 +176,34 @@ struct mpol
 	if ( ! recycling_bin.empty() )
 	  {
 	    auto idx = recycling_bin.front();
+	    assert(!mutations[idx].n);
 	    recycling_bin.pop();
 	    mutations[idx].pos=pos;
 	    mutations[idx].s=smaker();
 	    mutations[idx].h=hmaker();
 	    mutations[idx].n=1u;
 	    mutations[idx].checked=false;
-	    // = typename mvec_t::value_type(pos,smaker(),hmaker(),generation,1u);
 	    return idx;
 	  }
 	mutations.emplace_back(pos,smaker(),hmaker(),generation,1u);
+	assert(mutations[mutations.size()-1].pos==pos);
 	return mutations.size()-1;
       }
     //neutral mutation
     if ( ! recycling_bin.empty() )
       {
 	auto idx = recycling_bin.front();
+	assert(!mutations[idx].n);
 	recycling_bin.pop();
 	mutations[idx].pos=pos;
 	mutations[idx].s=0.;
 	mutations[idx].h=0.;
 	mutations[idx].n=1u;
 	mutations[idx].checked=false;
-	//mutations[idx] = typename mvec_t::value_type(pos,0.,0.,generation,1u);
 	return idx;
       }
     mutations.emplace_back(pos,0.,0.,generation,1u);
+    assert(mutations[mutations.size()-1].pos==pos);
     return mutations.size()-1;
   }
 };
@@ -217,6 +220,7 @@ void add_N_muts( queue_type & recycling_bin,
   for(unsigned i=0;i<n;++i)
     {
       size_t idx = mmodel(recycling_bin,mutations);
+      std::cerr << "new mutation index = " << idx << '\n';
       if( mutations[idx].neutral )
 	{
 	  g.neutral.emplace(upper_bound(g.neutral.begin(),g.neutral.end(),mutations[idx].pos,
@@ -234,6 +238,12 @@ void add_N_muts( queue_type & recycling_bin,
 			     idx);
 	}
     }
+  assert( is_sorted( g.neutral.begin(),g.neutral.end(),[&mutations](size_t i,size_t j) {
+ 	return mutations[i].pos < mutations[j].pos;
+     }) );
+  assert( is_sorted( g.selected.begin(),g.selected.end(),[&mutations](size_t i,size_t j) {
+ 	return mutations[i].pos < mutations[j].pos;
+      }) );
 }
 
 //The mutation fxn
@@ -256,10 +266,13 @@ size_t mut_recycle( queue_type & recycling_bin,
   static_assert( typename std::is_same<typename queue_type::value_type,size_t>::type(),"foo");
   unsigned nm = gsl_ran_poisson(r,mu);
   if(!nm) return nm;
+  assert(gametes[gamete_index].n);
   gametes[gamete_index].n--;
   if( ! gamete_recycling_bin.empty() )
     {
       auto idx = gamete_recycling_bin.front();
+      assert(idx != gamete_index);
+      assert(!gametes[idx].n);
       gamete_recycling_bin.pop();
       gametes[idx].n=1;
       gametes[idx].neutral=gametes[gamete_index].neutral;
@@ -389,7 +402,7 @@ unsigned recombine_gametes( gsl_rng * r,
 			    gvec_t & gametes,
 			    mvec_t & mutations,
 			    size_t & g1,
-			    size_t & g2,
+			    const size_t & g2,
 			    glookup_t & gamete_lookup,
 			    queue_t & gamete_recycling_bin,
 			    vector<size_t> & neutral,
@@ -397,6 +410,7 @@ unsigned recombine_gametes( gsl_rng * r,
 			    const recombination_map & mf)
 {
   unsigned nbreaks = (littler>0.)?gsl_ran_poisson(r,littler):0;
+  cerr<< nbreaks << ' ';
   if( nbreaks )
     {
       std::vector<double> pos;
@@ -425,6 +439,7 @@ unsigned recombine_gametes( gsl_rng * r,
 	      if(!gamete_recycling_bin.empty())
 		{
 		  auto idx = gamete_recycling_bin.front();
+		  assert(!gametes[idx].n);
 		  gamete_recycling_bin.pop();
 		  gametes[idx].n=0u;
 		  gametes[idx].neutral.swap(neutral);
@@ -440,6 +455,8 @@ unsigned recombine_gametes( gsl_rng * r,
 	    }
 	  else
 	    {
+	      assert(gametes[itr->second].neutral==neutral);
+	      assert(gametes[itr->second].selected==selected);
 	      g1 = itr->second;
 	    }
 	}
@@ -448,6 +465,7 @@ unsigned recombine_gametes( gsl_rng * r,
 	  if(!gamete_recycling_bin.empty())
 	    {
 	      auto idx = gamete_recycling_bin.front();
+	      assert(!gametes[idx].n);
 	      gamete_recycling_bin.pop();
 	      gametes[idx].n=0u;
 	      gametes[idx].neutral.swap(neutral);
@@ -505,7 +523,6 @@ struct glookup_t
   explicit glookup_t( const std::vector<gamete_t> & gametes,
 		      const std::vector<mutation_t> & mutations )
   {
-    //for(auto g = gametes.begin();g!=gametes.end();++g)
     for(size_t g=0;g<gametes.size();++g)
       {
 	if(gametes[g].n)
@@ -539,7 +556,7 @@ void sample(gsl_rng * r,
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
-
+  std::cerr << p.mutations.size() << ' ' << mrec.size() << ' ' << p.gametes.size() << ' ' << grec.size() << '\n';
   double wbar = 0.;
   std::vector<double> fitnesses(p.diploids.size());
   for(unsigned i=0;i<N;++i)
@@ -547,10 +564,17 @@ void sample(gsl_rng * r,
       fitnesses[i] = f(p.gametes[p.diploids[i].first],
 		       p.gametes[p.diploids[i].second],
 		       p.mutations);
-      p.gametes[p.diploids[i].first] =
-	p.gametes[p.diploids[i].second] = 0;
+      p.gametes[p.diploids[i].first].n = 0;
+      p.gametes[p.diploids[i].second].n = 0;
       wbar += fitnesses[i];
     }
+#ifndef NDEBUG
+  for(unsigned i=0;i<p.gametes.size();++i)
+    {
+      if(!p.gametes[i].n) cout << i << ' ' << p.gametes[i].n << ' ' << p.gametes[i].neutral.size() << '\n';
+      assert(!p.gametes[i].n);
+    }
+#endif
   wbar /= double(N);
   KTfwd::fwdpp_internal::gsl_ran_discrete_t_ptr lookup(gsl_ran_discrete_preproc(fitnesses.size(),&fitnesses[0]));
 
@@ -560,51 +584,59 @@ void sample(gsl_rng * r,
     {
       size_t p1 = gsl_ran_discrete(r,lookup.get());
       size_t p2 = gsl_ran_discrete(r,lookup.get());
-
-      size_t p1g1 = p.diploids[p1].first;
-      size_t p1g2 = p.diploids[p1].second;
-      size_t p2g1 = p.diploids[p2].first;
-      size_t p2g2 = p.diploids[p2].second;
-
+      assert(p1 < 2*N);
+      assert(p2 < 2*N);
+      size_t p1g1 = parents[p1].first;
+      size_t p1g2 = parents[p1].second;
+      size_t p2g1 = parents[p2].first;
+      size_t p2g2 = parents[p2].second;
+      assert(p1g1<2*N);
+      assert(p1g2<2*N);
+      assert(p2g1<2*N);
+      assert(p2g2<2*N);
       if(gsl_rng_uniform(r)<0.5) swap(p1g1,p1g2);
       if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
 
+      std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p1g1 << ' ';
       recombine_gametes(r,littler,p.gametes,p.mutations,
 			p1g1,p1g2,glookup,grec,
 			p.neutral,p.selected,rec);
-
+      std::cerr << p1g1 << '\n';
+      assert(p.gametes.size()<=2*N);
+      std::cerr << "rec2: " << p.gametes[p2g1].neutral.size() << ' ' << p1g1 << ' ';
       recombine_gametes(r,littler,p.gametes,p.mutations,
 			p2g1,p2g2,glookup,grec,
 			p.neutral,p.selected,rec);
-
+      cerr << p2g1 << '\n';
+      assert(p.gametes.size()<=2*N);
       p.diploids[i].first = p1g1;
       p.diploids[i].second = p2g1;
       p.gametes[p.diploids[i].first].n++;
       p.gametes[p.diploids[i].second].n++;
+      assert(p.gametes[p.diploids[i].first].n <= 2*N);
+      assert(p.gametes[p.diploids[i].second].n <= 2*N); 
 
-      // mut_recycle( queue_type & recycling_bin,
-      // 		    queue_type2 & gamete_recycling_bin,
-      // 		    gsl_rng * r,
-      // 		    const double & mu,
-      // 		    gvec_t & gametes,
-      // 		    mvec_t & mutations,
-      // 		    size_t & gamete_index,
-      // 		    const mutation_model & mmodel,
-      // 		    const gamete_insertion_policy & gpolicy)
       p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
       					[](vector<gamete_t> & gams, gamete_t && g ) {
       					  gams.emplace_back(std::forward<gamete_t>(g));
       					  return size_t(gams.size()-1);
       					});
+      assert(p.gametes.size()<=2*N);
       p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
 					 [](vector<gamete_t> & gams, gamete_t && g ) {
 					   gams.emplace_back(std::forward<gamete_t>(g));
 					   return size_t(gams.size()-1);
 					 });
-      
+      assert(p.gametes[p.diploids[i].first].n);
+      assert(p.gametes[p.diploids[i].second].n);
+      assert(p.gametes.size()<=2*N);
     }
+  assert(p.gametes.size()<=2*N);
+  unsigned NN=0;
   for( auto & g : p.gametes )
     {
+      NN+=g.n;
+      if(g.n) {
       for( auto & m : g.neutral )
 	{
 	  if (!p.mutations[m].checked)
@@ -629,10 +661,30 @@ void sample(gsl_rng * r,
 	      p.mutations[m].n+=g.n;
 	    }
 	}
+      }
     }
+#ifndef NDEBUG
+  if(NN!=2*N) cout << NN << ' ' << 2*N << '\n';
+  for(const auto & g : p.gametes) cout << g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
+#endif
+  assert(NN==2*N);
+#ifndef NDEBUG
+  NN=0;
+  for(const auto & m : p.mutations) assert(m.n<=2*N);
+  for( const auto & g : p.gametes )
+    {
+      if(g.n)
+	{
+	  for(const auto & m : g.neutral ) assert(p.mutations[m].n);
+	  for(const auto & m : g.selected ) assert(p.mutations[m].n);
+	}
+    }
+#endif
 }
 
-void update_mutations( vector<mtype> & mutations, unsigned twoN )
+template<typename lookup_t>
+void update_mutations( vector<mtype> & mutations, unsigned twoN,
+		       lookup_t & lookup)
 {
   for( auto & m : mutations )
     {
@@ -640,8 +692,14 @@ void update_mutations( vector<mtype> & mutations, unsigned twoN )
 	{
 	  //candidate for recycling
 	  m.n=0;
+	  lookup.erase(m.pos);
 	}
-      m.checked=0;
+      if(!m.checked) {
+	lookup.erase(m.pos);
+	m.n=0;
+      }
+      else
+	m.checked=0;
     }
 }
   
@@ -682,6 +740,6 @@ int main(int argc, char ** argv)
 		       [](){return 0.;}),
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
-      update_mutations(pop.mutations,2*N);
+      update_mutations(pop.mutations,2*N,pop.mut_lookup);
     }	 
 }
