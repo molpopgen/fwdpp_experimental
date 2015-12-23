@@ -59,7 +59,7 @@ struct singlepop_t
   vector<size_t> neutral,selected;
   singlepop_t( unsigned N ) noexcept : mutations(mvec_t()),
 				       gametes(gvec_t(1,gamete_t(2*N))),
-				       diploids(dipvec_t(2*N, dip_t(0,0))),
+				       diploids(dipvec_t(N, dip_t(0,0))),
 				       mut_lookup(lookup_t())
   {
     gametes.reserve(2*N);
@@ -554,6 +554,7 @@ void sample(gsl_rng * r,
 	    const fmodel & f,
 	    const recmodel & rec)
 {
+    assert(p.diploids.size()==N);
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
