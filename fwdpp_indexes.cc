@@ -780,6 +780,7 @@ int main(int argc, char ** argv)
   double mu = 0.01;
   double littler=mu;
   singlepop_t pop(N);
+  pop.mutations.reserve( log(2*N)*4.*double(N)*mu + (2./3.)*4.*double(N)*mu );
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(r, atoi(argv[1]) );
 
