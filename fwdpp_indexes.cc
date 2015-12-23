@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <numeric>
 #include <queue>
+#include <functional>
 #include <cassert>
 #include <map>
 using namespace std;
@@ -142,8 +143,7 @@ struct mult_w
 struct mpol
 {
   using result_type = size_t;
-  template<typename pos_t,
-	   typename queue_t,
+  template<typename queue_t,
 	   typename mvec_t,
 	   typename lookup_table_t,
 	   typename position_t,
@@ -160,7 +160,8 @@ struct mpol
 				const sdist_t & smaker,
 				const hdist_t & hmaker) const
   {
-    static_assert( std::is_same<typename queue_t::value_type,size_t>::type,"foo");
+    static_assert( typename std::is_same<typename mvec_t::value_type,mtype>::type(),"foo");
+    static_assert( typename std::is_same<typename queue_t::value_type,size_t>::type(),"foo");
     auto pos = posmaker();
     while(lookup->find(pos) != lookup->end())
       {
@@ -174,7 +175,12 @@ struct mpol
 	  {
 	    auto idx = recycling_bin.front();
 	    recycling_bin.pop();
-	    mutations[idx] = typename mvec_t::value_type(pos,smaker(),hmaker(),generation,1u);
+	    mutations[idx].pos=pos;
+	    mutations[idx].s=smaker();
+	    mutations[idx].h=hmaker();
+	    mutations[idx].n=1u;
+	    mutations[idx].checked=false;
+	    // = typename mvec_t::value_type(pos,smaker(),hmaker(),generation,1u);
 	    return idx;
 	  }
 	mutations.emplace_back(pos,smaker(),hmaker(),generation,1u);
@@ -185,7 +191,12 @@ struct mpol
       {
 	auto idx = recycling_bin.front();
 	recycling_bin.pop();
-	mutations[idx] = typename mvec_t::value_type(pos,0.,0.,generation,1u);
+	mutations[idx].pos=pos;
+	mutations[idx].s=0.;
+	mutations[idx].h=0.;
+	mutations[idx].n=1u;
+	mutations[idx].checked=false;
+	//mutations[idx] = typename mvec_t::value_type(pos,0.,0.,generation,1u);
 	return idx;
       }
     mutations.emplace_back(pos,0.,0.,generation,1u);
@@ -241,6 +252,7 @@ size_t mut_recycle( queue_type & recycling_bin,
 		    const mutation_model & mmodel,
 		    const gamete_insertion_policy & gpolicy)
 {
+  static_assert( typename std::is_same<typename queue_type::value_type,size_t>::type(),"foo");
   unsigned nm = gsl_ran_poisson(r,mu);
   if(!nm) return nm;
   gametes[gamete_index].n--;
@@ -521,11 +533,19 @@ void sample(gsl_rng * r,
       // 		    size_t & gamete_index,
       // 		    const mutation_model & mmodel,
       // 		    const gamete_insertion_policy & gpolicy)
-      p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m(mrec,p.mutations),
-					[](vector<gamete_t> & gams, gamete_t && g ) {
-					  gams.emplace_back(std::forward<gamete_t>(g));
-					  return size_t(gams.size()-1);
-					});
+      auto x = m(mrec,p.mutations);
+      
+      p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
+      					[](vector<gamete_t> & gams, gamete_t && g ) {
+      					  gams.emplace_back(std::forward<gamete_t>(g));
+      					  return size_t(gams.size()-1);
+      					});
+      p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
+					 [](vector<gamete_t> & gams, gamete_t && g ) {
+					   gams.emplace_back(std::forward<gamete_t>(g));
+					   return size_t(gams.size()-1);
+					 });
+      
     }
 }
 
@@ -546,7 +566,7 @@ int main(int argc, char ** argv)
 	       queue_t & recycling_bin,
 	       mvec_t & mutations,
 	       gsl_rng * r,
-	       lookup_table_t * lookup,
+	       lookup_table_t & lookup,
 	       const unsigned & generation,
 	       const double & neutral_mutation_rate,
 	       const double & selected_mutation_rate,
@@ -554,17 +574,17 @@ int main(int argc, char ** argv)
 	       const sdist_t & smaker,
 	       const hdist_t & hmaker
 	     */
-	     bind(mpol(),
-		  placeholders::_1,
-		  placeholders::_2,
-		  r,
-		  &pop.mut_lookup,
-		  gen,
-		  mu,
-		  0.,
-		  [&r](){return gsl_rng_uniform(r);},
-		  [](){return 0.;},
-		  [](){return 0.;}),
+	     std::bind(mpol(),
+		       placeholders::_1,
+		       placeholders::_2,
+		       r,
+		       &pop.mut_lookup,
+		       gen,
+		       mu,
+		       0.0,
+		       [&r](){return gsl_rng_uniform(r);},
+		       [](){return 0.;},
+		       [](){return 0.;}),
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
     }	 
