@@ -12,6 +12,7 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <set>
 using namespace std;
 
 /*
@@ -410,7 +411,7 @@ unsigned recombine_gametes( gsl_rng * r,
 			    const recombination_map & mf)
 {
   unsigned nbreaks = (littler>0.)?gsl_ran_poisson(r,littler):0;
-  cerr<< nbreaks << ' ';
+  cerr << "nb="<< nbreaks << ' ';
   if( nbreaks )
     {
       std::vector<double> pos;
@@ -578,7 +579,8 @@ void sample(gsl_rng * r,
   wbar /= double(N);
   KTfwd::fwdpp_internal::gsl_ran_discrete_t_ptr lookup(gsl_ran_discrete_preproc(fitnesses.size(),&fitnesses[0]));
 
-  auto parents(p.diploids);
+  auto  parents=p.diploids;
+  static_assert(typename std::is_same<decltype(parents),decltype(p.diploids)>::type(),"foo");
 
   for( unsigned i=0;i<N;++i )
     {
@@ -597,13 +599,13 @@ void sample(gsl_rng * r,
       if(gsl_rng_uniform(r)<0.5) swap(p1g1,p1g2);
       if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
 
-      std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p1g1 << ' ';
+      std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p.gametes[p1g2].neutral.size() << ' ' << p1g1 << ' ' << p1g2;
       recombine_gametes(r,littler,p.gametes,p.mutations,
 			p1g1,p1g2,glookup,grec,
 			p.neutral,p.selected,rec);
-      std::cerr << p1g1 << '\n';
+      std::cerr << p1g1 << ' ' << p.gametes[p1g1].neutral.size() << '\n';
       assert(p.gametes.size()<=2*N);
-      std::cerr << "rec2: " << p.gametes[p2g1].neutral.size() << ' ' << p1g1 << ' ';
+      std::cerr << "rec2: " << p.gametes[p2g1].neutral.size() << ' ' << p2g1 << ' ';
       recombine_gametes(r,littler,p.gametes,p.mutations,
 			p2g1,p2g2,glookup,grec,
 			p.neutral,p.selected,rec);
@@ -621,16 +623,32 @@ void sample(gsl_rng * r,
       					  gams.emplace_back(std::forward<gamete_t>(g));
       					  return size_t(gams.size()-1);
       					});
+      assert(p.gametes[p.diploids[i].first].n);
       assert(p.gametes.size()<=2*N);
       p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
 					 [](vector<gamete_t> & gams, gamete_t && g ) {
 					   gams.emplace_back(std::forward<gamete_t>(g));
 					   return size_t(gams.size()-1);
 					 });
-      assert(p.gametes[p.diploids[i].first].n);
       assert(p.gametes[p.diploids[i].second].n);
       assert(p.gametes.size()<=2*N);
     }
+#ifndef NDEBUG
+  std::set<size_t> dgams;
+  for( const auto & d : p.diploids )
+    {
+    dgams.insert(d.first);
+    dgams.insert(d.second);
+    assert( p.gametes[d.first].n>0 );
+    assert( p.gametes[d.second].n>0 );
+  }
+  for( unsigned i = 0 ; i < p.gametes.size() ; ++i )
+    {
+    //AHA
+    if( dgams.find(i) == dgams.end() ) assert (!p.gametes[i].n);
+    else assert(p.gametes[i].n);
+  }
+#endif
   assert(p.gametes.size()<=2*N);
   unsigned NN=0;
   for( auto & g : p.gametes )
@@ -715,18 +733,6 @@ int main(int argc, char ** argv)
   for(unsigned gen=0;gen<10*N;++gen)
     {
       sample(r,pop,N,mu,littler,
-	     /*
-	       queue_t & recycling_bin,
-	       mvec_t & mutations,
-	       gsl_rng * r,
-	       lookup_table_t & lookup,
-	       const unsigned & generation,
-	       const double & neutral_mutation_rate,
-	       const double & selected_mutation_rate,
-	       const position_t & posmaker,
-	       const sdist_t & smaker,
-	       const hdist_t & hmaker
-	     */
 	     std::bind(mpol(),
 		       placeholders::_1,
 		       placeholders::_2,
@@ -740,6 +746,18 @@ int main(int argc, char ** argv)
 		       [](){return 0.;}),
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
+#ifndef NDEBUG
+      for( const auto & m : pop.mutations ) assert( pop.mut_lookup.find(m.pos) != pop.mut_lookup.end() );
+#endif
       update_mutations(pop.mutations,2*N,pop.mut_lookup);
+#ifndef NDEBUG
+      for( const auto & m : pop.mutations )
+	{
+	  if(m.n)
+	    assert( pop.mut_lookup.find(m.pos) != pop.mut_lookup.end() );
+	  else
+	    assert( pop.mut_lookup.find(m.pos) == pop.mut_lookup.end() );
+	}
+#endif
     }	 
 }
