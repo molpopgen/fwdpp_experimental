@@ -32,6 +32,8 @@ struct gamete_t
 				     neutral(mvec_t()),
 				     selected(mvec_t())
   {
+    assert(neutral.empty());
+    assert(selected.empty());
   }
   gamete_t(unsigned n_,
 	   const mvec_t & neut_,
@@ -64,6 +66,13 @@ struct singlepop_t
   {
     gametes.reserve(2*N);
     assert(gametes[0].n==2*N);
+#ifndef NDEBUG
+    for( const auto & d : diploids )
+      {
+	assert( gametes[d.first].n==2*N );
+	assert( gametes[d.second].n==2*N );
+      }
+#endif
     neutral.reserve(100);
     selected.reserve(100);
   }
