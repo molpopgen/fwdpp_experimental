@@ -605,8 +605,8 @@ void sample(gsl_rng * r,
     {
       size_t p1 = gsl_ran_discrete(r,lookup.get());
       size_t p2 = gsl_ran_discrete(r,lookup.get());
-      assert(p1 < 2*N);
-      assert(p2 < 2*N);
+      assert(p1 < N);
+      assert(p2 < N);
       size_t p1g1 = parents[p1].first;
       size_t p1g2 = parents[p1].second;
       size_t p2g1 = parents[p2].first;
