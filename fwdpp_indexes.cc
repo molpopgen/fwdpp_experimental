@@ -10,6 +10,7 @@
 #include <queue>
 #include <functional>
 #include <cassert>
+#include <iostream>
 #include <map>
 using namespace std;
 
@@ -411,6 +412,55 @@ unsigned recombine_gametes( gsl_rng * r,
       recombine_gametes_details(pos,g1,g2,gametes,mutations,neutral,selected);
 
       //Gotta do lookup table thing here
+      auto lookup = gamete_lookup.lookup(neutral,selected,mutations);
+      if(lookup.first!=lookup.second)
+	{
+	  auto itr = find_if(lookup.first,lookup.second,
+			     [&gametes,&neutral,&selected](typename glookup_t::inner_t & __p )
+			     {
+			       return gametes[__p.second].neutral==neutral && gametes[__p.second].selected==selected;
+			     });
+	  if(itr==lookup.second)
+	    {
+	      if(!gamete_recycling_bin.empty())
+		{
+		  auto idx = gamete_recycling_bin.front();
+		  gamete_recycling_bin.pop();
+		  gametes[idx].n=0u;
+		  gametes[idx].neutral.swap(neutral);
+		  gametes[idx].selected.swap(selected);
+		  g1=idx;
+		}
+	      else
+		{
+		  gametes.emplace_back(0u,std::move(neutral),std::move(selected));
+		  g1=gametes.size()-1;
+		}
+	      gamete_lookup.update(g1,gametes,mutations);
+	    }
+	  else
+	    {
+	      g1 = itr->second;
+	    }
+	}
+      else //attempt gamete recycling
+	{
+	  if(!gamete_recycling_bin.empty())
+	    {
+	      auto idx = gamete_recycling_bin.front();
+	      gamete_recycling_bin.pop();
+	      gametes[idx].n=0u;
+	      gametes[idx].neutral.swap(neutral);
+	      gametes[idx].selected.swap(selected);
+	      g1=idx;
+	    }
+	  else
+	    {
+	      gametes.emplace_back(0u,std::move(neutral),std::move(selected));
+	      g1=gametes.size()-1;
+	    }
+	  gamete_lookup.update(g1,gametes,mutations);
+	}
     }
   
   return nbreaks;
@@ -421,6 +471,7 @@ struct glookup_t
 {
   using lookup_table_t = std::multimap<double,size_t>;
   using result_type = std::pair< lookup_table_t::iterator, lookup_table_t::iterator>;
+  using inner_t = typename lookup_table_t::value_type;
   lookup_table_t lookup_table;
 
   inline double keyit( const std::vector<size_t> & mc,
@@ -443,6 +494,13 @@ struct glookup_t
   {
     return lookup_table.equal_range(  keyit(n,mutations)*double(n.size()) + keyit(s,mutations)*double(s.size()) );
   }
+
+  inline void update(size_t idx,
+		     const std::vector<gamete_t> & gametes,
+		     const std::vector<mutation_t> & mutations)
+  {
+    update_details(idx,gametes,mutations);
+  };
   
   explicit glookup_t( const std::vector<gamete_t> & gametes,
 		      const std::vector<mutation_t> & mutations )
@@ -533,8 +591,6 @@ void sample(gsl_rng * r,
       // 		    size_t & gamete_index,
       // 		    const mutation_model & mmodel,
       // 		    const gamete_insertion_policy & gpolicy)
-      auto x = m(mrec,p.mutations);
-      
       p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
       					[](vector<gamete_t> & gams, gamete_t && g ) {
       					  gams.emplace_back(std::forward<gamete_t>(g));
@@ -547,9 +603,47 @@ void sample(gsl_rng * r,
 					 });
       
     }
+  for( auto & g : p.gametes )
+    {
+      for( auto & m : g.neutral )
+	{
+	  if (!p.mutations[m].checked)
+	    {
+	      p.mutations[m].n=g.n;
+	      p.mutations[m].checked=true;
+	    }
+	  else
+	    {
+	      p.mutations[m].n+=g.n;
+	    }
+	}
+      for( auto & m : g.selected )
+	{
+	  if (!p.mutations[m].checked)
+	    {
+	      p.mutations[m].n=g.n;
+	      p.mutations[m].checked=true;
+	    }
+	  else
+	    {
+	      p.mutations[m].n+=g.n;
+	    }
+	}
+    }
 }
 
-
+void update_mutations( vector<mtype> & mutations, unsigned twoN )
+{
+  for( auto & m : mutations )
+    {
+      if(m.n==twoN)
+	{
+	  //candidate for recycling
+	  m.n=0;
+	}
+      m.checked=0;
+    }
+}
   
 int main(int argc, char ** argv)
 {
@@ -557,7 +651,8 @@ int main(int argc, char ** argv)
   double mu = 0.01;
   double littler=mu;
   singlepop_t pop(N);
-  gsl_rng * r;
+  gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(r, atoi(argv[1]) );
 
   for(unsigned gen=0;gen<10*N;++gen)
     {
@@ -587,5 +682,6 @@ int main(int argc, char ** argv)
 		       [](){return 0.;}),
 	     bind(mult_w(),std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),
 	     [&r](){return gsl_rng_uniform(r);});
+      update_mutations(pop.mutations,2*N);
     }	 
 }
