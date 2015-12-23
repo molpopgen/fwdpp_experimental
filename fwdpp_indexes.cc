@@ -620,14 +620,26 @@ void sample(gsl_rng * r,
 
       p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
       					[](vector<gamete_t> & gams, gamete_t && g ) {
+#ifndef NDEBUG
+    auto ss=gams.size();
+#endif
       					  gams.emplace_back(std::forward<gamete_t>(g));
+#ifndef NDEBUG
+					  assert(gams.size()-1==ss);
+#endif
       					  return size_t(gams.size()-1);
       					});
       assert(p.gametes[p.diploids[i].first].n);
       assert(p.gametes.size()<=2*N);
       p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
 					 [](vector<gamete_t> & gams, gamete_t && g ) {
+#ifndef NDEBUG
+    auto ss=gams.size();
+#endif
 					   gams.emplace_back(std::forward<gamete_t>(g));
+#ifndef NDEBUG
+					   assert(gams.size()-1==ss);
+#endif
 					   return size_t(gams.size()-1);
 					 });
       assert(p.gametes[p.diploids[i].second].n);
