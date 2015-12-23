@@ -260,7 +260,7 @@ size_t mut_recycle( queue_type & recycling_bin,
 		    const double & mu,
 		    gvec_t & gametes,
 		    mvec_t & mutations,
-		    size_t & gamete_index,
+		    const size_t & gamete_index,
 		    const mutation_model & mmodel,
 		    const gamete_insertion_policy & gpolicy)
 {
