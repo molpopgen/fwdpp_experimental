@@ -204,6 +204,7 @@ struct mpol
     if ( ! recycling_bin.empty() )
       {
 	auto idx = recycling_bin.front();
+	cerr << "new recycled mutation index = " << idx << '\n';
 	assert(!mutations[idx].n);
 	recycling_bin.pop();
 	mutations[idx].pos=pos;
@@ -578,7 +579,7 @@ void sample(gsl_rng * r,
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
-  std::cerr << p.mutations.size() << ' ' << mrec.size() << ' ' << p.gametes.size() << ' ' << grec.size() << '\n';
+  std::cerr << "stats: " << p.mutations.size() << ' ' << mrec.size() << ' ' << p.gametes.size() << ' ' << grec.size() << '\n';
   double wbar = 0.;
   std::vector<double> fitnesses(p.diploids.size());
   for(unsigned i=0;i<N;++i)
@@ -629,7 +630,7 @@ void sample(gsl_rng * r,
       if(gsl_rng_uniform(r)<0.5) swap(p1g1,p1g2);
       if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
 
-      std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p.gametes[p1g2].neutral.size() << ' ' << p1g1 << ' ' << p1g2;
+      std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p.gametes[p1g2].neutral.size() << ' ' << p1g1 << ' ' << p1g2 << ' ';
       recombine_gametes(r,littler,p.gametes,p.mutations,
 			p1g1,p1g2,glookup,grec,
 			p.neutral,p.selected,rec);
@@ -681,10 +682,13 @@ void sample(gsl_rng * r,
   assert(i==p.diploids.size());
 #ifndef NDEBUG
   std::set<size_t> dgams;
+  std::set<size_t> dmuts;
   for( const auto & d : p.diploids )
     {
     dgams.insert(d.first);
     dgams.insert(d.second);
+    for( const auto & i : p.gametes[d.first].neutral ) dmuts.insert(i);
+    for( const auto & i : p.gametes[d.first].selected ) dmuts.insert(i);
     assert( p.gametes[d.first].n>0 );
     assert( p.gametes[d.second].n>0 );
   }
@@ -737,6 +741,14 @@ void sample(gsl_rng * r,
       }
     }
 #ifndef NDEBUG
+  for(unsigned i=0;i<p.mutations.size();++i)
+    {
+      if(p.mutations[i].n) {
+	cerr << "bad mutation: " << dmuts.size() << ' ' << p.mutations.size() << ' ' << i << ' ' << p.mutations[i].n << ' ' << p.mutations[i].g << '\n';
+      }
+      //AHA 2
+      if(dmuts.find(i)==dmuts.end()) assert(!p.mutations[i].n);
+    }
   if(NN!=2*N)
     {
       cerr << NN << ' ' << 2*N << '\n';
