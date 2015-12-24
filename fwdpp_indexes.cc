@@ -786,8 +786,8 @@ int main(int argc, char ** argv)
   double littler=mu;
   singlepop_t pop(N);
   pop.mutations.reserve( log(2*N)*4.*double(N)*mu + (2./3.)*4.*double(N)*mu );
-  for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
-    pop.mutations.emplace_back(0,0,0,0,0);
+  // for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
+  //   pop.mutations.emplace_back(0,0,0,0,0);
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(r, atoi(argv[1]) );
 
