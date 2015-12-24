@@ -714,6 +714,23 @@ void sample(gsl_rng * r,
       assert(p.gametes[dip.second].n);
     }
   adjust_mutation_counts(p.gametes,p.mutations);
+  //remove any thing from extant gametes that is fixed
+  //This solve the memory problem that I was having...
+  for( auto & g : p.gametes )
+    {
+      g.neutral.erase( remove_if(g.neutral.begin(),
+				 g.neutral.end(),
+				 [&p,&N]( size_t i ) {
+				   return p.mutations[i].n==2*N;
+				 }),
+		       g.neutral.end() );
+      g.selected.erase( remove_if(g.selected.begin(),
+				 g.selected.end(),
+				 [&p,&N]( size_t i ) {
+				   return p.mutations[i].n==2*N;
+				 }),
+		       g.selected.end() );
+    }
 #ifndef NDEBUG
   unsigned NN=0;
   std::set<size_t> dgams;
@@ -818,8 +835,9 @@ int main(int argc, char ** argv)
   pop.mutations.reserve( log(2*N)*theta + (2./3.)*theta );
   double mu = theta/double(4*N);
   double littler=rho/double(4*N);
-  // for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
-  //   pop.mutations.emplace_back(0,0,0,0,0);
+  for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
+    pop.mutations.emplace_back(0,0,0,0,0);
+  for(unsigned i=0;i<2*N;++i) pop.gametes.emplace_back(0);
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(r, seed );
   cout << N << ' ' << theta << ' ' << rho << ' ' << seed << ' ' << pop.mutations.capacity() << ' ' << pop.gametes.capacity() << '\n';
@@ -867,4 +885,5 @@ int main(int argc, char ** argv)
     }
   cout << pop.mutations.size() << ' ' << pop.mutations.capacity() << ' '
        << pop.gametes.size() << ' ' << pop.gametes.capacity() << '\n';
+  for(const auto & g : pop.gametes) cout << g.n << ' ' << g.neutral.size() << '\n';
 }
