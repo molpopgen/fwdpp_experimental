@@ -363,6 +363,8 @@ void recombine_gametes_details( const vector<double> & pos,
 				vector<size_t> & neutral,
 				vector<size_t> & selected)
 {
+  assert(neutral.empty());
+  assert(selected.empty());
   assert( std::is_sorted(pos.cbegin(),pos.cend()) );
   short SWITCH = 0;
 
@@ -784,6 +786,8 @@ int main(int argc, char ** argv)
   double littler=mu;
   singlepop_t pop(N);
   pop.mutations.reserve( log(2*N)*4.*double(N)*mu + (2./3.)*4.*double(N)*mu );
+  for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
+    pop.mutations.emplace_back(0,0,0,0,0);
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(r, atoi(argv[1]) );
 
@@ -816,7 +820,7 @@ int main(int argc, char ** argv)
 	{
 	  if(foo.find(i)==foo.end()) assert(!pop.gametes[i].n);
 	}
-      for( const auto & m : pop.mutations ) assert( pop.mut_lookup.find(m.pos) != pop.mut_lookup.end() );
+      for( const auto & m : pop.mutations ) if(m.n) assert( pop.mut_lookup.find(m.pos) != pop.mut_lookup.end() );
 #endif
       update_mutations(pop.mutations,2*N,pop.mut_lookup);
 #ifndef NDEBUG
