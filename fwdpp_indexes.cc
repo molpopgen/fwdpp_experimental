@@ -614,9 +614,9 @@ void sample(gsl_rng * r,
   auto  parents=p.diploids;
   static_assert(typename std::is_same<decltype(parents),decltype(p.diploids)>::type(),"foo");
 
-  unsigned i = 0;
+
   //UPDATE THE DIPLOIDS
-  for( ;i<N;++i )
+  for(unsigned dip = 0 ;dip<N;++dip )
     {
       size_t p1 = gsl_ran_discrete(r,lookup.get());
       size_t p2 = gsl_ran_discrete(r,lookup.get());
@@ -634,24 +634,24 @@ void sample(gsl_rng * r,
       if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
 
       std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p.gametes[p1g2].neutral.size() << ' ' << p1g1 << ' ' << p1g2 << ' ';
-      p.diploids[i].first = recombine_gametes(r,littler,p.gametes,p.mutations,
+      p.diploids[dip].first = recombine_gametes(r,littler,p.gametes,p.mutations,
 					      p1g1,p1g2,glookup,grec,
 					      p.neutral,p.selected,rec);
-      std::cerr << p.diploids[i].first << ' ' << p.gametes[p.diploids[i].first].neutral.size() << '\n';
+      std::cerr << p.diploids[dip].first << ' ' << p.gametes[p.diploids[dip].first].neutral.size() << '\n';
       assert(p.gametes.size()<=2*N);
       std::cerr << "rec2: " << p.gametes[p2g1].neutral.size() << ' ' << p2g1 << ' ';
-      p.diploids[i].second = recombine_gametes(r,littler,p.gametes,p.mutations,
+      p.diploids[dip].second = recombine_gametes(r,littler,p.gametes,p.mutations,
 					       p2g1,p2g2,glookup,grec,
 					       p.neutral,p.selected,rec);
-      std::cerr << p.diploids[i].second << ' ' << p.gametes[p.diploids[i].second].neutral.size() << '\n';
+      std::cerr << p.diploids[dip].second << ' ' << p.gametes[p.diploids[dip].second].neutral.size() << '\n';
 
       assert(p.gametes.size()<=2*N);
-      p.gametes[p.diploids[i].first].n++;
-      p.gametes[p.diploids[i].second].n++;
-      assert(p.gametes[p.diploids[i].first].n <= 2*N);
-      assert(p.gametes[p.diploids[i].second].n <= 2*N); 
+      p.gametes[p.diploids[dip].first].n++;
+      p.gametes[p.diploids[dip].second].n++;
+      assert(p.gametes[p.diploids[dip].first].n <= 2*N);
+      assert(p.gametes[p.diploids[dip].second].n <= 2*N); 
 
-      p.diploids[i].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].first,m,
+      p.diploids[dip].first = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[dip].first,m,
       					[](vector<gamete_t> & gams, gamete_t && g ) {
 					  assert(!g.neutral.empty());
 #ifndef NDEBUG
@@ -665,9 +665,9 @@ void sample(gsl_rng * r,
 #endif
       					  return size_t(gams.size()-1);
       					});
-      assert(p.gametes[p.diploids[i].first].n);
+      assert(p.gametes[p.diploids[dip].first].n);
       assert(p.gametes.size()<=2*N);
-      p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
+      p.diploids[dip].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[dip].second,m,
 					 [](vector<gamete_t> & gams, gamete_t && g ) {
 #ifndef NDEBUG
 					   auto ss=gams.size();
@@ -678,10 +678,9 @@ void sample(gsl_rng * r,
 #endif
 					   return size_t(gams.size()-1);
 					 });
-      assert(p.gametes[p.diploids[i].second].n);
+      assert(p.gametes[p.diploids[dip].second].n);
       assert(p.gametes.size()<=2*N);
     }
-  assert(i==p.diploids.size());
 #ifndef NDEBUG
   std::set<size_t> dgams;
   std::set<size_t> dmuts;
