@@ -582,7 +582,8 @@ void sample(gsl_rng * r,
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
-  std::cerr << "stats: " << p.mutations.size() << ' ' << mrec.size() << ' ' << p.gametes.size() << ' ' << grec.size() << '\n';
+  std::cerr << "stats: " << p.mutations.size() << ' ' << p.mutations.capacity() << ' ' << mrec.size() << ' '
+	    << p.gametes.size() << ' ' << p.gametes.capacity() << ' ' << grec.size() << '\n';
   double wbar = 0.;
   std::vector<double> fitnesses(p.diploids.size());
   for(unsigned i=0;i<N;++i)
@@ -604,7 +605,9 @@ void sample(gsl_rng * r,
   for(unsigned i=0;i<p.gametes.size();++i)
     {
       if(gams_in_dips1.find(i)==gams_in_dips1.end()) assert(!p.gametes[i].n);
-      if(!p.gametes[i].n) cerr << i << ' ' << p.gametes[i].n << ' ' << p.gametes[i].neutral.size() << '\n';
+      if(!p.gametes[i].n) cerr <<"extinct gamete details: " << i << ' ' << p.gametes[i].n;
+      for (const auto & j : p.gametes[i].neutral) cerr << ' ' << p.mutations[j].pos;
+      cerr << '\n';
       assert(!p.gametes[i].n);
     }
 #endif
@@ -757,19 +760,22 @@ void sample(gsl_rng * r,
       }
     }
 #ifndef NDEBUG
+  for( const auto & dm : dmuts ) assert(p.mutations[dm].checked);
+  
   for(unsigned i=0;i<p.mutations.size();++i)
     {
+      if( dmuts.find(i) == dmuts.end() ) assert(!p.mutations[i].checked);
       if(p.mutations[i].n&&dmuts.find(i)==dmuts.end()) {
 	cerr << "bad mutation: " << dmuts.size() << ' ' << p.mutations.size() << ' ' << i << ' '
 	     << p.mutations[i].pos << ' ' << p.mutations[i].n << ' ' << p.mutations[i].g << '\n';
       }
       //AHA 2
-      if(dmuts.find(i)==dmuts.end()) assert(!p.mutations[i].n);
+      if(dmuts.find(i)==dmuts.end()) assert(!p.mutations[i].checked);
     }
   if(NN!=2*N)
     {
       cerr << NN << ' ' << 2*N << '\n';
-      for(const auto & g : p.gametes) cerr << g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
+      for(const auto & g : p.gametes) cerr <<"NN!=2N: "<< g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
     }
 #endif
   assert(NN==2*N);
