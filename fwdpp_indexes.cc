@@ -588,6 +588,9 @@ void sample(gsl_rng * r,
 	    const recmodel & rec)
 {
   assert(p.diploids.size()==N);
+#ifndef NDEBUG
+  for(const auto & m : p.mutations) assert(!m.checked);
+#endif
   auto mrec = make_mut_recycling_bin(p.mutations);
   auto grec = make_gamete_recycling_bin(p.gametes);
   auto glookup = make_gamete_lookup(p.gametes,p.mutations);
