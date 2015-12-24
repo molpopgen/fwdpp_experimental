@@ -41,7 +41,10 @@ struct gamete_t
 				 n(n_),neutral(neut_),selected(sel_)
   {
   }
-								    
+  inline bool operator==(const gamete_t & rhs) const noexcept
+  {
+    return ((this->neutral==rhs.neutral) && (this->selected == rhs.selected));
+  }
 };
 
 struct singlepop_t
@@ -652,8 +655,6 @@ void sample(gsl_rng * r,
       std::cerr << p.diploids[i].second << ' ' << p.gametes[p.diploids[i].second].neutral.size() << '\n';
 
       assert(p.gametes.size()<=2*N);
-      //p.diploids[i].first = p1g1;
-      //p.diploids[i].second = p2g1;
       p.gametes[p.diploids[i].first].n++;
       p.gametes[p.diploids[i].second].n++;
       assert(p.gametes[p.diploids[i].first].n <= 2*N);
