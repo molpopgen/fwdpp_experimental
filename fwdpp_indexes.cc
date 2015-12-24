@@ -252,7 +252,7 @@ void add_N_muts( queue_type & mut_recycling_bin,
     }
   assert( is_sorted( g.neutral.begin(),g.neutral.end(),[&mutations](size_t i,size_t j) {
  	return mutations[i].pos < mutations[j].pos;
-     }) );
+      }) );
   assert( is_sorted( g.selected.begin(),g.selected.end(),[&mutations](size_t i,size_t j) {
  	return mutations[i].pos < mutations[j].pos;
       }) );
@@ -411,23 +411,24 @@ void recombine_gametes_details( const vector<double> & pos,
  	return mutations[i].pos < mutations[j].pos;
       }) );
 }
-      
+
+//Returns index in gametes
 template< typename recombination_map,
 	  typename gvec_t,
 	  typename mvec_t,
 	  typename glookup_t,
 	  typename queue_t>
-unsigned recombine_gametes( gsl_rng * r,
-			    const double & littler,
-			    gvec_t & gametes,
-			    mvec_t & mutations,
-			    size_t & g1,
-			    const size_t & g2,
-			    glookup_t & gamete_lookup,
-			    queue_t & gamete_recycling_bin,
-			    vector<size_t> & neutral,
-			    vector<size_t> & selected,
-			    const recombination_map & mf)
+size_t recombine_gametes( gsl_rng * r,
+			  const double & littler,
+			  gvec_t & gametes,
+			  mvec_t & mutations,
+			  const size_t g1,
+			  const size_t g2,
+			  glookup_t & gamete_lookup,
+			  queue_t & gamete_recycling_bin,
+			  vector<size_t> & neutral,
+			  vector<size_t> & selected,
+			  const recombination_map & mf)
 {
   unsigned nbreaks = (littler>0.)?gsl_ran_poisson(r,littler):0;
   cerr << "nb="<< nbreaks << ' ';
@@ -465,20 +466,25 @@ unsigned recombine_gametes( gsl_rng * r,
 		  gametes[idx].n=0u;
 		  gametes[idx].neutral.swap(neutral);
 		  gametes[idx].selected.swap(selected);
-		  g1=idx;
+		  gamete_lookup.update(idx,gametes,mutations);
+		  return idx;
+		  //g1=idx;
 		}
 	      else
 		{
 		  gametes.emplace_back(0u,std::move(neutral),std::move(selected));
-		  g1=gametes.size()-1;
+		  gamete_lookup.update(gametes.size()-1,gametes,mutations);
+		  return gametes.size()-1;
+		  //g1=gametes.size()-1;
 		}
-	      gamete_lookup.update(g1,gametes,mutations);
+	      //gamete_lookup.update(g1,gametes,mutations);
 	    }
 	  else
 	    {
 	      assert(gametes[itr->second].neutral==neutral);
 	      assert(gametes[itr->second].selected==selected);
-	      g1 = itr->second;
+	      return itr->second;
+	      //g1 = itr->second;
 	    }
 	}
       else //attempt gamete recycling
@@ -492,18 +498,21 @@ unsigned recombine_gametes( gsl_rng * r,
 	      gametes[idx].n=0u;
 	      gametes[idx].neutral.swap(neutral);
 	      gametes[idx].selected.swap(selected);
-	      g1=idx;
+	      gamete_lookup.update(idx,gametes,mutations);
+	      return idx;
+	      //g1=idx;
 	    }
 	  else
 	    {
 	      gametes.emplace_back(0u,std::move(neutral),std::move(selected));
-	      g1=gametes.size()-1;
+	      gamete_lookup.update(gametes.size()-1,gametes,mutations);
+	      return gametes.size()-1;
 	    }
-	  gamete_lookup.update(g1,gametes,mutations);
+	  //gamete_lookup.update(g1,gametes,mutations);
 	}
     }
-  
-  return nbreaks;
+  return g1;
+  //return nbreaks;
 }
 
 template<typename mutation_t>
@@ -631,19 +640,20 @@ void sample(gsl_rng * r,
       if(gsl_rng_uniform(r)<0.5) swap(p2g1,p2g2);
 
       std::cerr << "rec1: " << p.gametes[p1g1].neutral.size() << ' ' << p.gametes[p1g2].neutral.size() << ' ' << p1g1 << ' ' << p1g2 << ' ';
-      recombine_gametes(r,littler,p.gametes,p.mutations,
-			p1g1,p1g2,glookup,grec,
-			p.neutral,p.selected,rec);
-      std::cerr << p1g1 << ' ' << p.gametes[p1g1].neutral.size() << '\n';
+      p.diploids[i].first = recombine_gametes(r,littler,p.gametes,p.mutations,
+					      p1g1,p1g2,glookup,grec,
+					      p.neutral,p.selected,rec);
+      std::cerr << p.diploids[i].first << ' ' << p.gametes[p.diploids[i].first].neutral.size() << '\n';
       assert(p.gametes.size()<=2*N);
       std::cerr << "rec2: " << p.gametes[p2g1].neutral.size() << ' ' << p2g1 << ' ';
-      recombine_gametes(r,littler,p.gametes,p.mutations,
-			p2g1,p2g2,glookup,grec,
-			p.neutral,p.selected,rec);
-      cerr << p2g1 << '\n';
+      p.diploids[i].second = recombine_gametes(r,littler,p.gametes,p.mutations,
+					       p2g1,p2g2,glookup,grec,
+					       p.neutral,p.selected,rec);
+      std::cerr << p.diploids[i].second << ' ' << p.gametes[p.diploids[i].second].neutral.size() << '\n';
+
       assert(p.gametes.size()<=2*N);
-      p.diploids[i].first = p1g1;
-      p.diploids[i].second = p2g1;
+      //p.diploids[i].first = p1g1;
+      //p.diploids[i].second = p2g1;
       p.gametes[p.diploids[i].first].n++;
       p.gametes[p.diploids[i].second].n++;
       assert(p.gametes[p.diploids[i].first].n <= 2*N);
@@ -668,7 +678,7 @@ void sample(gsl_rng * r,
       p.diploids[i].second = mut_recycle(mrec,grec,r,mutrate,p.gametes,p.mutations,p.diploids[i].second,m,
 					 [](vector<gamete_t> & gams, gamete_t && g ) {
 #ifndef NDEBUG
-    auto ss=gams.size();
+					   auto ss=gams.size();
 #endif
 					   gams.emplace_back(std::forward<gamete_t>(g));
 #ifndef NDEBUG
@@ -685,28 +695,28 @@ void sample(gsl_rng * r,
   std::set<size_t> dmuts;
   for( const auto & d : p.diploids )
     {
-    dgams.insert(d.first);
-    dgams.insert(d.second);
-    for( const auto & i : p.gametes[d.first].neutral ) dmuts.insert(i);
-    for( const auto & i : p.gametes[d.first].selected ) dmuts.insert(i);
-    assert( p.gametes[d.first].n>0 );
-    assert( p.gametes[d.second].n>0 );
-  }
+      dgams.insert(d.first);
+      dgams.insert(d.second);
+      for( const auto & i : p.gametes[d.first].neutral ) dmuts.insert(i);
+      for( const auto & i : p.gametes[d.first].selected ) dmuts.insert(i);
+      assert( p.gametes[d.first].n>0 );
+      assert( p.gametes[d.second].n>0 );
+    }
   for( unsigned i = 0 ; i < p.gametes.size() ; ++i )
     {
-    //AHA
-    if( dgams.find(i) == dgams.end() )
-      {
-	if(p.gametes[i].n) cerr << "I = " << i << ' ' << p.gametes[i].neutral.size() << ' '
-				<< p.mutations[p.gametes[i].neutral[0]].pos << ' '
-				<< p.mutations[p.gametes[i].neutral[0]].g << ' '
-				<< p.mutations[p.gametes[i].neutral[0]].n << ' '
-				<< '(' << p.mutations[p.gametes[i].neutral[0]].checked << ") "
-				<< (p.mut_lookup.find(p.mutations[p.gametes[i].neutral[0]].pos)==p.mut_lookup.end()) << '\n';
-	assert (!p.gametes[i].n);
-      }
-    else assert(p.gametes[i].n);
-  }
+      //AHA
+      if( dgams.find(i) == dgams.end() )
+	{
+	  if(p.gametes[i].n) cerr << "I = " << i << ' ' << p.gametes[i].neutral.size() << ' '
+				  << p.mutations[p.gametes[i].neutral[0]].pos << ' '
+				  << p.mutations[p.gametes[i].neutral[0]].g << ' '
+				  << p.mutations[p.gametes[i].neutral[0]].n << ' '
+				  << '(' << p.mutations[p.gametes[i].neutral[0]].checked << ") "
+				  << (p.mut_lookup.find(p.mutations[p.gametes[i].neutral[0]].pos)==p.mut_lookup.end()) << '\n';
+	  assert (!p.gametes[i].n);
+	}
+      else assert(p.gametes[i].n);
+    }
 #endif
   assert(p.gametes.size()<=2*N);
   unsigned NN=0;
@@ -714,30 +724,30 @@ void sample(gsl_rng * r,
     {
       NN+=g.n;
       if(g.n) {
-      for( auto & m : g.neutral )
-	{
-	  if (!p.mutations[m].checked)
-	    {
-	      p.mutations[m].n=g.n;
-	      p.mutations[m].checked=true;
-	    }
-	  else
-	    {
-	      p.mutations[m].n+=g.n;
-	    }
-	}
-      for( auto & m : g.selected )
-	{
-	  if (!p.mutations[m].checked)
-	    {
-	      p.mutations[m].n=g.n;
-	      p.mutations[m].checked=true;
-	    }
-	  else
-	    {
-	      p.mutations[m].n+=g.n;
-	    }
-	}
+	for( auto & m : g.neutral )
+	  {
+	    if (!p.mutations[m].checked)
+	      {
+		p.mutations[m].n=g.n;
+		p.mutations[m].checked=true;
+	      }
+	    else
+	      {
+		p.mutations[m].n+=g.n;
+	      }
+	  }
+	for( auto & m : g.selected )
+	  {
+	    if (!p.mutations[m].checked)
+	      {
+		p.mutations[m].n=g.n;
+		p.mutations[m].checked=true;
+	      }
+	    else
+	      {
+		p.mutations[m].n+=g.n;
+	      }
+	  }
       }
     }
 #ifndef NDEBUG
