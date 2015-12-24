@@ -415,6 +415,33 @@ void recombine_gametes_details( const vector<double> & pos,
       }) );
 }
 
+template<typename queue_t,
+	 typename gvec_t,
+	 typename mvec_t,
+	 typename glookup_t>
+size_t recycle_gamete(queue_t & gamete_recycling_bin,
+		      gvec_t & gametes,
+		      const mvec_t & mutations,
+		      glookup_t & gamete_lookup,
+		      vector<size_t> & neutral,
+		      vector<size_t> & selected)
+{
+  if(!gamete_recycling_bin.empty())
+    {
+      auto idx = gamete_recycling_bin.front();
+      assert(!gametes[idx].n);
+      gamete_recycling_bin.pop();
+      gametes[idx].n=0u;
+      gametes[idx].neutral.swap(neutral);
+      gametes[idx].selected.swap(selected);
+      gamete_lookup.update(idx,gametes,mutations);
+      return idx;
+    }
+  gametes.emplace_back(0u,std::move(neutral),std::move(selected));
+  gamete_lookup.update(gametes.size()-1,gametes,mutations);
+  return gametes.size()-1;
+}
+
 //Returns index in gametes
 template< typename recombination_map,
 	  typename gvec_t,
@@ -460,27 +487,7 @@ size_t recombine_gametes( gsl_rng * r,
 			     });
 	  if(itr==lookup.second)
 	    {
-	      if(!gamete_recycling_bin.empty())
-		{
-		  auto idx = gamete_recycling_bin.front();
-		  assert(g1!=idx);
-		  assert(!gametes[idx].n);
-		  gamete_recycling_bin.pop();
-		  gametes[idx].n=0u;
-		  gametes[idx].neutral.swap(neutral);
-		  gametes[idx].selected.swap(selected);
-		  gamete_lookup.update(idx,gametes,mutations);
-		  return idx;
-		  //g1=idx;
-		}
-	      else
-		{
-		  gametes.emplace_back(0u,std::move(neutral),std::move(selected));
-		  gamete_lookup.update(gametes.size()-1,gametes,mutations);
-		  return gametes.size()-1;
-		  //g1=gametes.size()-1;
-		}
-	      //gamete_lookup.update(g1,gametes,mutations);
+	      return recycle_gamete(gamete_recycling_bin,gametes,mutations,gamete_lookup,neutral,selected);
 	    }
 	  else
 	    {
@@ -492,26 +499,7 @@ size_t recombine_gametes( gsl_rng * r,
 	}
       else //attempt gamete recycling
 	{
-	  if(!gamete_recycling_bin.empty())
-	    {
-	      auto idx = gamete_recycling_bin.front();
-	      assert(g1!=idx);
-	      assert(!gametes[idx].n);
-	      gamete_recycling_bin.pop();
-	      gametes[idx].n=0u;
-	      gametes[idx].neutral.swap(neutral);
-	      gametes[idx].selected.swap(selected);
-	      gamete_lookup.update(idx,gametes,mutations);
-	      return idx;
-	      //g1=idx;
-	    }
-	  else
-	    {
-	      gametes.emplace_back(0u,std::move(neutral),std::move(selected));
-	      gamete_lookup.update(gametes.size()-1,gametes,mutations);
-	      return gametes.size()-1;
-	    }
-	  //gamete_lookup.update(g1,gametes,mutations);
+	  return recycle_gamete(gamete_recycling_bin,gametes,mutations,gamete_lookup,neutral,selected);
 	}
     }
   return g1;
