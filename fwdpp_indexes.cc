@@ -753,9 +753,6 @@ void sample(gsl_rng * r,
     }
 #endif
 
-#ifndef NDEBUG
-  NN=0;
-  #endif
 
 #ifndef NDEBUG
   for( const auto & dm : dmuts ) assert(p.mutations[dm].checked);
@@ -776,9 +773,7 @@ void sample(gsl_rng * r,
       for(const auto & g : p.gametes) cerr <<"NN!=2N: "<< g.n << ' ' << g.neutral.size() << ' ' << g.selected.size() << '\n';
     }
 #endif
-  assert(NN==2*N);
 #ifndef NDEBUG
-  NN=0;
   for(const auto & m : p.mutations) assert(m.n<=2*N);
   for( const auto & g : p.gametes )
     {
