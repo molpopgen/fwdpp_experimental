@@ -68,7 +68,7 @@ struct singlepop_t
 				       diploids(dipvec_t(N, dip_t(0,0))),
 				       mut_lookup(lookup_t())
   {
-    gametes.reserve(2*N);
+    gametes.reserve(4*N);
     assert(gametes[0].n==2*N);
 #ifndef NDEBUG
     for( const auto & d : diploids )
@@ -77,8 +77,8 @@ struct singlepop_t
 	assert( gametes[d.second].n==2*N );
       }
 #endif
-    neutral.reserve(100);
-    selected.reserve(100);
+    neutral.reserve(1000);
+    selected.reserve(1000);
   }
 };
 
@@ -563,6 +563,40 @@ glookup_t<mutation_t> make_gamete_lookup( const std::vector<gamete_t> & gametes,
   return glookup_t<mutation_t>(gametes,mutations);
 }
 
+template<typename gvec_t,typename mvec_t>
+void adjust_mutation_counts(gvec_t & gametes, mvec_t & mutations)
+{
+    for( auto & g : gametes )
+    {
+      if(g.n) {
+	for( auto & m : g.neutral )
+	  {
+	    if (!mutations[m].checked)
+	      {
+		mutations[m].n=g.n;
+		mutations[m].checked=true;
+	      }
+	    else
+	      {
+		mutations[m].n+=g.n;
+	      }
+	  }
+	for( auto & m : g.selected )
+	  {
+	    if (!mutations[m].checked)
+	      {
+		mutations[m].n=g.n;
+		mutations[m].checked=true;
+	      }
+	    else
+	      {
+		mutations[m].n+=g.n;
+	      }
+	  }
+      }
+    }
+}
+
 template<typename poptype,
 	 typename mmodel,
 	 typename fmodel,
@@ -679,6 +713,7 @@ void sample(gsl_rng * r,
 					 });
       assert(p.gametes[dip.second].n);
     }
+  adjust_mutation_counts(p.gametes,p.mutations);
 #ifndef NDEBUG
   unsigned NN=0;
   std::set<size_t> dgams;
@@ -721,38 +756,7 @@ void sample(gsl_rng * r,
 #ifndef NDEBUG
   NN=0;
   #endif
-  for( auto & g : p.gametes )
-    {
-#ifndef NDEBUG
-      NN+=g.n;
-#endif
-      if(g.n) {
-	for( auto & m : g.neutral )
-	  {
-	    if (!p.mutations[m].checked)
-	      {
-		p.mutations[m].n=g.n;
-		p.mutations[m].checked=true;
-	      }
-	    else
-	      {
-		p.mutations[m].n+=g.n;
-	      }
-	  }
-	for( auto & m : g.selected )
-	  {
-	    if (!p.mutations[m].checked)
-	      {
-		p.mutations[m].n=g.n;
-		p.mutations[m].checked=true;
-	      }
-	    else
-	      {
-		p.mutations[m].n+=g.n;
-	      }
-	  }
-      }
-    }
+
 #ifndef NDEBUG
   for( const auto & dm : dmuts ) assert(p.mutations[dm].checked);
   
