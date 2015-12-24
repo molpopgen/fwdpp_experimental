@@ -455,6 +455,7 @@ unsigned recombine_gametes( gsl_rng * r,
 	      if(!gamete_recycling_bin.empty())
 		{
 		  auto idx = gamete_recycling_bin.front();
+		  assert(g1!=idx);
 		  assert(!gametes[idx].n);
 		  gamete_recycling_bin.pop();
 		  gametes[idx].n=0u;
@@ -481,6 +482,7 @@ unsigned recombine_gametes( gsl_rng * r,
 	  if(!gamete_recycling_bin.empty())
 	    {
 	      auto idx = gamete_recycling_bin.front();
+	      assert(g1!=idx);
 	      assert(!gametes[idx].n);
 	      gamete_recycling_bin.pop();
 	      gametes[idx].n=0u;
