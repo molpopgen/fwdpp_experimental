@@ -837,7 +837,7 @@ int main(int argc, char ** argv)
   double littler=rho/double(4*N);
   for(unsigned i = 0 ; i < pop.mutations.capacity() ; ++i )
     pop.mutations.emplace_back(0,0,0,0,0);
-  for(unsigned i=0;i<2*N;++i) pop.gametes.emplace_back(0);
+  for(unsigned i=0;i<3*N;++i) pop.gametes.emplace_back(0);
   gsl_rng * r = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(r, seed );
   cout << N << ' ' << theta << ' ' << rho << ' ' << seed << ' ' << pop.mutations.capacity() << ' ' << pop.gametes.capacity() << '\n';
