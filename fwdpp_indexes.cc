@@ -764,8 +764,9 @@ void sample(gsl_rng * r,
 #ifndef NDEBUG
   for(unsigned i=0;i<p.mutations.size();++i)
     {
-      if(p.mutations[i].n) {
-	cerr << "bad mutation: " << dmuts.size() << ' ' << p.mutations.size() << ' ' << i << ' ' << p.mutations[i].n << ' ' << p.mutations[i].g << '\n';
+      if(p.mutations[i].n&&dmuts.find(i)==dmuts.end()) {
+	cerr << "bad mutation: " << dmuts.size() << ' ' << p.mutations.size() << ' ' << i << ' '
+	     << p.mutations[i].pos << ' ' << p.mutations[i].n << ' ' << p.mutations[i].g << '\n';
       }
       //AHA 2
       if(dmuts.find(i)==dmuts.end()) assert(!p.mutations[i].n);
