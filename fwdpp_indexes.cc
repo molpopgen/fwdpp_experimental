@@ -697,7 +697,9 @@ void sample(gsl_rng * r,
       if ( dgams.find(d.second) == dgams.end() ) NN += p.gametes[d.second].n;
       dgams.insert(d.second);
       for( const auto & i : p.gametes[d.first].neutral ) dmuts.insert(i);
+      for( const auto & i : p.gametes[d.second].neutral ) dmuts.insert(i);
       for( const auto & i : p.gametes[d.first].selected ) dmuts.insert(i);
+      for( const auto & i : p.gametes[d.second].selected ) dmuts.insert(i);
       assert( p.gametes[d.first].n>0 );
       assert( p.gametes[d.second].n>0 );
     }
