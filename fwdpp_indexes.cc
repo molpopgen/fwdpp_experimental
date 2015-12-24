@@ -186,6 +186,7 @@ struct mpol
 	if ( ! recycling_bin.empty() )
 	  {
 	    auto idx = recycling_bin.front();
+	    assert(idx < mutations.size());
 	    assert(!mutations[idx].n);
 	    recycling_bin.pop();
 	    mutations[idx].pos=pos;
@@ -221,7 +222,7 @@ struct mpol
 template<typename queue_type,
 	 typename mutation_model,
 	 typename mvec_t>
-void add_N_muts( queue_type & recycling_bin,
+void add_N_muts( queue_type & mut_recycling_bin,
 		 const mutation_model & mmodel,
 		 const unsigned & n,
 		 mvec_t & mutations,
@@ -229,8 +230,8 @@ void add_N_muts( queue_type & recycling_bin,
 {
   for(unsigned i=0;i<n;++i)
     {
-      size_t idx = mmodel(recycling_bin,mutations);
-      std::cerr << "new mutation index = " << idx << '\n';
+      size_t idx = mmodel(mut_recycling_bin,mutations);
+      std::cerr << "new mutation index = " << idx << ' ' << mutations.size() << ' ' << mutations.capacity() << '\n';
       if( mutations[idx].neutral )
 	{
 	  g.neutral.emplace(upper_bound(g.neutral.begin(),g.neutral.end(),mutations[idx].pos,
