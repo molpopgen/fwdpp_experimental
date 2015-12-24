@@ -683,17 +683,25 @@ void sample(gsl_rng * r,
       assert(p.gametes.size()<=2*N);
     }
 #ifndef NDEBUG
+  unsigned NN=0;
   std::set<size_t> dgams;
   std::set<size_t> dmuts;
   for( const auto & d : p.diploids )
     {
+      assert(p.gametes[d.first].n);
+      assert(p.gametes[d.second].n);
+      assert(p.gametes[d.first].n<=2*N);
+      assert(p.gametes[d.second].n<=2*N);
+      if ( dgams.find(d.first) == dgams.end() ) NN += p.gametes[d.first].n;
       dgams.insert(d.first);
+      if ( dgams.find(d.second) == dgams.end() ) NN += p.gametes[d.second].n;
       dgams.insert(d.second);
       for( const auto & i : p.gametes[d.first].neutral ) dmuts.insert(i);
       for( const auto & i : p.gametes[d.first].selected ) dmuts.insert(i);
       assert( p.gametes[d.first].n>0 );
       assert( p.gametes[d.second].n>0 );
     }
+  assert(NN==2*N);
   for( unsigned i = 0 ; i < p.gametes.size() ; ++i )
     {
       //AHA
@@ -712,13 +720,6 @@ void sample(gsl_rng * r,
 #endif
   assert(p.gametes.size()<=2*N);
 #ifndef NDEBUG
-  unsigned NN=0;
-  for ( const auto & d : p.diploids )
-    {
-      NN += p.gametes[d.first].n;
-      NN += p.gametes[d.second].n;
-    }
-  assert(NN=2*N);
   NN=0;
   #endif
   for( auto & g : p.gametes )
