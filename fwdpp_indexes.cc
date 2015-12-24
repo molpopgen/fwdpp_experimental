@@ -4,6 +4,7 @@
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <algorithm>
 #include <unordered_set>
 #include <type_traits>
 #include <numeric>
