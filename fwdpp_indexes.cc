@@ -719,10 +719,21 @@ void sample(gsl_rng * r,
     }
 #endif
   assert(p.gametes.size()<=2*N);
+#ifndef NDEBUG
   unsigned NN=0;
+  for ( const auto & d : p.diploids )
+    {
+      NN += p.gametes[d.first].n;
+      NN += p.gametes[d.second].n;
+    }
+  assert(NN=2*N);
+  NN=0;
+  #endif
   for( auto & g : p.gametes )
     {
+#ifndef NDEBUG
       NN+=g.n;
+#endif
       if(g.n) {
 	for( auto & m : g.neutral )
 	  {
