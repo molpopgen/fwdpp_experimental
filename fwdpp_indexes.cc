@@ -277,7 +277,7 @@ size_t mut_recycle( queue_type & mut_recycling_bin,
 {
   static_assert( typename std::is_same<typename queue_type::value_type,size_t>::type(),"foo");
   unsigned nm = gsl_ran_poisson(r,mu);
-  if(!nm) return nm;
+  if(!nm) return gamete_index;
   assert(gametes[gamete_index].n);
   gametes[gamete_index].n--;
   if( ! gamete_recycling_bin.empty() )
