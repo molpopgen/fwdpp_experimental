@@ -263,7 +263,7 @@ template< typename queue_type,
 	  typename gamete_insertion_policy,
 	  typename gvec_t,
 	  typename mvec_t >
-size_t mut_recycle( queue_type & recycling_bin,
+size_t mut_recycle( queue_type & mut_recycling_bin,
 		    queue_type2 & gamete_recycling_bin,
 		    gsl_rng * r,
 		    const double & mu,
@@ -287,11 +287,11 @@ size_t mut_recycle( queue_type & recycling_bin,
       gametes[idx].n=1;
       gametes[idx].neutral=gametes[gamete_index].neutral;
       gametes[idx].selected=gametes[gamete_index].selected;
-      add_N_muts(recycling_bin,mmodel,nm,mutations,gametes[idx]);
+      add_N_muts(mut_recycling_bin,mmodel,nm,mutations,gametes[idx]);
       return idx;
     }
   typename gvec_t::value_type ng(1,gametes[gamete_index].neutral,gametes[gamete_index].selected);
-  add_N_muts(recycling_bin,mmodel,nm,mutations,ng);
+  add_N_muts(mut_recycling_bin,mmodel,nm,mutations,ng);
   return gpolicy(gametes,std::move(ng));
 }
 
