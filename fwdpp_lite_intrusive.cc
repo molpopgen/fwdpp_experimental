@@ -82,7 +82,7 @@ struct mutation_remover
                const unsigned &x2) const
     {
         // PROBLEMO
-        return (i->references == x1) || (i->fixed); 
+        return (i->references == x1) || (i->fixed);
     }
 };
 
@@ -127,8 +127,8 @@ add_N_mutations(const mutation_model &mmodel,
                 const mutation_insertion_policy &mpolicy, const unsigned &n,
                 mlist_type *mutations, gamete_type &g)
 {
-	auto X = mutations->size();
-	auto gm = g->mutations.size();
+    auto X = mutations->size();
+    auto gm = g->mutations.size();
     for (unsigned i = 0; i < n; ++i)
         {
             // ALLOCATE
@@ -138,7 +138,8 @@ add_N_mutations(const mutation_model &mmodel,
             auto mitr = mpolicy(std::move(nmut_p), mutations);
             add_new_mutation(*mitr, g);
         }
-	std::cout << n << ' ' << X << ' ' << mutations->size() << ' ' << gm << ' ' << g->mutations.size() << '\n';
+    //	std::cout << n << ' ' << X << ' ' << mutations->size() << ' ' << gm <<
+    //' ' << g->mutations.size() << '\n';
 }
 
 template <typename gamete_t, typename mutation_model, typename mvector_t,
@@ -156,10 +157,10 @@ mutate_gamete(gsl_rng *r, const double &mu, gvector_t *gametes,
     if (nm)
         {
             // ALLOCATE
-            gptr_t ng(new gamete(g->mutations,g->smutations));
+            gptr_t ng(new gamete(g->mutations, g->smutations));
 
             //"decrement the count"
-//            g.reset();
+            //            g.reset();
             add_N_mutations(mmodel, mpolicy, nm, mutations, ng);
             return gpolicy(std::move(ng), gametes);
         }
@@ -680,8 +681,8 @@ main(int argc, char **argv)
     gametes.reserve(2 * N);
 
     const std::function<double(void)> recmap = std::bind(gsl_rng_uniform, r);
-
-    for (unsigned gen = 0; gen < simlen; ++gen)
+    unsigned gen = 0;
+    for (; gen < simlen; ++gen)
         {
             // if(gen % 100 == 0.) cout << gen << endl;
             double wbar = sample_diploid(
@@ -715,6 +716,6 @@ main(int argc, char **argv)
                                       }),
                             mutations.end());
         }
-    std::cerr << mutations.size() << ' ' << gametes.size() << ' '
+    std::cerr << gen <<  ' ' << mutations.size() << ' ' << gametes.size() << ' '
               << diploids.size() << '\n';
 }
