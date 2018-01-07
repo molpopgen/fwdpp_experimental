@@ -42,9 +42,6 @@ struct mutation
           fixed(false)
     {
     }
-
-    // Taming compiler errors
-    mutation(mutation *m) : pos(m->pos), s(m->s), h(m->h), gen(m->gen) {}
 };
 
 using mptr_t = boost::intrusive_ptr<mutation>;
