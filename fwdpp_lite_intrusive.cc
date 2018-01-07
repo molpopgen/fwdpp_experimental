@@ -693,7 +693,7 @@ main(int argc, char **argv)
                 std::bind(genetics101(), std::placeholders::_1,
                           std::placeholders::_2, &gametes, littler, r, recmap),
                 // insertion/update policies--these gotta be custom, as the
-                // existing ones are NOT applicab
+                // existing ones are NOT applicable
                 [](mptr_t &&m, mvector *mv) {
                     return mv->insert(mv->end(), forward<mptr_t>(m));
                 },
@@ -706,8 +706,6 @@ main(int argc, char **argv)
                 // mut removal policy
                 std::bind(mutation_remover(), std::placeholders::_1, 1,
                           2 * N + 1),
-                //[&N](mptr_t & __g){ return __g.use_count() == 1 ||
-                //__g.use_count() == (2*N+1); },
                 0.);
             mutations.erase(remove_if(mutations.begin(), mutations.end(),
                                       [](mptr_t &m) {
