@@ -1,4 +1,5 @@
 // A version of fwdpp_lite.cc using boost's intrusive_ptr.
+// Note: out of date w/current concept of recycling
 #include <memory>
 #include <vector>
 #include <list>
