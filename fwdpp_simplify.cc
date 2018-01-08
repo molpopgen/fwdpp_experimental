@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 #include <gsl/gsl_randist.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
@@ -21,6 +22,15 @@
 #include <fwdpp/util.hpp>
 #include "node.hpp"
 #include "edge.hpp"
+
+struct tables
+{
+    std::vector<node> node_table;
+    std::vector<edge> edge_table;
+    std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
+
+    tables() : node_table{}, edge_table{}, mutation_table{} {}
+};
 
 using singlepop_t = fwdpp::singlepop<fwdpp::popgenmut>;
 using GSLrng_t = fwdpp::GSLrng_t<fwdpp::GSL_RNG_MT19937>;
@@ -109,10 +119,9 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
 }
 
 double
-evolve(
-    const GSLrng_t& rng, singlepop_t& pop,
-    const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
-    const double mu_selected, const double recrate)
+evolve(const GSLrng_t& rng, singlepop_t& pop,
+       const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
+       const double mu_selected, const double recrate)
 {
     const auto generations = popsizes.size();
     if (!generations)
