@@ -109,7 +109,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
 }
 
 double
-evolve_singlepop_regions_track_ancestry(
+evolve(
     const GSLrng_t& rng, singlepop_t& pop,
     const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
     const double mu_selected, const double recrate)
