@@ -1,3 +1,6 @@
+//Copied from fwdpy11_arg_example.
+//Author: KRT
+//License: GPL3+
 #include "split_breakpoints.hpp"
 
 std::pair<std::vector<std::pair<double, double>>,
