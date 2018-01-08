@@ -23,6 +23,8 @@
 #include "node.hpp"
 #include "edge.hpp"
 
+static constexpr std::int32_t ROOTNODE = std::numeric_limits<std::int32_t>::min();
+
 struct tables
 {
     std::vector<node> node_table;
