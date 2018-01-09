@@ -169,27 +169,8 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             next_index_local
                 = tables.add_offspring_data(next_index_local, breakpoints,
                                             new_mutations, p2id, generation);
-            // dip.first = ancestry_recombination_details(
-            //    pop, ancestry, gamete_recycling_bin, p1g1, p1g2, breakpoints,
-            //    pid, std::get<0>(offspring_indexes));
-            // pid = ancestry.get_parent_ids(p2, swap2);
-
-            // dip.second = ancestry_recombination_details(
-            //    pop, ancestry, gamete_recycling_bin, p2g1, p2g2, breakpoints,
-            //    pid, std::get<1>(offspring_indexes));
-
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
-
-            // now, add new mutations
-            // dip.first = fwdpp::mutate_gamete_recycle(
-            //    mutation_recycling_bin, gamete_recycling_bin, rng.get(), mu,
-            //    pop.gametes, pop.mutations, dip.first, mmodel,
-            //    fwdpp::emplace_back());
-            // dip.second = fwdpp::mutate_gamete_recycle(
-            //    mutation_recycling_bin, gamete_recycling_bin, rng.get(), mu,
-            //    pop.gametes, pop.mutations, dip.second, mmodel,
-            //    fwdpp::emplace_back());
         }
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
                                            pop.mcounts);
