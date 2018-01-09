@@ -281,4 +281,12 @@ main(int argc, char** argv)
     std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
+
+    std::sort(tables.edge_table.begin(), tables.edge_table.end(),
+              [&tables](const edge& a, const edge& b) {
+                  return std::tie(tables.node_table[a.child].generation,
+                                  a.parent, a.child, a.left)
+                         < std::tie(tables.node_table[b.child].generation,
+                                    b.parent, b.child, b.left);
+              });
 }
