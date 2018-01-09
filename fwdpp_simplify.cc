@@ -202,3 +202,22 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                                     2 * pop.diploids.size());
         }
 }
+
+int main(int argc, char ** argv)
+{
+    int argn=1;
+    fwdpp::uint_t N = atoi(argv[argn++]);
+    double theta = atof(argv[argn++]);
+    double rho = atof(argv[argn++]);
+    double pdel = atof(argv[argn++]);
+    unsigned seed = atoi(argv[argn++]);
+
+    singlepop_t pop(N);
+    std::vector<fwdpp::uint_t> popsizes(10*N,N);
+    GSLrng_t rng(seed);
+    double mu = theta/(4.*static_cast<double>(N));
+    double recrate = rho/(4.*static_cast<double>(N));
+    double mudel = mu*pdel;
+
+    evolve(rng,pop,popsizes,mu,mudel,recrate);
+}
