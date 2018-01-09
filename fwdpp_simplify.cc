@@ -35,7 +35,7 @@ struct table_collection
     std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
 
     table_collection()
-        : node_table{ make_node(ROOTNODE, 0, 0.0) }, edge_table{},
+        : node_table{ make_node(ROOTNODE, 0, 0) }, edge_table{},
           mutation_table{}
     {
     }
@@ -47,18 +47,18 @@ struct table_collection
                        const std::tuple<std::int32_t, std::int32_t>& parents,
                        const double generation)
     {
-        node_table.push_back(make_node(next_index, 0, generation));
+        node_table.push_back(make_node(next_index, generation, 0));
         auto split = split_breakpoints(breakpoints, 0., 1.);
         // Add the edges
         for (auto&& brk : split.first)
             {
                 edge_table.push_back(make_edge(
-                    brk.first, brk.second, next_index, std::get<0>(parents)));
+                    brk.first, brk.second, std::get<0>(parents), next_index));
             }
         for (auto&& brk : split.second)
             {
                 edge_table.push_back(make_edge(
-                    brk.first, brk.second, next_index, std::get<1>(parents)));
+                    brk.first, brk.second, std::get<1>(parents), next_index));
             }
         for (auto&& m : new_mutations)
             mutation_table.emplace_back(next_index, m);
@@ -236,13 +236,22 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
           };
 
     table_collection tables;
-    std::int32_t first_parental_index = ROOTNODE;
+    std::int32_t first_parental_index = ROOTNODE, next_index = 0;
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables,
-                              first_parental_index, 2 * pop.diploids.size());
+                              first_parental_index, next_index);
+            if (first_parental_index == ROOTNODE)
+                {
+                    first_parental_index = 0;
+                }
+            else
+                {
+                    first_parental_index += 2 * pop.diploids.size();
+                }
+            next_index += 2 * pop.diploids.size();
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
