@@ -9,6 +9,11 @@ split_breakpoints(const std::vector<double>& breakpoints, const double start,
                   const double stop)
 {
     std::vector<std::pair<double, double>> r1, r2;
+	if(breakpoints.empty())
+	{
+		r1.emplace_back(start,stop);
+		goto out;
+	}
     if (breakpoints.front() != 0.0)
         {
             r1.emplace_back(std::make_pair(start, breakpoints.front()));
@@ -26,6 +31,7 @@ split_breakpoints(const std::vector<double>& breakpoints, const double start,
                     r2.emplace_back(a, b);
                 }
         }
+out:
     return std::make_pair(std::move(r1), std::move(r2));
 }
 
