@@ -199,7 +199,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
     pop.diploids.swap(offspring);
 }
 
-double
+table_collection
 evolve(const GSLrng_t& rng, singlepop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
        const double mu_selected, const double recrate)
@@ -240,15 +240,15 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
-            evolve_generation(rng, pop, N_next, mu_neutral+mu_selected, mmodel, recmap,
-                              generation, tables, first_parental_index,
-                              2 * pop.diploids.size());
+            evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
+                              mmodel, recmap, generation, tables,
+                              first_parental_index, 2 * pop.diploids.size());
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
-    std::cout << pop.mutations.size() << ' ' << pop.gametes.size() << '\n';
+    return tables;
 }
 
 int
@@ -268,5 +268,8 @@ main(int argc, char** argv)
     double recrate = rho / (4. * static_cast<double>(N));
     double mudel = mu * pdel;
 
-    evolve(rng, pop, popsizes, mu, mudel, recrate);
+    auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
+    std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
+              << tables.edge_table.size() << ' '
+              << tables.mutation_table.size() << '\n';
 }
