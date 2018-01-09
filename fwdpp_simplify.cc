@@ -56,12 +56,22 @@ w(singlepop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
+std::tuple<std::int32_t, std::int32_t>
+get_parent_ids(const std::int32_t first_parental_index,
+               const std::uint32_t parent, const int did_swap)
+{
+    return std::make_tuple(
+        first_parental_index + 2 * static_cast<std::int32_t>(parent) + did_swap,
+        first_parental_index + 2 * static_cast<std::int32_t>(parent) + !did_swap);
+}
+
 template <typename breakpoint_function, typename mutation_model>
 void
 evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
-                  const breakpoint_function& recmodel, std::int32_t next_id)
+                  const breakpoint_function& recmodel,
+                  std::int32_t first_parental_index, std::int32_t next_index)
 {
 
     auto gamete_recycling_bin
@@ -90,15 +100,16 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             if (swap2)
                 std::swap(p2g1, p2g2);
 
+            auto p1id = get_parent_ids(first_parental_index,p1,swap1);
+            auto p2id = get_parent_ids(first_parental_index,p2,swap2);
+
             auto breakpoints = fwdpp::generate_breakpoints(
                 pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
                 recmodel);
-            auto split
-                = split_breakpoints(breakpoints, 0., 1.);
-            auto new_mutations
-                = fwdpp::generate_new_mutations(
-                    mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
-                    pop.gametes, pop.mutations, p1g1, mmodel);
+            auto split = split_breakpoints(breakpoints, 0., 1.);
+            auto new_mutations = fwdpp::generate_new_mutations(
+                mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
+                pop.gametes, pop.mutations, p1g1, mmodel);
             dip.first = fwdpp::mutate_recombine(
                 new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
@@ -162,10 +173,10 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
             throw std::runtime_error("negative recombination rate: "
                                      + std::to_string(recrate));
         }
-    pop.mutations.reserve(
-        std::ceil(std::log(2 * pop.N)
-                  * (4. * double(pop.N) * (mu_selected)
-                     + 0.667 * (4. * double(pop.N) * (mu_selected)))));
+    pop.mutations.reserve(std::ceil(
+        std::log(2 * pop.diploids.size())
+        * (4. * double(pop.diploids.size()) * (mu_selected)
+           + 0.667 * (4. * double(pop.diploids.size()) * (mu_selected)))));
 
     fwdpp::poisson_xover recmap(rng.get(), recrate, 0., 1.);
     unsigned generation = 0;
@@ -184,9 +195,10 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_selected, mmodel, recmap,
-                              0);
+                              ROOTNODE, 2 * pop.diploids.size());
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
-                                    pop.mcounts, generation, 2 * pop.N);
+                                    pop.mcounts, generation,
+                                    2 * pop.diploids.size());
         }
 }
