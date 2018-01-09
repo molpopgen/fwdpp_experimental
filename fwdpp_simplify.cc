@@ -22,8 +22,10 @@
 #include <fwdpp/util.hpp>
 #include "node.hpp"
 #include "edge.hpp"
+#include "split_breakpoints.hpp"
 
-static constexpr std::int32_t ROOTNODE = std::numeric_limits<std::int32_t>::min();
+static constexpr std::int32_t ROOTNODE
+    = std::numeric_limits<std::int32_t>::min();
 
 struct tables
 {
@@ -59,7 +61,7 @@ void
 evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
-                  const breakpoint_function& recmodel)
+                  const breakpoint_function& recmodel, std::int32_t next_id)
 {
 
     auto gamete_recycling_bin
@@ -88,11 +90,33 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             if (swap2)
                 std::swap(p2g1, p2g2);
 
-            auto breakpoints = recmodel();
+            auto breakpoints = fwdpp::generate_breakpoints(
+                pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
+                recmodel);
+            auto split
+                = split_breakpoints(breakpoints, 0., 1.);
+            auto new_mutations
+                = fwdpp::generate_new_mutations(
+                    mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
+                    pop.gametes, pop.mutations, p1g1, mmodel);
+            dip.first = fwdpp::mutate_recombine(
+                new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
+                pop.mutations, gamete_recycling_bin, pop.neutral,
+                pop.selected);
+            breakpoints = fwdpp::generate_breakpoints(pop.diploids[p2], p2g1,
+                                                      p2g2, pop.gametes,
+                                                      pop.mutations, recmodel);
+            split = split_breakpoints(breakpoints, 0., 1.);
+            new_mutations = fwdpp::generate_new_mutations(
+                mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
+                pop.gametes, pop.mutations, p2g1, mmodel);
+            dip.second = fwdpp::mutate_recombine(
+                new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
+                pop.mutations, gamete_recycling_bin, pop.neutral,
+                pop.selected);
             // dip.first = ancestry_recombination_details(
             //    pop, ancestry, gamete_recycling_bin, p1g1, p1g2, breakpoints,
             //    pid, std::get<0>(offspring_indexes));
-            breakpoints = recmodel();
             // pid = ancestry.get_parent_ids(p2, swap2);
 
             // dip.second = ancestry_recombination_details(
@@ -159,7 +183,8 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
     for (unsigned generation = 0; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
-            evolve_generation(rng, pop, N_next, mu_selected, mmodel, recmap);
+            evolve_generation(rng, pop, N_next, mu_selected, mmodel, recmap,
+                              0);
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation, 2 * pop.N);
