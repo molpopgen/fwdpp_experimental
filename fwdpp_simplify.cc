@@ -6,6 +6,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 #include <gsl/gsl_randist.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
@@ -27,13 +28,42 @@
 static constexpr std::int32_t ROOTNODE
     = std::numeric_limits<std::int32_t>::min();
 
-struct tables
+struct table_collection
 {
     std::vector<node> node_table;
     std::vector<edge> edge_table;
     std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
 
-    tables() : node_table{}, edge_table{}, mutation_table{} {}
+    table_collection()
+        : node_table{ make_node(ROOTNODE, 0, 0.0) }, edge_table{},
+          mutation_table{}
+    {
+    }
+
+    std::int32_t
+    add_offspring_data(const std::int32_t next_index,
+                       const std::vector<double>& breakpoints,
+                       const std::vector<fwdpp::uint_t>& new_mutations,
+                       const std::tuple<std::int32_t, std::int32_t>& parents,
+                       const double generation)
+    {
+        node_table.push_back(make_node(next_index, 0, generation));
+        auto split = split_breakpoints(breakpoints, 0., 1.);
+        // Add the edges
+        for (auto&& brk : split.first)
+            {
+                edge_table.push_back(make_edge(
+                    brk.first, brk.second, next_index, std::get<0>(parents)));
+            }
+        for (auto&& brk : split.second)
+            {
+                edge_table.push_back(make_edge(
+                    brk.first, brk.second, next_index, std::get<1>(parents)));
+            }
+        for (auto&& m : new_mutations)
+            mutation_table.emplace_back(next_index, m);
+        return next_index + 1;
+    }
 };
 
 using singlepop_t = fwdpp::singlepop<fwdpp::popgenmut>;
@@ -60,9 +90,15 @@ std::tuple<std::int32_t, std::int32_t>
 get_parent_ids(const std::int32_t first_parental_index,
                const std::uint32_t parent, const int did_swap)
 {
+    if (first_parental_index == ROOTNODE)
+        {
+            return std::make_tuple(ROOTNODE, ROOTNODE);
+        }
     return std::make_tuple(
-        first_parental_index + 2 * static_cast<std::int32_t>(parent) + did_swap,
-        first_parental_index + 2 * static_cast<std::int32_t>(parent) + !did_swap);
+        first_parental_index + 2 * static_cast<std::int32_t>(parent)
+            + did_swap,
+        first_parental_index + 2 * static_cast<std::int32_t>(parent)
+            + !did_swap);
 }
 
 template <typename breakpoint_function, typename mutation_model>
@@ -71,6 +107,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
+                  const fwdpp::uint_t generation, table_collection& tables,
                   std::int32_t first_parental_index, std::int32_t next_index)
 {
 
@@ -83,6 +120,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
     decltype(pop.diploids) offspring(N_next);
 
     // Generate the offspring
+    auto next_index_local = next_index;
     for (auto& dip : offspring)
         {
             auto p1 = gsl_ran_discrete(rng.get(), lookup.get());
@@ -100,13 +138,12 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             if (swap2)
                 std::swap(p2g1, p2g2);
 
-            auto p1id = get_parent_ids(first_parental_index,p1,swap1);
-            auto p2id = get_parent_ids(first_parental_index,p2,swap2);
+            auto p1id = get_parent_ids(first_parental_index, p1, swap1);
+            auto p2id = get_parent_ids(first_parental_index, p2, swap2);
 
             auto breakpoints = fwdpp::generate_breakpoints(
                 pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
                 recmodel);
-            auto split = split_breakpoints(breakpoints, 0., 1.);
             auto new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
                 pop.gametes, pop.mutations, p1g1, mmodel);
@@ -114,10 +151,14 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                 new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
+
+            next_index_local
+                = tables.add_offspring_data(next_index_local, breakpoints,
+                                            new_mutations, p1id, generation);
+
             breakpoints = fwdpp::generate_breakpoints(pop.diploids[p2], p2g1,
                                                       p2g2, pop.gametes,
                                                       pop.mutations, recmodel);
-            split = split_breakpoints(breakpoints, 0., 1.);
             new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
                 pop.gametes, pop.mutations, p2g1, mmodel);
@@ -125,6 +166,9 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                 new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
+            next_index_local
+                = tables.add_offspring_data(next_index_local, breakpoints,
+                                            new_mutations, p2id, generation);
             // dip.first = ancestry_recombination_details(
             //    pop, ancestry, gamete_recycling_bin, p1g1, p1g2, breakpoints,
             //    pid, std::get<0>(offspring_indexes));
@@ -191,21 +235,26 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                          []() { return 0.; }, []() { return 0.; });
           };
 
-    for (unsigned generation = 0; generation < generations; ++generation)
+    table_collection tables;
+    std::int32_t first_parental_index = ROOTNODE;
+    for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
-            evolve_generation(rng, pop, N_next, mu_selected, mmodel, recmap,
-                              ROOTNODE, 2 * pop.diploids.size());
+            evolve_generation(rng, pop, N_next, mu_neutral+mu_selected, mmodel, recmap,
+                              generation, tables, first_parental_index,
+                              2 * pop.diploids.size());
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
+    std::cout << pop.mutations.size() << ' ' << pop.gametes.size() << '\n';
 }
 
-int main(int argc, char ** argv)
+int
+main(int argc, char** argv)
 {
-    int argn=1;
+    int argn = 1;
     fwdpp::uint_t N = atoi(argv[argn++]);
     double theta = atof(argv[argn++]);
     double rho = atof(argv[argn++]);
@@ -213,11 +262,11 @@ int main(int argc, char ** argv)
     unsigned seed = atoi(argv[argn++]);
 
     singlepop_t pop(N);
-    std::vector<fwdpp::uint_t> popsizes(10*N,N);
+    std::vector<fwdpp::uint_t> popsizes(10 * N, N);
     GSLrng_t rng(seed);
-    double mu = theta/(4.*static_cast<double>(N));
-    double recrate = rho/(4.*static_cast<double>(N));
-    double mudel = mu*pdel;
+    double mu = theta / (4. * static_cast<double>(N));
+    double recrate = rho / (4. * static_cast<double>(N));
+    double mudel = mu * pdel;
 
-    evolve(rng,pop,popsizes,mu,mudel,recrate);
+    evolve(rng, pop, popsizes, mu, mudel, recrate);
 }
