@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include <gsl/gsl_randist.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
@@ -270,4 +271,22 @@ main(int argc, char** argv)
                          < std::tie(tables.node_table[b.child].generation,
                                     b.parent, b.child, b.left);
               });
+
+    // What kind of algos can we apply?
+    auto lower = tables.edge_table.begin();
+    auto p = tables.edge_table[0].parent;
+    while (lower < tables.edge_table.end())
+        {
+            auto upper
+                = std::find_if(lower, tables.edge_table.end(),
+                               [p](const edge& e) { return e.parent != p; });
+            for (; lower < upper; ++lower)
+                {
+                    if (lower->parent != p)
+                        {
+                            throw std::runtime_error("parents not contiguous");
+                        }
+                }
+            p = upper->parent;
+        }
 }
