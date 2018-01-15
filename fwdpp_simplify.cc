@@ -32,6 +32,17 @@ static constexpr std::int32_t ROOTNODE
 
 struct table_collection
 {
+    struct segment
+    {
+        double left, right;
+        std::int32_t node;
+        segment() : left{}, right{}, node{} {}
+        segment(double l, double r, std::int32_t n)
+            : left{ l }, right{ r }, node{ n }
+        {
+        }
+    };
+
     std::vector<node> node_table;
     std::vector<edge> edge_table;
     std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
@@ -75,15 +86,18 @@ struct table_collection
     }
 
     void
-    simplify()
+    simplify(const std::vector<std::int32_t>& samples)
     {
-        //reverse time
+        // reverse time
         auto maxtime = node_table.back().generation;
-        for(auto & n : node_table)
-        {
-            n.generation -= maxtime;
-            n.generation *= -1.0;
-        }
+        for (auto& n : node_table)
+            {
+                n.generation -= maxtime;
+                // Note: leads to 0 being -0.  SHOULDFIX
+                n.generation *= -1.0;
+            }
+
+        // Sort the edge table
         std::sort(edge_table.begin(), edge_table.end(),
                   [this](const edge& a, const edge& b) {
                       return std::tie(this->node_table[a.child].generation,
@@ -91,6 +105,119 @@ struct table_collection
                              < std::tie(this->node_table[b.child].generation,
                                         b.parent, b.child, b.left);
                   });
+
+        std::vector<edge> Eo;
+        std::vector<node> No;
+        std::vector<std::vector<segment>> Ancestry(node_table.size());
+        // The algorithm using a min queue.  The default C++ queue
+        // is a max queue.  Thus, we must use > rather than <
+        // to generate a min queue;
+        const auto segment_sorter_q = [](const segment& a, const segment& b) {
+            return a.left > b.left;
+        };
+        std::priority_queue<segment, std::vector<segment>,
+                            decltype(segment_sorter_q)>
+            Q(segment_sorter_q);
+
+        for (auto& s : samples)
+            {
+                No.push_back(make_node(s, node_table[s].generation, 0));
+                Ancestry[s].push_back(
+                    segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
+            }
+
+        auto last_edge = edge_table.begin();
+        segment alpha;
+        std::int32_t u;
+        while (last_edge < edge_table.end())
+            {
+                u = last_edge->parent;
+                for (; last_edge < edge_table.end() && last_edge->parent == u;
+                     ++last_edge)
+                    {
+                        for (auto& seg : Ancestry[last_edge->child])
+                            {
+                                if (seg.right > last_edge->left
+                                    && seg.right > last_edge->left)
+                                    {
+                                        Q.emplace(std::max(seg.left,
+                                                           last_edge->left),
+                                                  std::min(seg.right,
+                                                           last_edge->right),
+                                                  seg.node);
+                                    }
+                            }
+                    }
+            }
+        std::int32_t v = -1;
+        while (!Q.empty())
+            {
+                auto l = Q.top().left;
+                double r = 1.0;
+                std::vector<segment> X;
+                while (!Q.empty() && Q.top().left == l)
+                    {
+                        // Can be done w/fewer lines of code.
+                        auto seg = Q.top();
+                        Q.pop();
+                        r = std::min(r, seg.right);
+                        X.push_back(std::move(seg));
+                    }
+                if (!Q.empty())
+                    {
+                        r = std::min(r, Q.top().left);
+                    }
+                if (X.size() == 1)
+                    {
+                        alpha = X[0];
+                        auto x = X[0];
+                        if (!Q.empty() && Q.top().left < x.right)
+                            {
+                                alpha = segment(x.left, Q.top().left, x.node);
+                                x.left = Q.top().left;
+                                Q.push(x);
+                            }
+                    }
+                else
+                    {
+                        if (v == -1)
+                            {
+                                No.push_back(make_node(
+                                    static_cast<std::int32_t>(No.size()),
+                                    node_table[u].generation, 0));
+                                v = No.size() - 1;
+                            }
+                        alpha = segment(l, r, v);
+                        for (auto& x : X)
+                            {
+                                Eo.push_back(make_edge(l, r, v, x.node));
+                                if (x.right > r)
+                                    {
+                                        x.left = r;
+                                        Q.emplace(x);
+                                    }
+                            }
+                    }
+                Ancestry[u].push_back(alpha);
+            }
+
+        std::size_t start = 0;
+        std::vector<edge> compacted_edges;
+        for (std::size_t j = 1; j < Eo.size(); ++j)
+            {
+                bool condition = Eo[j - 1].right != Eo[j].left
+                                 || Eo[j - 1].parent != Eo[j].parent
+                                 || Eo[j - 1].child != Eo[j].child;
+                if (condition)
+                    {
+                        compacted_edges.push_back(
+                            make_edge(Eo[j - 1].left, Eo[j - 1].right,
+                                      Eo[j - 1].parent, Eo[j - 1].child));
+                        start = j;
+                    }
+            }
+        edge_table.swap(compacted_edges);
+        node_table.swap(No);
     }
 };
 
@@ -293,7 +420,18 @@ main(int argc, char** argv)
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
 
-    tables.simplify();
+    std::vector<std::int32_t> samples;
+    auto last_id = tables.node_table.back().id;
+    for (std::int32_t i = last_id - 2 * N; i < last_id; ++i)
+        {
+            samples.push_back(i + 1);
+        }
+    assert(samples.back() == last_id);
+    tables.simplify(samples);
+
+    std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
+              << tables.edge_table.size() << ' '
+              << tables.mutation_table.size() << '\n';
 
     // What kind of algos can we apply?
     auto lower = tables.edge_table.begin();
@@ -311,5 +449,13 @@ main(int argc, char** argv)
                         }
                 }
             p = upper->parent;
+        }
+
+    for (auto& e : tables.edge_table)
+        {
+            std::cout << tables.node_table[e.child].id << ' '
+                      << tables.node_table[e.child].generation << ' '
+                      << e.parent << ' ' << e.child << ' ' << e.left << ' '
+                      << e.right << '\n';
         }
 }
