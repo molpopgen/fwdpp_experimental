@@ -47,6 +47,7 @@ def simplify(S, Ni, Ei, L):
 
     for u in S:
         v = No.add_row(time=Ni.time[u], flags=1)
+        assert(v == len(No)-1)
         A[u] = [Segment(0, L, v)]
 
     for u in range(len(Ni)):

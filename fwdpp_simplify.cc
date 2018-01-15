@@ -216,6 +216,14 @@ struct table_collection
                         start = j;
                     }
             }
+        //This is probably really close to the above
+        Eo.erase(std::unique(Eo.begin(), Eo.end(),
+                             [](const edge& a, const edge& b) {
+                                 return a.parent == b.parent
+                                        && a.child == b.child
+                                        && a.right == b.left;
+                             }),
+                 Eo.end());
         edge_table.swap(compacted_edges);
         node_table.swap(No);
     }
