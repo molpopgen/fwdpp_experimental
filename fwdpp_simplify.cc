@@ -148,57 +148,61 @@ struct table_collection
                                     }
                             }
                     }
-            }
-        std::int32_t v = -1;
-        while (!Q.empty())
-            {
-                auto l = Q.top().left;
-                double r = 1.0;
-                std::vector<segment> X;
-                while (!Q.empty() && Q.top().left == l)
+
+                std::int32_t v = -1;
+                while (!Q.empty())
                     {
-                        // Can be done w/fewer lines of code.
-                        auto seg = Q.top();
-                        Q.pop();
-                        r = std::min(r, seg.right);
-                        X.push_back(std::move(seg));
-                    }
-                if (!Q.empty())
-                    {
-                        r = std::min(r, Q.top().left);
-                    }
-                if (X.size() == 1)
-                    {
-                        alpha = X[0];
-                        auto x = X[0];
-                        if (!Q.empty() && Q.top().left < x.right)
+                        auto l = Q.top().left;
+                        double r = 1.0;
+                        std::vector<segment> X;
+                        while (!Q.empty() && Q.top().left == l)
                             {
-                                alpha = segment(x.left, Q.top().left, x.node);
-                                x.left = Q.top().left;
-                                Q.push(x);
+                                // Can be done w/fewer lines of code.
+                                auto seg = Q.top();
+                                Q.pop();
+                                r = std::min(r, seg.right);
+                                X.push_back(std::move(seg));
                             }
-                    }
-                else
-                    {
-                        if (v == -1)
+                        if (!Q.empty())
                             {
-                                No.push_back(make_node(
-                                    static_cast<std::int32_t>(No.size()),
-                                    node_table[u].generation, 0));
-                                v = No.size() - 1;
+                                r = std::min(r, Q.top().left);
                             }
-                        alpha = segment(l, r, v);
-                        for (auto& x : X)
+                        if (X.size() == 1)
                             {
-                                Eo.push_back(make_edge(l, r, v, x.node));
-                                if (x.right > r)
+                                alpha = X[0];
+                                auto x = X[0];
+                                if (!Q.empty() && Q.top().left < x.right)
                                     {
-                                        x.left = r;
-                                        Q.emplace(x);
+                                        alpha = segment(x.left, Q.top().left,
+                                                        x.node);
+                                        x.left = Q.top().left;
+                                        Q.push(x);
                                     }
                             }
+                        else
+                            {
+                                if (v == -1)
+                                    {
+                                        No.push_back(make_node(
+                                            static_cast<std::int32_t>(
+                                                No.size()),
+                                            node_table[u].generation, 0));
+                                        v = No.size() - 1;
+                                    }
+                                alpha = segment(l, r, v);
+                                for (auto& x : X)
+                                    {
+                                        Eo.push_back(
+                                            make_edge(l, r, v, x.node));
+                                        if (x.right > r)
+                                            {
+                                                x.left = r;
+                                                Q.emplace(x);
+                                            }
+                                    }
+                            }
+                        Ancestry[u].push_back(alpha);
                     }
-                Ancestry[u].push_back(alpha);
             }
 
         std::size_t start = 0;
@@ -216,7 +220,7 @@ struct table_collection
                         start = j;
                     }
             }
-        //This is probably really close to the above
+        // This is probably really close to the above
         Eo.erase(std::unique(Eo.begin(), Eo.end(),
                              [](const edge& a, const edge& b) {
                                  return a.parent == b.parent
