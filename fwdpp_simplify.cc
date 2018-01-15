@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <queue>
 #include <gsl/gsl_randist.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
@@ -35,10 +36,16 @@ struct table_collection
     std::vector<edge> edge_table;
     std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
 
-    table_collection()
-        : node_table{ make_node(ROOTNODE, 0, 0) }, edge_table{},
-          mutation_table{}
+    table_collection() : node_table{}, edge_table{}, mutation_table{} {}
+
+    table_collection(const std::int32_t num_initial_nodes,
+                     const double initial_time)
+        : node_table{}, edge_table{}, mutation_table{}
     {
+        for (std::int32_t i = 0; i < num_initial_nodes; ++i)
+            {
+                node_table.push_back(make_node(i, initial_time, 0));
+            }
     }
 
     std::int32_t
@@ -48,7 +55,8 @@ struct table_collection
                        const std::tuple<std::int32_t, std::int32_t>& parents,
                        const double generation)
     {
-        node_table.push_back(make_node(next_index, generation, 0));
+        node_table.push_back(
+            make_node(next_index, generation + 1, 0)); // MUSTDOC
         auto split = split_breakpoints(breakpoints, 0., 1.);
         // Add the edges
         for (auto&& brk : split.first)
@@ -64,6 +72,25 @@ struct table_collection
         for (auto&& m : new_mutations)
             mutation_table.emplace_back(next_index, m);
         return next_index + 1;
+    }
+
+    void
+    simplify()
+    {
+        //reverse time
+        auto maxtime = node_table.back().generation;
+        for(auto & n : node_table)
+        {
+            n.generation -= maxtime;
+            n.generation *= -1.0;
+        }
+        std::sort(edge_table.begin(), edge_table.end(),
+                  [this](const edge& a, const edge& b) {
+                      return std::tie(this->node_table[a.child].generation,
+                                      a.parent, a.child, a.left)
+                             < std::tie(this->node_table[b.child].generation,
+                                        b.parent, b.child, b.left);
+                  });
     }
 };
 
@@ -91,10 +118,10 @@ std::tuple<std::int32_t, std::int32_t>
 get_parent_ids(const std::int32_t first_parental_index,
                const std::uint32_t parent, const int did_swap)
 {
-    if (first_parental_index == ROOTNODE)
-        {
-            return std::make_tuple(ROOTNODE, ROOTNODE);
-        }
+    // if (first_parental_index == ROOTNODE)
+    //    {
+    //        return std::make_tuple(ROOTNODE, ROOTNODE);
+    //    }
     return std::make_tuple(
         first_parental_index + 2 * static_cast<std::int32_t>(parent)
             + did_swap,
@@ -217,22 +244,24 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                          []() { return 0.; }, []() { return 0.; });
           };
 
-    table_collection tables;
-    std::int32_t first_parental_index = ROOTNODE, next_index = 0;
+    table_collection tables(2 * pop.diploids.size(), 0.0);
+    std::int32_t first_parental_index = 0,
+                 next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables,
                               first_parental_index, next_index);
-            if (first_parental_index == ROOTNODE)
-                {
-                    first_parental_index = 0;
-                }
-            else
-                {
-                    first_parental_index += 2 * pop.diploids.size();
-                }
+            // if (first_parental_index == ROOTNODE)
+            //    {
+            //        first_parental_index = 0;
+            //    }
+            // else
+            //    {
+            //        first_parental_index += 2 * pop.diploids.size();
+            //    }
+            first_parental_index += 2 * pop.diploids.size();
             next_index += 2 * pop.diploids.size();
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
@@ -264,13 +293,7 @@ main(int argc, char** argv)
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
 
-    std::sort(tables.edge_table.begin(), tables.edge_table.end(),
-              [&tables](const edge& a, const edge& b) {
-                  return std::tie(tables.node_table[a.child].generation,
-                                  a.parent, a.child, a.left)
-                         < std::tie(tables.node_table[b.child].generation,
-                                    b.parent, b.child, b.left);
-              });
+    tables.simplify();
 
     // What kind of algos can we apply?
     auto lower = tables.edge_table.begin();
