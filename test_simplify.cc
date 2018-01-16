@@ -64,7 +64,7 @@ simplify(const std::vector<std::int32_t>& samples,
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
-    // The algorithm using a min queue.  The default C++ queue
+    // The algorithm uses a min queue.  The default C++ queue
     // is a max queue.  Thus, we must use > rather than <
     // to generate a min queue;
     const auto segment_sorter_q
