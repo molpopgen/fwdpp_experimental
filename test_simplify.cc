@@ -1,5 +1,5 @@
 // This file is helping me get an implementation
-// of the simplify algorithm from Ralph et al.
+// of the simplify algorithm from Kelleher et al.
 // implemented in C++.  This implemenation
 // is based on the set theoretic algorithm
 // presented by Jerome Kelleher in the repo
