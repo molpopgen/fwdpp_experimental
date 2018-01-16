@@ -50,12 +50,17 @@ def simplify(S, Ni, Ei, L):
         assert(v == len(No)-1)
         A[u] = [Segment(0, L, v)]
 
+    for u in S:
+        print(u,A[u])
+
     for u in range(len(Ni)):
         for e in [e for e in Ei if e.parent == u]:
             for x in A[e.child]:
                 if x.right > e.left and e.right > x.left:
                     y = Segment(max(x.left, e.left), min(x.right, e.right), x.node)
                     heapq.heappush(Q, y)
+        # if len(Q) >0:
+        #     print("Qsize: ",u,len(Q))
         v = -1
         while len(Q) > 0:
             l = Q[0].left
@@ -138,13 +143,23 @@ def verify():
 
 
 if __name__ == "__main__":
-    verify()
+    #verify()
 
     # Generate initial TreeSequence
-    ts = msprime.simulate(10, recombination_rate=2, random_seed=1)
+    ts = msprime.simulate(100, recombination_rate=2, random_seed=1)
     nodes = ts.tables.nodes
     edges = ts.tables.edges
+
+    with open("test_nodes.txt","w") as f:
+        for i in range(len(nodes)):
+            f.write("{} {}\n".format(i,nodes[i].time))
+
+    with open("test_edges.txt","w") as f:
+        for i in range(len(edges)):
+            f.write("{} {} {} {}\n".format(edges[i].parent, edges[i].child, edges[i].left, edges[i].right))
 
     # Simplify nodes and edges with respect to the following samples:
     sample = [0, 1, 2]
     ts1 = simplify(sample, nodes, edges, ts.sequence_length)
+    print(ts1.tables.nodes)
+    print(ts1.tables.edges)
