@@ -86,6 +86,7 @@ simplify(const std::vector<std::int32_t>& samples,
     //}
 
     // auto last_edge = edge_table.begin();
+    auto edge_ptr = edge_table.begin();
     segment alpha;
     for (std::int32_t u = 0; u < static_cast<std::int32_t>(node_table.size());
          ++u)
@@ -97,26 +98,27 @@ simplify(const std::vector<std::int32_t>& samples,
             // Edges are sorted according to (parent time, parent),
             // meaning was can find the first element containing
             // parent u in log time.
-            auto f = std::lower_bound(
-                edge_table.begin(), edge_table.end(), u,
-                [&node_table](const edge& e, const std::int32_t value) {
-                    return std::tie(e.parent, node_table[e.parent].generation)
-                           < std::tie(value, node_table[value].generation);
-                });
+            //auto f = std::lower_bound(
+            //    edge_table.begin(), edge_table.end(), u,
+            //    [&node_table](const edge& e, const std::int32_t value) {
+            //        return std::tie(e.parent, node_table[e.parent].generation)
+            //               < std::tie(value, node_table[value].generation);
+            //    });
             // The second search should be done w/the linear time
             // search b/c we know the data are sorted.  If we did
             // upper_bound here, we'd bounce around a potentially big 
             // list.
             // TODO: check if doing upper bound here will improve performance.
-            auto l = std::find_if(f, edge_table.end(), [u](const edge& e) {
-                return e.parent != u;
-            });
-            auto d1 = std::distance(edge_table.begin(), f),
-                 d2 = std::distance(edge_table.begin(), l);
-            for (; f < l; ++f)
+            //auto l = std::find_if(f, edge_table.end(), [u](const edge& e) {
+            //    return e.parent != u;
+            //});
+            //auto d1 = std::distance(edge_table.begin(), f),
+            //     d2 = std::distance(edge_table.begin(), l);
+            //for (; f < l; ++f)
+            for( ; edge_ptr < edge_table.end() && edge_ptr->parent == u; ++edge_ptr)
                 {
-                    assert(f->parent == u);
-                    for (auto& seg : Ancestry[f->child])
+                    assert(edge_ptr->parent == u);
+                    for (auto& seg : Ancestry[edge_ptr->child])
                         {
                             // if (f->child < 3)
                             //    {
@@ -127,31 +129,32 @@ simplify(const std::vector<std::int32_t>& samples,
                             //            seg.right
                             //            << '\n';
                             //    }
-                            if (seg.right > f->left && f->right > seg.left)
+                            if (seg.right > edge_ptr->left && edge_ptr->right > seg.left)
                                 {
-                                    Q.emplace(std::max(seg.left, f->left),
-                                              std::min(seg.right, f->right),
+                                    Q.emplace(std::max(seg.left, edge_ptr->left),
+                                              std::min(seg.right, edge_ptr->right),
                                               seg.node);
                                     // std::cout << "here: " << Q.size() <<
                                     // '\n';
                                 }
                         }
                 }
-            auto d3 = std::distance(edge_table.begin(), f);
-            auto check = std::find_if(f, edge_table.end(), [u](const edge& e) {
-                return e.parent == u;
-            });
-            if (check < edge_table.end())
-                {
-                    auto d4 = std::distance(edge_table.begin(), check);
-                    std::cout << u << ' ' << d1 << ' ' << d2 << ' ' << d3
-                              << ' ' << d4 << '\n';
-                    std::cout << (edge_table.begin() + d1)->parent << ' '
-                              << (edge_table.begin() + d2)->parent << ' '
-                              << (edge_table.begin() + d3)->parent << ' '
-                              << (edge_table.begin() + d4)->parent << '\n';
-                    assert(false);
-                }
+            //edge_ptr=f;
+            //auto d3 = std::distance(edge_table.begin(), f);
+            //auto check = std::find_if(f, edge_table.end(), [u](const edge& e) {
+            //    return e.parent == u;
+            //});
+            //if (check < edge_table.end())
+            //    {
+            //        auto d4 = std::distance(edge_table.begin(), check);
+            //        std::cout << u << ' ' << d1 << ' ' << d2 << ' ' << d3
+            //                  << ' ' << d4 << '\n';
+            //        std::cout << (edge_table.begin() + d1)->parent << ' '
+            //                  << (edge_table.begin() + d2)->parent << ' '
+            //                  << (edge_table.begin() + d3)->parent << ' '
+            //                  << (edge_table.begin() + d4)->parent << '\n';
+            //        assert(false);
+            //    }
             // if (!Q.empty())
             //    std::cout << "Qsize: " << u << ' ' << Q.size() << '\n';
 
