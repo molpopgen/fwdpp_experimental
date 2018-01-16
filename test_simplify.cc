@@ -43,6 +43,12 @@ simplify(const std::vector<std::int32_t>& samples,
                                     b.child, b.left);
               });
 
+    assert(std::is_sorted(
+        edge_table.begin(), edge_table.end(),
+        [&node_table](const edge& a, const edge& b) {
+            return std::tie(node_table[a.parent].generation, a.parent)
+                   < std::tie(node_table[b.parent].generation, b.parent);
+        }));
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
