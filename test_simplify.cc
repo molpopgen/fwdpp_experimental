@@ -31,6 +31,19 @@ struct segment
 };
 
 void
+reverse_time(std::vector<node> nodes)
+{
+    if (nodes.empty())
+        return;
+    auto mtime = nodes.back().generation;
+    for (auto& n : nodes)
+        {
+            n.generation -= mtime;
+            n.generation *= -1.0;
+        }
+}
+
+void
 simplify(const std::vector<std::int32_t>& samples,
          std::vector<edge>& edge_table, std::vector<node>& node_table)
 {
@@ -183,6 +196,9 @@ simplify(const std::vector<std::int32_t>& samples,
 int
 main(int argc, char** argv)
 {
+    int rev = 0;
+    if (argc > 1)
+        rev = 1;
     std::vector<node> nodes;
     std::vector<edge> edges;
 
@@ -195,6 +211,8 @@ main(int argc, char** argv)
             in >> a >> x >> std::ws;
             nodes.push_back(make_node(a, x, 0));
         }
+    if (rev)
+        reverse_time(nodes);
     // for(auto & n : nodes)
     //{
     //    std::cout << n.id << ' ' << n.generation << '\n';
