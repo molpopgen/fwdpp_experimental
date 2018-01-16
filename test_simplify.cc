@@ -33,16 +33,6 @@ void
 simplify(const std::vector<std::int32_t>& samples,
          std::vector<edge>& edge_table, std::vector<node>& node_table)
 {
-    // Don't do this, as we're testing w/data input from coalescent
-    // reverse time
-    // auto maxtime = node_table.back().generation;
-    // for (auto& n : node_table)
-    //    {
-    //        n.generation -= maxtime;
-    //        // Note: leads to 0 being -0.  SHOULDFIX
-    //        n.generation *= -1.0;
-    //    }
-
     // Sort the edge table.  On PARENT birth times.
     std::sort(edge_table.begin(), edge_table.end(),
               [&node_table](const edge& a, const edge& b) {
@@ -51,19 +41,11 @@ simplify(const std::vector<std::int32_t>& samples,
                          < std::tie(node_table[b.parent].generation, b.parent,
                                     b.child, b.left);
               });
-    // std::cerr << "sorted: "
-    //          << std::is_sorted(
-    //                 edge_table.begin(), edge_table.end(),
-    //                 [&node_table](const edge& a, const edge& b) {
-    //                     return std::tie(node_table[a.parent].generation,
-    //                                     a.parent)
-    //                            < std::tie(node_table[b.parent].generation,
-    //                                       b.parent);
-    //                 }) << '\n';
 
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
+
     // The algorithm uses a min queue.  The default C++ queue
     // is a max queue.  Thus, we must use > rather than <
     // to generate a min queue;
@@ -73,91 +55,36 @@ simplify(const std::vector<std::int32_t>& samples,
                         decltype(segment_sorter_q)>
         Q(segment_sorter_q);
 
+    // TODO: document a gotcha re: samples not being sorted w.r.to
+    // index
     for (auto& s : samples)
         {
             No.push_back(make_node(No.size(), node_table[s].generation, 0));
             Ancestry[s].push_back(
                 segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
         }
-    // for(auto &s:samples)
-    //{
-    //    std::cout << Ancestry[s][0].left << ' ' << Ancestry[s][0].right << '
-    //    ' << Ancestry[s][0].node << '\n';
-    //}
 
-    // auto last_edge = edge_table.begin();
     auto edge_ptr = edge_table.begin();
     segment alpha;
     for (std::int32_t u = 0; u < static_cast<std::int32_t>(node_table.size());
          ++u)
         {
-            // auto f
-            //    = std::find_if(edge_table.begin(), edge_table.end(),
-            //                   [u](const edge& e) { return e.parent == u; });
-
-            // Edges are sorted according to (parent time, parent),
-            // meaning was can find the first element containing
-            // parent u in log time.
-            //auto f = std::lower_bound(
-            //    edge_table.begin(), edge_table.end(), u,
-            //    [&node_table](const edge& e, const std::int32_t value) {
-            //        return std::tie(e.parent, node_table[e.parent].generation)
-            //               < std::tie(value, node_table[value].generation);
-            //    });
-            // The second search should be done w/the linear time
-            // search b/c we know the data are sorted.  If we did
-            // upper_bound here, we'd bounce around a potentially big 
-            // list.
-            // TODO: check if doing upper bound here will improve performance.
-            //auto l = std::find_if(f, edge_table.end(), [u](const edge& e) {
-            //    return e.parent != u;
-            //});
-            //auto d1 = std::distance(edge_table.begin(), f),
-            //     d2 = std::distance(edge_table.begin(), l);
-            //for (; f < l; ++f)
-            for( ; edge_ptr < edge_table.end() && edge_ptr->parent == u; ++edge_ptr)
+            for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
+                 ++edge_ptr)
                 {
                     assert(edge_ptr->parent == u);
                     for (auto& seg : Ancestry[edge_ptr->child])
                         {
-                            // if (f->child < 3)
-                            //    {
-                            //        std::cout
-                            //            << "Ancestry of child: " << f->child
-                            //            << ' ' << f->left << ' ' << f->right
-                            //            << ' ' << seg.left << ' ' <<
-                            //            seg.right
-                            //            << '\n';
-                            //    }
-                            if (seg.right > edge_ptr->left && edge_ptr->right > seg.left)
+                            if (seg.right > edge_ptr->left
+                                && edge_ptr->right > seg.left)
                                 {
-                                    Q.emplace(std::max(seg.left, edge_ptr->left),
-                                              std::min(seg.right, edge_ptr->right),
-                                              seg.node);
-                                    // std::cout << "here: " << Q.size() <<
-                                    // '\n';
+                                    Q.emplace(
+                                        std::max(seg.left, edge_ptr->left),
+                                        std::min(seg.right, edge_ptr->right),
+                                        seg.node);
                                 }
                         }
                 }
-            //edge_ptr=f;
-            //auto d3 = std::distance(edge_table.begin(), f);
-            //auto check = std::find_if(f, edge_table.end(), [u](const edge& e) {
-            //    return e.parent == u;
-            //});
-            //if (check < edge_table.end())
-            //    {
-            //        auto d4 = std::distance(edge_table.begin(), check);
-            //        std::cout << u << ' ' << d1 << ' ' << d2 << ' ' << d3
-            //                  << ' ' << d4 << '\n';
-            //        std::cout << (edge_table.begin() + d1)->parent << ' '
-            //                  << (edge_table.begin() + d2)->parent << ' '
-            //                  << (edge_table.begin() + d3)->parent << ' '
-            //                  << (edge_table.begin() + d4)->parent << '\n';
-            //        assert(false);
-            //    }
-            // if (!Q.empty())
-            //    std::cout << "Qsize: " << u << ' ' << Q.size() << '\n';
-
             std::int32_t v = -1;
             while (!Q.empty())
                 {
