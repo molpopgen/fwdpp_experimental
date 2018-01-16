@@ -103,6 +103,11 @@ simplify(const std::vector<std::int32_t>& samples,
                     return std::tie(e.parent, node_table[e.parent].generation)
                            < std::tie(value, node_table[value].generation);
                 });
+            // The second search should be done w/the linear time
+            // search b/c we know the data are sorted.  If we did
+            // upper_bound here, we'd bounce around a potentially big 
+            // list.
+            // TODO: check if doing upper bound here will improve performance.
             auto l = std::find_if(f, edge_table.end(), [u](const edge& e) {
                 return e.parent != u;
             });
