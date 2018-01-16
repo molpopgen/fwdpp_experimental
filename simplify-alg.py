@@ -146,7 +146,7 @@ if __name__ == "__main__":
     #verify()
 
     # Generate initial TreeSequence
-    ts = msprime.simulate(100, recombination_rate=2, random_seed=1)
+    ts = msprime.simulate(5000, recombination_rate=10, random_seed=1)
     nodes = ts.tables.nodes
     edges = ts.tables.edges
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
             f.write("{} {} {} {}\n".format(edges[i].parent, edges[i].child, edges[i].left, edges[i].right))
 
     # Simplify nodes and edges with respect to the following samples:
-    sample = [0, 1, 2]
-    ts1 = simplify(sample, nodes, edges, ts.sequence_length)
+    sample = [0, 1, 2,19,33,11,12]
+    ts1 = simplify(sample, nodes,edges, ts.sequence_length)
     print(ts1.tables.nodes)
     print(ts1.tables.edges)
