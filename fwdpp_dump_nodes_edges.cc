@@ -55,6 +55,7 @@ struct table_collection
     {
         for (std::int32_t i = 0; i < num_initial_nodes; ++i)
             {
+                nodes << i << ' ' << initial_time << '\n';
                 node_table.push_back(make_node(i, initial_time, 0));
             }
     }
