@@ -212,7 +212,9 @@ main(int argc, char** argv)
             nodes.push_back(make_node(a, x, 0));
         }
     if (rev)
+    {
         reverse_time(nodes);
+    }
     // for(auto & n : nodes)
     //{
     //    std::cout << n.id << ' ' << n.generation << '\n';
