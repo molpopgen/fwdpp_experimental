@@ -31,7 +31,7 @@ struct segment
 };
 
 void
-reverse_time(std::vector<node> nodes)
+reverse_time(std::vector<node> & nodes)
 {
     if (nodes.empty())
         return;
@@ -62,6 +62,11 @@ simplify(const std::vector<std::int32_t>& samples,
             return std::tie(node_table[a.parent].generation, a.parent)
                    < std::tie(node_table[b.parent].generation, b.parent);
         }));
+    //for (auto& e : edge_table)
+    //    {
+    //        std::cerr << e.parent << ' ' << e.child << ' ' << e.left << ' '
+    //                  << e.right << ' ' << node_table[e.parent].generation << '\n';
+    //    }
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
@@ -212,9 +217,9 @@ main(int argc, char** argv)
             nodes.push_back(make_node(a, x, 0));
         }
     if (rev)
-    {
-        reverse_time(nodes);
-    }
+        {
+            reverse_time(nodes);
+        }
     // for(auto & n : nodes)
     //{
     //    std::cout << n.id << ' ' << n.generation << '\n';
