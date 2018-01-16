@@ -25,8 +25,8 @@ simplify(const std::vector<std::int32_t>& samples,
 {
     // Don't do this, as we're testing w/data input from coalescent
     // reverse time
-    //auto maxtime = node_table.back().generation;
-    //for (auto& n : node_table)
+    // auto maxtime = node_table.back().generation;
+    // for (auto& n : node_table)
     //    {
     //        n.generation -= maxtime;
     //        // Note: leads to 0 being -0.  SHOULDFIX
@@ -41,6 +41,15 @@ simplify(const std::vector<std::int32_t>& samples,
                          < std::tie(node_table[b.parent].generation, b.parent,
                                     b.child, b.left);
               });
+    //std::cerr << "sorted: "
+    //          << std::is_sorted(
+    //                 edge_table.begin(), edge_table.end(),
+    //                 [&node_table](const edge& a, const edge& b) {
+    //                     return std::tie(node_table[a.parent].generation,
+    //                                     a.parent)
+    //                            < std::tie(node_table[b.parent].generation,
+    //                                       b.parent);
+    //                 }) << '\n';
 
     std::vector<edge> Eo;
     std::vector<node> No;
@@ -98,7 +107,8 @@ simplify(const std::vector<std::int32_t>& samples,
                                     Q.emplace(std::max(seg.left, f->left),
                                               std::min(seg.right, f->right),
                                               seg.node);
-                                    //std::cout << "here: " << Q.size() << '\n';
+                                    // std::cout << "here: " << Q.size() <<
+                                    // '\n';
                                 }
                         }
                 }
@@ -110,15 +120,14 @@ simplify(const std::vector<std::int32_t>& samples,
                 {
                     auto d4 = std::distance(edge_table.begin(), check);
                     std::cout << u << ' ' << d1 << ' ' << d2 << ' ' << d3
-                              << ' ' << d4
-                              << '\n';
-                    std::cout << (edge_table.begin()+d1)->parent << ' ' 
-                        << (edge_table.begin()+d2)->parent << ' ' 
-                        << (edge_table.begin()+d3)->parent << ' ' 
-                        << (edge_table.begin()+d4)->parent << '\n';
+                              << ' ' << d4 << '\n';
+                    std::cout << (edge_table.begin() + d1)->parent << ' '
+                              << (edge_table.begin() + d2)->parent << ' '
+                              << (edge_table.begin() + d3)->parent << ' '
+                              << (edge_table.begin() + d4)->parent << '\n';
                     assert(false);
                 }
-            //if (!Q.empty())
+            // if (!Q.empty())
             //    std::cout << "Qsize: " << u << ' ' << Q.size() << '\n';
 
             std::int32_t v = -1;
@@ -176,28 +185,36 @@ simplify(const std::vector<std::int32_t>& samples,
         }
 
     std::size_t start = 0;
-    std::vector<edge> compacted_edges;
-    for (std::size_t j = 1; j < Eo.size(); ++j)
+
+    // Now, we compact the edges,
+    // which means removing redundant
+    // info due to different edges
+    // representing the same ancestry.
+    std::vector<edge> E;
+    E.swap(Eo);
+    assert(Eo.empty());
+
+    std::sort(E.begin(), E.end(), [](const edge& a, const edge& b) {
+        return std::tie(a.parent, a.child, a.left, a.right)
+               < std::tie(b.parent, b.child, b.left, b.right);
+    });
+
+    for (std::size_t j = 1; j < E.size(); ++j)
         {
-            bool condition = Eo[j - 1].right != Eo[j].left
-                             || Eo[j - 1].parent != Eo[j].parent
-                             || Eo[j - 1].child != Eo[j].child;
+            bool condition = E[j - 1].right != E[j].left
+                             || E[j - 1].parent != E[j].parent
+                             || E[j - 1].child != E[j].child;
             if (condition)
                 {
-                    compacted_edges.push_back(
-                        make_edge(Eo[j - 1].left, Eo[j - 1].right,
-                                  Eo[j - 1].parent, Eo[j - 1].child));
+                    Eo.push_back(make_edge(E[start].left, E[j - 1].right,
+                                           E[j - 1].parent, E[j - 1].child));
                     start = j;
                 }
         }
-    // This is probably really close to the above
-    Eo.erase(std::unique(Eo.begin(), Eo.end(),
-                         [](const edge& a, const edge& b) {
-                             return a.parent == b.parent && a.child == b.child
-                                    && a.right == b.left;
-                         }),
-             Eo.end());
-    edge_table.swap(compacted_edges);
+    auto j = E.size();
+    Eo.push_back(make_edge(E[start].left, E[j - 1].right, E[j - 1].parent,
+                           E[j - 1].child));
+    edge_table.swap(Eo);
     node_table.swap(No);
 }
 
@@ -235,6 +252,7 @@ main(int argc, char** argv)
     std::cout << "edges:\n";
     for (auto& n : edges)
         {
-            std::cout << n.left << ' ' << n.right << ' ' << n.parent << ' ' << n.child << '\n';
+            std::cout << n.left << ' ' << n.right << ' ' << n.parent << ' '
+                      << n.child << '\n';
         }
 }
