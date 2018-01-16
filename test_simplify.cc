@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <chrono>
 #include "edge.hpp"
 #include "node.hpp"
 
@@ -182,6 +183,7 @@ main(int argc, char** argv)
     std::ifstream in("test_nodes.txt");
     std::int32_t a, b;
     double x, y;
+    auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
             in >> a >> x >> std::ws;
@@ -198,7 +200,19 @@ main(int argc, char** argv)
             in >> a >> b >> x >> y >> std::ws;
             edges.push_back(make_edge(x, y, a, b));
         }
+    auto end = std::chrono::steady_clock::now();
+    auto diff = end - start;
+    std::cerr
+        << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
+        << " ms" << std::endl;
+    start = std::chrono::steady_clock::now();
     simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
+    end = std::chrono::steady_clock::now();
+    diff = end - start;
+    std::cerr
+        << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
+        << " ms" << std::endl;
+
     std::cout << "nodes:\n";
     for (auto& n : nodes)
         {
