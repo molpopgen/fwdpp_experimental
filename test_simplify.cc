@@ -210,12 +210,20 @@ int
 main(int argc, char** argv)
 {
     int rev = 0;
-    if (argc > 1)
-        rev = 1;
+    std::string nodefilename, edgefilename, nodeoutfile, edgeoutfile;
+    nodefilename = std::string(argv[1]);
+    edgefilename = std::string(argv[2]);
+    nodeoutfile = std::string(argv[3]);
+    edgeoutfile = std::string(argv[4]);
+    std::int32_t N = std::atoi(argv[5]);
+    if (argc == 7)
+        {
+            rev = std::atoi(argv[6]);
+        }
     std::vector<node> nodes;
     std::vector<edge> edges;
 
-    std::ifstream in("test_nodes.txt");
+    std::ifstream in(nodefilename.c_str());
     std::int32_t a, b;
     double x, y;
     auto start = std::chrono::steady_clock::now();
@@ -233,7 +241,7 @@ main(int argc, char** argv)
     //    std::cout << n.id << ' ' << n.generation << '\n';
     //}
     in.close();
-    in.open("test_edges.txt");
+    in.open(edgefilename.c_str());
     while (!in.eof())
         {
             in >> a >> b >> x >> y >> std::ws;
@@ -245,7 +253,12 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
     start = std::chrono::steady_clock::now();
-    simplify({ 200190, 200191, 200197 }, edges, nodes);
+    std::vector<std::int32_t> samples;
+    for (unsigned i = nodes.size() - 2 * N; i < nodes.size(); ++i)
+        {
+            samples.push_back(i);
+        }
+	simplify(samples,edges,nodes);
     //    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
@@ -253,15 +266,17 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
-    std::cout << "nodes:\n";
+	std::ofstream out(nodeoutfile.c_str());
     for (auto& n : nodes)
         {
-            std::cout << n.id << ' ' << n.generation << '\n';
+            out << n.id << ' ' << n.generation << '\n';
         }
-    std::cout << "edges:\n";
+	out.close();
+	out.open(edgeoutfile.c_str());
     for (auto& n : edges)
         {
-            std::cout << n.left << ' ' << n.right << ' ' << n.parent << ' '
+            out << n.left << ' ' << n.right << ' ' << n.parent << ' '
                       << n.child << '\n';
         }
+	out.close();
 }
