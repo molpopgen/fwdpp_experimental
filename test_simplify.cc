@@ -62,12 +62,7 @@ simplify(const std::vector<std::int32_t>& samples,
             return std::tie(node_table[a.parent].generation, a.parent)
                    < std::tie(node_table[b.parent].generation, b.parent);
         }));
-    // for (auto& e : edge_table)
-    //    {
-    //        std::cerr << e.parent << ' ' << e.child << ' ' << e.left << ' '
-    //                  << e.right << ' ' << node_table[e.parent].generation <<
-    //                  '\n';
-    //    }
+
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
@@ -167,15 +162,11 @@ simplify(const std::vector<std::int32_t>& samples,
                 }
         }
 
-    std::cout << std::count_if(idmap.begin(), idmap.end(),
-                               [](const std::int32_t i) { return i != -1; })
-              << ' ' << No.size() << '\n';
     assert(std::count_if(idmap.begin(), idmap.end(),
                          [](const std::int32_t i) { return i != -1; })
            == No.size());
     std::size_t start = 0;
 
-    std::cerr << "compact: " << Eo.size() << '\n';
     // Now, we compact the edges,
     // which means removing redundant
     // info due to different edges
