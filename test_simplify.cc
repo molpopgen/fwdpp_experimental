@@ -206,6 +206,12 @@ simplify(const std::vector<std::int32_t>& samples,
                            E[j - 1].child));
     edge_table.swap(Eo);
     node_table.swap(No);
+    assert(std::is_sorted(
+        edge_table.begin(), edge_table.end(),
+        [&node_table](const edge& a, const edge& b) {
+            return std::tie(node_table[a.parent].generation, a.parent)
+                   < std::tie(node_table[b.parent].generation, b.parent);
+        }));
     return idmap;
 }
 
