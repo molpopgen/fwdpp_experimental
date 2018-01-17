@@ -1,7 +1,7 @@
 import msprime
 import numpy as np
 import sys
-
+import timeit
 
 nodes = msprime.NodeTable()
 edges = msprime.EdgeTable()
@@ -37,9 +37,15 @@ msprime.sort_tables(nodes=nodes,edges=edges)
 
 N=int(sys.argv[3])
 samples=[i for i in range(len(time)-2*N,len(time))] 
+n=nodes
+e=edges
+def doit():
+    msprime.simplify_tables(nodes=n,edges=e,samples=samples)
 
-ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
-for i in edges:
-    print(i.parent,i.child,i.left,i.right,nodes[i.parent].time)
+time = timeit.timeit(doit,number=1)
+#ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
+print(time)
+#for i in edges:
+#    print(i.parent,i.child,i.left,i.right,nodes[i.parent].time)
 
 

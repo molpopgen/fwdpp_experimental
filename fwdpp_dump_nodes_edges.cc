@@ -27,8 +27,8 @@
 static constexpr std::int32_t ROOTNODE
     = std::numeric_limits<std::int32_t>::min();
 
-std::ofstream nodes("test_nodes.txt");
-std::ofstream edges("test_edges.txt");
+std::ofstream nodes;
+std::ofstream edges;
 
 struct table_collection
 {
@@ -427,7 +427,10 @@ main(int argc, char** argv)
     double rho = atof(argv[argn++]);
     double pdel = atof(argv[argn++]);
     unsigned seed = atoi(argv[argn++]);
-
+	std::string	nodefilename=argv[argn++];
+	std::string edgefilename=argv[argn++];
+	nodes.open(nodefilename.c_str());
+	edges.open(edgefilename.c_str());
     singlepop_t pop(N);
     std::vector<fwdpp::uint_t> popsizes(10 * N, N);
     GSLrng_t rng(seed);
