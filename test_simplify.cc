@@ -31,7 +31,7 @@ struct segment
 };
 
 void
-reverse_time(std::vector<node> & nodes)
+reverse_time(std::vector<node>& nodes)
 {
     if (nodes.empty())
         return;
@@ -43,7 +43,7 @@ reverse_time(std::vector<node> & nodes)
         }
 }
 
-void
+std::vector<std::int32_t>
 simplify(const std::vector<std::int32_t>& samples,
          std::vector<edge>& edge_table, std::vector<node>& node_table)
 {
@@ -62,15 +62,16 @@ simplify(const std::vector<std::int32_t>& samples,
             return std::tie(node_table[a.parent].generation, a.parent)
                    < std::tie(node_table[b.parent].generation, b.parent);
         }));
-    //for (auto& e : edge_table)
+    // for (auto& e : edge_table)
     //    {
     //        std::cerr << e.parent << ' ' << e.child << ' ' << e.left << ' '
-    //                  << e.right << ' ' << node_table[e.parent].generation << '\n';
+    //                  << e.right << ' ' << node_table[e.parent].generation <<
+    //                  '\n';
     //    }
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
-
+    std::vector<std::int32_t> idmap(node_table.size(), -1);
     // The algorithm uses a min queue.  The default C++ queue
     // is a max queue.  Thus, we must use > rather than <
     // to generate a min queue;
@@ -87,11 +88,12 @@ simplify(const std::vector<std::int32_t>& samples,
             No.push_back(make_node(No.size(), node_table[s].generation, 0));
             Ancestry[s].push_back(
                 segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
+            idmap[s] = static_cast<std::int32_t>(No.size() - 1);
         }
 
     auto edge_ptr = edge_table.begin();
     segment alpha;
-    while(edge_ptr < edge_table.end())
+    while (edge_ptr < edge_table.end())
         {
             auto u = edge_ptr->parent;
             for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
@@ -147,6 +149,8 @@ simplify(const std::vector<std::int32_t>& samples,
                                         static_cast<std::int32_t>(No.size()),
                                         node_table[u].generation, 0));
                                     v = No.size() - 1;
+                                    // update sample map
+                                    idmap[u] = v;
                                 }
                             alpha = segment(l, r, v);
                             for (auto& x : X)
@@ -163,6 +167,12 @@ simplify(const std::vector<std::int32_t>& samples,
                 }
         }
 
+    std::cout << std::count_if(idmap.begin(), idmap.end(),
+                               [](const std::int32_t i) { return i != -1; })
+              << ' ' << No.size() << '\n';
+    assert(std::count_if(idmap.begin(), idmap.end(),
+                         [](const std::int32_t i) { return i != -1; })
+           == No.size());
     std::size_t start = 0;
 
     std::cerr << "compact: " << Eo.size() << '\n';
@@ -196,6 +206,7 @@ simplify(const std::vector<std::int32_t>& samples,
                            E[j - 1].child));
     edge_table.swap(Eo);
     node_table.swap(No);
+    return idmap;
 }
 
 int
@@ -237,7 +248,7 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
     start = std::chrono::steady_clock::now();
-    simplify({2010,2011,2012},edges,nodes);
+    simplify({ 200190, 200191, 200197 }, edges, nodes);
     //    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
