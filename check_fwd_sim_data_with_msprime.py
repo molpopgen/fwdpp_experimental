@@ -1,11 +1,13 @@
 import msprime
 import numpy as np
+import sys
+
 
 nodes = msprime.NodeTable()
 edges = msprime.EdgeTable()
 
 g = []
-with open("test_nodes.txt","r") as f:
+with open(sys.argv[1],"r") as f:
     for line in f:
         l = line.rstrip().split(" ")
         g.append(float(l[1]))
@@ -21,7 +23,7 @@ c = []
 l = []
 r = []
 
-with open("test_edges.txt","r") as f:
+with open(sys.argv[2],"r") as f:
     for line in f:
         li = line.rstrip().split(" ")
         p.append(int(li[0]))
@@ -33,5 +35,11 @@ edges.set_columns(parent=p,child=c,left=l,right=r)
 
 msprime.sort_tables(nodes=nodes,edges=edges)
 
+N=int(sys.argv[3])
+samples=[i for i in range(len(time)-2*N,len(time))] 
+
+ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
 for i in edges:
     print(i.parent,i.child,i.left,i.right,nodes[i.parent].time)
+
+
