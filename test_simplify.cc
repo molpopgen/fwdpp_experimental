@@ -91,9 +91,13 @@ simplify(const std::vector<std::int32_t>& samples,
 
     auto edge_ptr = edge_table.begin();
     segment alpha;
-    for (std::int32_t u = 0; u < static_cast<std::int32_t>(node_table.size());
-         ++u)
+    //for (std::int32_t u = 0; u < static_cast<std::int32_t>(node_table.size());
+    //     ++u)
+    while(edge_ptr < edge_table.end())
         {
+            auto u = edge_ptr->parent;
+            std::cerr << u << ' ' << node_table[u].generation << '\n';
+            assert(node_table[u].id==u);
             for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
                  ++edge_ptr)
                 {
@@ -166,6 +170,7 @@ simplify(const std::vector<std::int32_t>& samples,
 
     std::size_t start = 0;
 
+    std::cerr << "compact: " << Eo.size() << '\n';
     // Now, we compact the edges,
     // which means removing redundant
     // info due to different edges
@@ -237,7 +242,8 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
     start = std::chrono::steady_clock::now();
-    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
+    simplify({2010,2011,2012},edges,nodes);
+    //    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
