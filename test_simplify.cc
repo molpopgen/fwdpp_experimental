@@ -91,17 +91,12 @@ simplify(const std::vector<std::int32_t>& samples,
 
     auto edge_ptr = edge_table.begin();
     segment alpha;
-    //for (std::int32_t u = 0; u < static_cast<std::int32_t>(node_table.size());
-    //     ++u)
     while(edge_ptr < edge_table.end())
         {
             auto u = edge_ptr->parent;
-            std::cerr << u << ' ' << node_table[u].generation << '\n';
-            assert(node_table[u].id==u);
             for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
                  ++edge_ptr)
                 {
-                    assert(edge_ptr->parent == u);
                     for (auto& seg : Ancestry[edge_ptr->child])
                         {
                             if (seg.right > edge_ptr->left
@@ -122,7 +117,7 @@ simplify(const std::vector<std::int32_t>& samples,
                     std::vector<segment> X;
                     while (!Q.empty() && Q.top().left == l)
                         {
-                            // Can be done w/fewer lines of code.
+                            // TODO: can be done w/fewer lines of code.
                             auto seg = Q.top();
                             Q.pop();
                             r = std::min(r, seg.right);
