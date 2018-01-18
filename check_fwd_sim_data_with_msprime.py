@@ -44,7 +44,6 @@ with open(sys.argv[2],"rb") as f:
 
 edges.set_columns(parent=p,child=c,left=l,right=r)
 
-msprime.sort_tables(nodes=nodes,edges=edges)
 
 N=int(sys.argv[3])
 samples=[i for i in range(len(time)-2*N,len(time))] 
@@ -52,6 +51,7 @@ n=nodes
 e=edges
 ts=None
 def doit():
+    msprime.sort_tables(nodes=nodes,edges=edges)
     ts=msprime.simplify_tables(nodes=n,edges=e,samples=samples)
 
 time = timeit.timeit(doit,number=1)
