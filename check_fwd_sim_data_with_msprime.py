@@ -2,16 +2,22 @@ import msprime
 import numpy as np
 import sys
 import timeit
+import struct
 
 nodes = msprime.NodeTable()
 edges = msprime.EdgeTable()
 
 g = []
-with open(sys.argv[1],"r") as f:
-    for line in f:
-        l = line.rstrip().split(" ")
-        g.append(float(l[1]))
-
+with open(sys.argv[1],"rb") as f:
+    while True:
+        a=struct.unpack('i',f.read(4))
+        if a[0]==-1:
+            break
+        t=struct.unpack('d',f.read(8))
+        g.append(t[0])
+    # for line in f:
+    #     l = line.rstrip().split(" ")
+    #     g.append(float(l[1]))
 time = np.array(g)
 time -= time.max()
 time *= -1.0
@@ -23,13 +29,18 @@ c = []
 l = []
 r = []
 
-with open(sys.argv[2],"r") as f:
-    for line in f:
-        li = line.rstrip().split(" ")
-        p.append(int(li[0]))
-        c.append(int(li[1]))
-        l.append(float(li[2]))
-        r.append(float(li[3]))
+with open(sys.argv[2],"rb") as f:
+    while True:
+        pi=struct.unpack('i',f.read(4))
+        if pi[0] == -1:
+            break
+        ci=struct.unpack('i',f.read(4))
+        li=struct.unpack('d',f.read(8))
+        ri=struct.unpack('d',f.read(8))
+        p.append(pi[0])
+        c.append(ci[0])
+        l.append(li[0])
+        r.append(ri[0])
 
 edges.set_columns(parent=p,child=c,left=l,right=r)
 
@@ -39,13 +50,15 @@ N=int(sys.argv[3])
 samples=[i for i in range(len(time)-2*N,len(time))] 
 n=nodes
 e=edges
+ts=None
 def doit():
-    msprime.simplify_tables(nodes=n,edges=e,samples=samples)
+    ts=msprime.simplify_tables(nodes=n,edges=e,samples=samples)
 
 time = timeit.timeit(doit,number=1)
 #ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
 print(time)
-#for i in edges:
-#    print(i.parent,i.child,i.left,i.right,nodes[i.parent].time)
+with open(sys.argv[4],'w') as f:
+    for i in edges:
+        f.write("{} {} {} {}\n".format(i.parent,i.child,i.left,i.right,nodes[i.parent].time))
 
 

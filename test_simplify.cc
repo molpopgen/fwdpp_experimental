@@ -229,7 +229,10 @@ main(int argc, char** argv)
     auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
-            in >> a >> x >> std::ws;
+			in.read(reinterpret_cast<char*>(&a),sizeof(decltype(a)));
+			if(a==-1)break;
+			in.read(reinterpret_cast<char*>(&x),sizeof(decltype(x)));
+            //in >> a >> x >> std::ws;
             nodes.push_back(make_node(a, x, 0));
         }
     if (rev)
@@ -244,8 +247,14 @@ main(int argc, char** argv)
     in.open(edgefilename.c_str());
     while (!in.eof())
         {
-            in >> a >> b >> x >> y >> std::ws;
+            //in >> a >> b >> x >> y >> std::ws;
+			in.read(reinterpret_cast<char*>(&a),sizeof(decltype(a)));
+			if(a==-1)break;
+			in.read(reinterpret_cast<char*>(&b),sizeof(decltype(b)));
+			in.read(reinterpret_cast<char*>(&x),sizeof(decltype(x)));
+			in.read(reinterpret_cast<char*>(&y),sizeof(decltype(y)));
             edges.push_back(make_edge(x, y, a, b));
+
         }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;

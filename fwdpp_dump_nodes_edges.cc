@@ -55,7 +55,10 @@ struct table_collection
     {
         for (std::int32_t i = 0; i < num_initial_nodes; ++i)
             {
-                nodes << i << ' ' << initial_time << '\n';
+                // nodes << i << ' ' << initial_time << '\n';
+                nodes.write(reinterpret_cast<char*>(&i), sizeof(decltype(i)));
+                nodes.write(reinterpret_cast<const char*>(&initial_time),
+                            sizeof(decltype(initial_time)));
                 node_table.push_back(make_node(i, initial_time, 0));
             }
     }
@@ -67,23 +70,30 @@ struct table_collection
                        const std::tuple<std::int32_t, std::int32_t>& parents,
                        const double generation)
     {
-        nodes << next_index << ' ' << generation + 1 << '\n';
+        auto g = generation + 1.;
+        nodes.write(reinterpret_cast<const char*>(&next_index),
+                    sizeof(decltype(next_index)));
+        nodes.write(reinterpret_cast<char*>(&g), sizeof(decltype(g)));
         // node_table.push_back(
         //    make_node(next_index, generation + 1, 0)); // MUSTDOC
         auto split = split_breakpoints(breakpoints, 0., 1.);
         // Add the edges
         for (auto&& brk : split.first)
             {
-                edges << std::get<0>(parents) << ' ' << next_index << ' '
-                      << brk.first << ' ' << brk.second << '\n';
+				edges.write(reinterpret_cast<const char*>(&std::get<0>(parents)),sizeof(decltype(std::get<0>(parents))));
+				edges.write(reinterpret_cast<const char*>(&next_index),sizeof(next_index));
+				edges.write(reinterpret_cast<const char*>(&brk.first),sizeof(brk.first));
+				edges.write(reinterpret_cast<const char*>(&brk.second),sizeof(brk.second));
                 // edge_table.push_back(make_edge(
                 //    brk.first, brk.second, std::get<0>(parents),
                 //    next_index));
             }
         for (auto&& brk : split.second)
             {
-                edges << std::get<1>(parents) << ' ' << next_index << ' '
-                      << brk.first << ' ' << brk.second << '\n';
+				edges.write(reinterpret_cast<const char*>(&std::get<1>(parents)),sizeof(decltype(std::get<1>(parents))));
+				edges.write(reinterpret_cast<const char*>(&next_index),sizeof(next_index));
+				edges.write(reinterpret_cast<const char*>(&brk.first),sizeof(brk.first));
+				edges.write(reinterpret_cast<const char*>(&brk.second),sizeof(brk.second));
                 // edge_table.push_back(make_edge(
                 //    brk.first, brk.second, std::get<1>(parents),
                 //    next_index));
@@ -427,10 +437,10 @@ main(int argc, char** argv)
     double rho = atof(argv[argn++]);
     double pdel = atof(argv[argn++]);
     unsigned seed = atoi(argv[argn++]);
-	std::string	nodefilename=argv[argn++];
-	std::string edgefilename=argv[argn++];
-	nodes.open(nodefilename.c_str());
-	edges.open(edgefilename.c_str());
+    std::string nodefilename = argv[argn++];
+    std::string edgefilename = argv[argn++];
+    nodes.open(nodefilename.c_str());
+    edges.open(edgefilename.c_str());
     singlepop_t pop(N);
     std::vector<fwdpp::uint_t> popsizes(10 * N, N);
     GSLrng_t rng(seed);
@@ -439,6 +449,9 @@ main(int argc, char** argv)
     double mudel = mu * pdel;
 
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
+	std::int32_t done=-1;
+	nodes.write(reinterpret_cast<char*>(&done),sizeof(decltype(done)));
+	edges.write(reinterpret_cast<char*>(&done),sizeof(decltype(done)));
     nodes.close();
     edges.close();
 }
