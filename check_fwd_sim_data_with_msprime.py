@@ -57,8 +57,12 @@ def doit():
 time = timeit.timeit(doit,number=1)
 #ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
 print(time)
+
 with open(sys.argv[4],'w') as f:
     for i in edges:
         f.write("{} {} {} {}\n".format(i.parent,i.child,i.left,i.right,nodes[i.parent].time))
+with open(sys.argv[5],'w') as f:
+    for i in nodes:
+        f.write("{}\n".format(i.time))
 
 
