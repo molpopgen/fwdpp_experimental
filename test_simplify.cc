@@ -31,8 +31,8 @@
 // 1. Replace priority_queue with vector that we sort as needed. NOTE: on Linux,
 //    doing this made run times worse for my test scenario, by a lot.  So,
 //    we table this for now.
-// 2. Replace "alpha" variable with raw data types that we emplace_back
-// 3. Replace all uses of push_back of alpha with emplace_back of raw types
+// 2. Replace "alpha" variable with raw data types that we emplace_back. DONE
+// 3. Replace all uses of push_back of alpha with emplace_back of raw types. DONE
 
 // TODO explore
 // 1. Give node and edge constructors so that we may emplace_back them, too.
@@ -132,15 +132,16 @@ simplify(const std::vector<std::int32_t>& samples,
     for (auto& s : samples)
         {
             No.push_back(make_node(No.size(), node_table[s].generation, 0));
-            Ancestry[s].push_back(
-                segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
+            Ancestry[s].emplace_back(0, 1,
+                                     static_cast<std::int32_t>(No.size() - 1));
             idmap[s] = static_cast<std::int32_t>(No.size() - 1);
         }
 
     auto edge_ptr = edge_table.begin();
-    segment alpha;
+    std::int32_t anode;
+    double aleft, aright;
     std::vector<segment> X;
-	X.reserve(1000); //Arbitrary
+    X.reserve(1000); //Arbitrary
     while (edge_ptr < edge_table.end())
         {
             auto u = edge_ptr->parent;
@@ -167,9 +168,10 @@ simplify(const std::vector<std::int32_t>& samples,
                     double r = 1.0;
                     while (!Q.empty() && Q.top().left == l)
                         {
-							X.emplace_back(Q.top().left,Q.top().right,Q.top().node);
-							r = std::min(r,Q.top().right);
-							Q.pop();
+                            X.emplace_back(Q.top().left, Q.top().right,
+                                           Q.top().node);
+                            r = std::min(r, Q.top().right);
+                            Q.pop();
                         }
                     if (!Q.empty())
                         {
@@ -177,14 +179,17 @@ simplify(const std::vector<std::int32_t>& samples,
                         }
                     if (X.size() == 1)
                         {
-                            alpha = X[0];
-                            auto x = X[0];
-                            if (!Q.empty() && Q.top().left < x.right)
+                            aleft = X[0].left;
+                            aright = X[0].right;
+                            anode = X[0].node;
+                            //auto x = X[0];
+                            if (!Q.empty() && Q.top().left < X[0].right)
                                 {
-                                    alpha = segment(x.left, Q.top().left,
-                                                    x.node);
-                                    x.left = Q.top().left;
-                                    Q.push(x);
+                                    aleft = X[0].left;
+                                    aright = Q.top().left;
+                                    anode = X[0].node;
+                                    Q.emplace(Q.top().left, X[0].right,
+                                              X[0].node);
                                 }
                         }
                     else
@@ -198,18 +203,20 @@ simplify(const std::vector<std::int32_t>& samples,
                                     // update sample map
                                     idmap[u] = v;
                                 }
-                            alpha = segment(l, r, v);
+                            aleft = l;
+                            aright = r;
+                            anode = v;
                             for (auto& x : X)
                                 {
                                     Eo.push_back(make_edge(l, r, v, x.node));
                                     if (x.right > r)
                                         {
                                             x.left = r;
-                                            Q.emplace(x);
+                                            Q.emplace(x.left, x.right, x.node);
                                         }
                                 }
                         }
-                    Ancestry[u].push_back(alpha);
+                    Ancestry[u].emplace_back(aleft, aright, anode);
                 }
         }
 
