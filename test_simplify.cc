@@ -22,34 +22,39 @@
 // The following needs to be dealt with before we'd be able to move
 // the code into the context of a class to be tied to a simulation.
 
-//TODO list based on simplifying large numbers of edges.
-//This list all made measurable speedups, and should be re-introduced 
-//separately for the purposes of git history:
-//1. Replace priority_queue with vector that we sort as needed
-//2. Replace "alpha" variable with raw data types that we emplace_back
-//3. Replace all uses of push_back of alpha with emplace_back of raw types
+// TODO list based on simplifying large numbers of edges.
+// This list all made measurable speedups, and should be re-introduced
+// separately for the purposes of git history:
+// 1. Replace priority_queue with vector that we sort as needed
+// 2. Replace "alpha" variable with raw data types that we emplace_back
+// 3. Replace all uses of push_back of alpha with emplace_back of raw types
 
-//TODO explore
-//1. Give node and edge constructors so that we may emplace_back them, too.
+// TODO explore
+// 1. Give node and edge constructors so that we may emplace_back them, too.
 //   As with the above list, this will reduce temporaries a lot.
-//2. Replace segment with a plain tuple.  It is a hidden/internal data type,
+// 2. Replace segment with a plain tuple.  It is a hidden/internal data type,
 //   so we really don't need to see it.
-//4. Try to see if reserve on No,Eo helps
- 
-//TODO issues
-//1. There's a trick to ancient samples.  One has to add them into output node list,
-//   but take care not to re-add them.  I may have to steal a look at msprime here...
+// 4. Try to see if reserve on No,Eo helps
 
-//TODO API
-//1. separate sorting from simplifying
+// TODO issues
+// 1. There's a trick to ancient samples.  One has to add them into output node
+// list,
+//   but take care not to re-add them.  I may have to steal a look at msprime
+//   here...
 
-//TODO Homework
-//2. Profile with bug input on dev server
+// TODO API
+// 1. separate sorting from simplifying
 
-//Some notes:
-//1. Sorting is much faster here than in msprime.  Simplifying small numbers of edges
-//   is also faster, but huge numbers favors msprime as Jerome predicted.  Some, but
-//   not all, of the difference is due to temporary object creation, and refactoring
+// TODO Homework
+// 2. Profile with bug input on dev server
+
+// Some notes:
+// 1. Sorting is much faster here than in msprime.  Simplifying small numbers
+// of edges
+//   is also faster, but huge numbers favors msprime as Jerome predicted.
+//   Some, but
+//   not all, of the difference is due to temporary object creation, and
+//   refactoring
 //   to allow emplace_back wherever possible will help.
 
 struct segment
@@ -262,10 +267,11 @@ main(int argc, char** argv)
     auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
-			in.read(reinterpret_cast<char*>(&a),sizeof(decltype(a)));
-			if(a==-1)break;
-			in.read(reinterpret_cast<char*>(&x),sizeof(decltype(x)));
-            //in >> a >> x >> std::ws;
+            in.read(reinterpret_cast<char*>(&a), sizeof(decltype(a)));
+            if (a == -1)
+                break;
+            in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
+            // in >> a >> x >> std::ws;
             nodes.push_back(make_node(a, x, 0));
         }
     if (rev)
@@ -280,14 +286,14 @@ main(int argc, char** argv)
     in.open(edgefilename.c_str());
     while (!in.eof())
         {
-            //in >> a >> b >> x >> y >> std::ws;
-			in.read(reinterpret_cast<char*>(&a),sizeof(decltype(a)));
-			if(a==-1)break;
-			in.read(reinterpret_cast<char*>(&b),sizeof(decltype(b)));
-			in.read(reinterpret_cast<char*>(&x),sizeof(decltype(x)));
-			in.read(reinterpret_cast<char*>(&y),sizeof(decltype(y)));
+            // in >> a >> b >> x >> y >> std::ws;
+            in.read(reinterpret_cast<char*>(&a), sizeof(decltype(a)));
+            if (a == -1)
+                break;
+            in.read(reinterpret_cast<char*>(&b), sizeof(decltype(b)));
+            in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
+            in.read(reinterpret_cast<char*>(&y), sizeof(decltype(y)));
             edges.push_back(make_edge(x, y, a, b));
-
         }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;
@@ -300,7 +306,7 @@ main(int argc, char** argv)
         {
             samples.push_back(i);
         }
-	simplify(samples,edges,nodes);
+    simplify(samples, edges, nodes);
     //    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
@@ -308,17 +314,17 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
-	std::ofstream out(nodeoutfile.c_str());
+    std::ofstream out(nodeoutfile.c_str());
     for (auto& n : nodes)
         {
             out << n.id << ' ' << n.generation << '\n';
         }
-	out.close();
-	out.open(edgeoutfile.c_str());
+    out.close();
+    out.open(edgeoutfile.c_str());
     for (auto& n : edges)
         {
             out << n.left << ' ' << n.right << ' ' << n.parent << ' '
-                      << n.child << '\n';
+                << n.child << '\n';
         }
-	out.close();
+    out.close();
 }
