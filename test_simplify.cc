@@ -314,11 +314,11 @@ main(int argc, char** argv)
             samples.push_back(i);
         }
     start = std::chrono::steady_clock::now();
-    sort_tables(edges,nodes);
+    sort_tables(edges, nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
-		<< "sort time = " 
+        << "sort time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
     start = std::chrono::steady_clock::now();
@@ -326,7 +326,7 @@ main(int argc, char** argv)
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
-		<< "simplify time = "
+        << "simplify time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
