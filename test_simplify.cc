@@ -11,7 +11,7 @@
 #include <cassert>
 #include <tuple>
 #include <vector>
-//#include <queue>
+#include <functional>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -75,36 +75,30 @@ struct segment
 };
 
 void
-reverse_time(std::vector<node>& nodes)
-{
-    if (nodes.empty())
-        return;
-    auto mtime = nodes.back().generation;
-    for (auto& n : nodes)
-        {
-            n.generation -= mtime;
-            n.generation *= -1.0;
-        }
-}
-
-void
 sort_tables(std::vector<edge>& edge_table,
             const std::vector<node>& node_table) noexcept
 {
     // Sort the edge table.  On PARENT birth times.
+    // The sorting differs from msprime here. We
+    // assume that birth times are recorded forward in
+    // time rather than backwards.
     std::sort(edge_table.begin(), edge_table.end(),
               [&node_table](const edge& a, const edge& b) {
-                  return std::tie(node_table[a.parent].generation, a.parent,
-                                  a.child, a.left)
-                         < std::tie(node_table[b.parent].generation, b.parent,
-                                    b.child, b.left);
+                  auto ga = node_table[a.parent].generation;
+                  auto gb = node_table[b.parent].generation;
+                  return ga > gb
+                         || (ga == gb
+                             && std::tie(a.parent, a.child, a.left)
+                                    < std::tie(b.parent, b.child, b.left));
               });
-
     assert(std::is_sorted(
         edge_table.begin(), edge_table.end(),
         [&node_table](const edge& a, const edge& b) {
-            return std::tie(node_table[a.parent].generation, a.parent)
-                   < std::tie(node_table[b.parent].generation, b.parent);
+            auto ga = node_table[a.parent].generation;
+            auto gb = node_table[b.parent].generation;
+            return ga > gb || (ga == gb
+                               && std::tie(a.parent, a.child, a.left)
+                                      < std::tie(b.parent, b.child, b.left));
         }));
 }
 
@@ -130,9 +124,9 @@ simplify(const std::vector<std::int32_t>& samples,
     std::vector<std::vector<segment>> Ancestry(node_table.size());
     std::vector<std::int32_t> idmap(node_table.size(), -1);
 
-	// This plays the role of a min queue on segments, meaning
-	// that it is always sorted such that Q.back() is the 
-	// smallest value, according to the lambda in sort_queue
+    // This plays the role of a min queue on segments, meaning
+    // that it is always sorted such that Q.back() is the
+    // smallest value, according to the lambda in sort_queue
     std::vector<segment> Q;
     // TODO: document a gotcha re: samples not being sorted w.r.to
     // index
@@ -272,8 +266,11 @@ simplify(const std::vector<std::int32_t>& samples,
     assert(std::is_sorted(
         edge_table.begin(), edge_table.end(),
         [&node_table](const edge& a, const edge& b) {
-            return std::tie(node_table[a.parent].generation, a.parent)
-                   < std::tie(node_table[b.parent].generation, b.parent);
+            auto ga = node_table[a.parent].generation;
+            auto gb = node_table[b.parent].generation;
+            return ga > gb || (ga == gb
+                               && std::tie(a.parent, a.child, a.left)
+                                      < std::tie(b.parent, b.child, b.left));
         }));
     return idmap;
 }
@@ -281,17 +278,12 @@ simplify(const std::vector<std::int32_t>& samples,
 int
 main(int argc, char** argv)
 {
-    int rev = 0;
     std::string nodefilename, edgefilename, nodeoutfile, edgeoutfile;
     nodefilename = std::string(argv[1]);
     edgefilename = std::string(argv[2]);
     nodeoutfile = std::string(argv[3]);
     edgeoutfile = std::string(argv[4]);
     std::int32_t N = std::atoi(argv[5]);
-    if (argc == 7)
-        {
-            rev = std::atoi(argv[6]);
-        }
     std::vector<node> nodes;
     std::vector<edge> edges;
 
@@ -307,10 +299,6 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
             nodes.push_back(make_node(a, x, 0));
-        }
-    if (rev)
-        {
-            reverse_time(nodes);
         }
     // for(auto & n : nodes)
     //{
