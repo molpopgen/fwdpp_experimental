@@ -302,6 +302,7 @@ main(int argc, char** argv)
     std::cerr
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
+    std::cerr << nodes.size() << " nodes, " << edges.size() << " edges\n";
     start = std::chrono::steady_clock::now();
     std::vector<std::int32_t> samples;
     for (unsigned i = nodes.size() - 2 * N; i < nodes.size(); ++i)
