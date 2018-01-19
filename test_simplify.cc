@@ -25,7 +25,9 @@
 // TODO list based on simplifying large numbers of edges.
 // This list all made measurable speedups, and should be re-introduced
 // separately for the purposes of git history:
-// 1. Replace priority_queue with vector that we sort as needed
+// 1. Replace priority_queue with vector that we sort as needed. NOTE: on Linux,
+//    doing this made run times worse for my test scenario, by a lot.  So,
+//    we table this for now.
 // 2. Replace "alpha" variable with raw data types that we emplace_back
 // 3. Replace all uses of push_back of alpha with emplace_back of raw types
 
