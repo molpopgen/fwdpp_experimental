@@ -2,7 +2,10 @@ import msprime
 import numpy as np
 import sys
 import timeit
+import time
 import struct
+
+print(msprime.__file__,msprime.__version__)
 
 nodes = msprime.NodeTable()
 edges = msprime.EdgeTable()
@@ -18,11 +21,11 @@ with open(sys.argv[1],"rb") as f:
     # for line in f:
     #     l = line.rstrip().split(" ")
     #     g.append(float(l[1]))
-time = np.array(g)
-time -= time.max()
-time *= -1.0
+times = np.array(g)
+times -= times.max()
+times *= -1.0
 
-nodes.append_columns(time=time,flags=[-1]*len(time))
+nodes.append_columns(time=times,flags=[-1]*len(times))
 
 p = []
 c = []
@@ -46,17 +49,18 @@ edges.set_columns(parent=p,child=c,left=l,right=r)
 
 
 N=int(sys.argv[3])
-samples=[i for i in range(len(time)-2*N,len(time))] 
-n=nodes
-e=edges
+samples=[i for i in range(len(times)-2*N,len(times))] 
 ts=None
-def doit():
-    msprime.sort_tables(nodes=nodes,edges=edges)
-    ts=msprime.simplify_tables(nodes=n,edges=e,samples=samples)
 
-time = timeit.timeit(doit,number=1)
-#ts = msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
-print(time)
+A=time.time()
+msprime.sort_tables(nodes=nodes,edges=edges)
+B=time.time()
+ts=msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples)
+C=time.time()
+
+print("Sorting: ",B-A,"seconds")
+print("Simplifying: ",C-B,"seconds")
+
 
 with open(sys.argv[4],'w') as f:
     for i in edges:
