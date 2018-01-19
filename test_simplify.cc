@@ -63,6 +63,11 @@
 //   refactoring
 //   to allow emplace_back wherever possible will help.
 
+// Any idea of reserving memory will be moot in practice.  When simplify 
+// becomes a member of a C++ class, all of the temporary containers
+// can be private variables whose memory gets re-used during each bout
+// of simplification.
+
 struct segment
 {
     double left, right;
