@@ -34,6 +34,8 @@
 //   As with the above list, this will reduce temporaries a lot.
 // 2. Replace segment with a plain tuple.  It is a hidden/internal data type,
 //   so we really don't need to see it.
+// 3. Move X higher in scope and clear() it each iteration.  This will
+//    re-use its RAM each time instead of reallocating.
 // 4. Try to see if reserve on No,Eo helps
 
 // TODO issues
