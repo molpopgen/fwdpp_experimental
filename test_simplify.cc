@@ -11,7 +11,7 @@
 #include <cassert>
 #include <tuple>
 #include <vector>
-#include <queue>
+//#include <queue>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -28,9 +28,7 @@
 // TODO list based on simplifying large numbers of edges.
 // This list all made measurable speedups, and should be re-introduced
 // separately for the purposes of git history:
-// 1. Replace priority_queue with vector that we sort as needed. NOTE: on Linux,
-//    doing this made run times worse for my test scenario, by a lot.  So,
-//    we table this for now.
+// 1. Replace priority_queue with vector that we sort as needed. DONE
 // 2. Replace "alpha" variable with raw data types that we emplace_back. DONE
 // 3. Replace all uses of push_back of alpha with emplace_back of raw types. DONE
 
@@ -110,6 +108,19 @@ sort_tables(std::vector<edge>& edge_table,
         }));
 }
 
+bool
+sort_queue(bool added2Q, std::vector<segment>& Q) noexcept
+{
+    if (added2Q)
+        {
+            std::sort(Q.begin(), Q.end(),
+                      [](const segment& a, const segment& b) {
+                          return a.left > b.left;
+                      });
+        }
+    return false;
+}
+
 std::vector<std::int32_t>
 simplify(const std::vector<std::int32_t>& samples,
          std::vector<edge>& edge_table, std::vector<node>& node_table)
@@ -118,15 +129,11 @@ simplify(const std::vector<std::int32_t>& samples,
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
     std::vector<std::int32_t> idmap(node_table.size(), -1);
-    // The algorithm uses a min queue.  The default C++ queue
-    // is a max queue.  Thus, we must use > rather than <
-    // to generate a min queue;
-    const auto segment_sorter_q
-        = [](const segment& a, const segment& b) { return a.left > b.left; };
-    std::priority_queue<segment, std::vector<segment>,
-                        decltype(segment_sorter_q)>
-        Q(segment_sorter_q);
 
+	// This plays the role of a min queue on segments, meaning
+	// that it is always sorted such that Q.back() is the 
+	// smallest value, according to the lambda in sort_queue
+    std::vector<segment> Q;
     // TODO: document a gotcha re: samples not being sorted w.r.to
     // index
     for (auto& s : samples)
@@ -141,6 +148,7 @@ simplify(const std::vector<std::int32_t>& samples,
     std::int32_t anode;
     double aleft, aright;
     std::vector<segment> X;
+    bool added2Q = false;
     X.reserve(1000); //Arbitrary
     while (edge_ptr < edge_table.end())
         {
@@ -153,29 +161,31 @@ simplify(const std::vector<std::int32_t>& samples,
                             if (seg.right > edge_ptr->left
                                 && edge_ptr->right > seg.left)
                                 {
-                                    Q.emplace(
+                                    Q.emplace_back(
                                         std::max(seg.left, edge_ptr->left),
                                         std::min(seg.right, edge_ptr->right),
                                         seg.node);
+                                    added2Q = true;
                                 }
                         }
                 }
+            added2Q = sort_queue(added2Q, Q);
             std::int32_t v = -1;
             while (!Q.empty())
                 {
                     X.clear();
-                    auto l = Q.top().left;
+                    auto l = Q.back().left;
                     double r = 1.0;
-                    while (!Q.empty() && Q.top().left == l)
+                    while (!Q.empty() && Q.back().left == l)
                         {
-                            X.emplace_back(Q.top().left, Q.top().right,
-                                           Q.top().node);
-                            r = std::min(r, Q.top().right);
-                            Q.pop();
+                            X.emplace_back(Q.back().left, Q.back().right,
+                                           Q.back().node);
+                            r = std::min(r, Q.back().right);
+                            Q.pop_back();
                         }
                     if (!Q.empty())
                         {
-                            r = std::min(r, Q.top().left);
+                            r = std::min(r, Q.back().left);
                         }
                     if (X.size() == 1)
                         {
@@ -183,13 +193,14 @@ simplify(const std::vector<std::int32_t>& samples,
                             aright = X[0].right;
                             anode = X[0].node;
                             //auto x = X[0];
-                            if (!Q.empty() && Q.top().left < X[0].right)
+                            if (!Q.empty() && Q.back().left < X[0].right)
                                 {
                                     aleft = X[0].left;
-                                    aright = Q.top().left;
+                                    aright = Q.back().left;
                                     anode = X[0].node;
-                                    Q.emplace(Q.top().left, X[0].right,
-                                              X[0].node);
+                                    Q.emplace_back(Q.back().left, X[0].right,
+                                                   X[0].node);
+                                    added2Q = true;
                                 }
                         }
                     else
@@ -212,10 +223,13 @@ simplify(const std::vector<std::int32_t>& samples,
                                     if (x.right > r)
                                         {
                                             x.left = r;
-                                            Q.emplace(x.left, x.right, x.node);
+                                            Q.emplace_back(x.left, x.right,
+                                                           x.node);
+                                            added2Q = true;
                                         }
                                 }
                         }
+                    added2Q = sort_queue(added2Q, Q);
                     Ancestry[u].emplace_back(aleft, aright, anode);
                 }
         }
