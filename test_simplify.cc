@@ -35,7 +35,8 @@
 // 2. Replace segment with a plain tuple.  It is a hidden/internal data type,
 //   so we really don't need to see it.
 // 3. Move X higher in scope and clear() it each iteration.  This will
-//    re-use its RAM each time instead of reallocating.
+//    re-use its RAM each time instead of reallocating. Done--this was worth
+//    a 25% reduction in simplify time by itself!!!!
 // 4. Try to see if reserve on No,Eo helps
 
 // TODO issues
@@ -133,6 +134,8 @@ simplify(const std::vector<std::int32_t>& samples,
 
     auto edge_ptr = edge_table.begin();
     segment alpha;
+    std::vector<segment> X;
+	X.reserve(1000); //Arbitrary
     while (edge_ptr < edge_table.end())
         {
             auto u = edge_ptr->parent;
@@ -154,16 +157,14 @@ simplify(const std::vector<std::int32_t>& samples,
             std::int32_t v = -1;
             while (!Q.empty())
                 {
+                    X.clear();
                     auto l = Q.top().left;
                     double r = 1.0;
-                    std::vector<segment> X;
                     while (!Q.empty() && Q.top().left == l)
                         {
-                            // TODO: can be done w/fewer lines of code.
-                            auto seg = Q.top();
-                            Q.pop();
-                            r = std::min(r, seg.right);
-                            X.push_back(std::move(seg));
+							X.emplace_back(Q.top().left,Q.top().right,Q.top().node);
+							r = std::min(r,Q.top().right);
+							Q.pop();
                         }
                     if (!Q.empty())
                         {
