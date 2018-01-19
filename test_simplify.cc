@@ -22,6 +22,9 @@
 // The following needs to be dealt with before we'd be able to move
 // the code into the context of a class to be tied to a simulation.
 
+// All benchmarking is donw with output from dump_big.sh, which
+// generates 80004000 nodes and 80997299 edges.
+
 // TODO list based on simplifying large numbers of edges.
 // This list all made measurable speedups, and should be re-introduced
 // separately for the purposes of git history:
