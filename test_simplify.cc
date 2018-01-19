@@ -19,6 +19,39 @@
 #include "edge.hpp"
 #include "node.hpp"
 
+// The following needs to be dealt with before we'd be able to move
+// the code into the context of a class to be tied to a simulation.
+
+//TODO list based on simplifying large numbers of edges.
+//This list all made measurable speedups, and should be re-introduced 
+//separately for the purposes of git history:
+//1. Replace priority_queue with vector that we sort as needed
+//2. Replace "alpha" variable with raw data types that we emplace_back
+//3. Replace all uses of push_back of alpha with emplace_back of raw types
+
+//TODO explore
+//1. Give node and edge constructors so that we may emplace_back them, too.
+//   As with the above list, this will reduce temporaries a lot.
+//2. Replace segment with a plain tuple.  It is a hidden/internal data type,
+//   so we really don't need to see it.
+//4. Try to see if reserve on No,Eo helps
+ 
+//TODO issues
+//1. There's a trick to ancient samples.  One has to add them into output node list,
+//   but take care not to re-add them.  I may have to steal a look at msprime here...
+
+//TODO API
+//1. separate sorting from simplifying
+
+//TODO Homework
+//2. Profile with bug input on dev server
+
+//Some notes:
+//1. Sorting is much faster here than in msprime.  Simplifying small numbers of edges
+//   is also faster, but huge numbers favors msprime as Jerome predicted.  Some, but
+//   not all, of the difference is due to temporary object creation, and refactoring
+//   to allow emplace_back wherever possible will help.
+
 struct segment
 {
     double left, right;
