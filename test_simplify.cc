@@ -46,7 +46,7 @@
 // 1. separate sorting from simplifying
 
 // TODO Homework
-// 2. Profile with bug input on dev server
+// 2. Profile with big input on dev server
 
 // Some notes:
 // 1. Sorting is much faster here than in msprime.  Simplifying small numbers
