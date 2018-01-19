@@ -45,7 +45,7 @@
 //   here...
 
 // TODO API
-// 1. separate sorting from simplifying
+// 1. separate sorting from simplifying. DONE
 
 // TODO Homework
 // 2. Profile with big input on dev server
@@ -83,9 +83,9 @@ reverse_time(std::vector<node>& nodes)
         }
 }
 
-std::vector<std::int32_t>
-simplify(const std::vector<std::int32_t>& samples,
-         std::vector<edge>& edge_table, std::vector<node>& node_table)
+void
+sort_tables(std::vector<edge>& edge_table,
+            const std::vector<node>& node_table) noexcept
 {
     // Sort the edge table.  On PARENT birth times.
     std::sort(edge_table.begin(), edge_table.end(),
@@ -102,7 +102,12 @@ simplify(const std::vector<std::int32_t>& samples,
             return std::tie(node_table[a.parent].generation, a.parent)
                    < std::tie(node_table[b.parent].generation, b.parent);
         }));
+}
 
+std::vector<std::int32_t>
+simplify(const std::vector<std::int32_t>& samples,
+         std::vector<edge>& edge_table, std::vector<node>& node_table)
+{
     std::vector<edge> Eo;
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
@@ -303,17 +308,25 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
     std::cerr << nodes.size() << " nodes, " << edges.size() << " edges\n";
-    start = std::chrono::steady_clock::now();
     std::vector<std::int32_t> samples;
     for (unsigned i = nodes.size() - 2 * N; i < nodes.size(); ++i)
         {
             samples.push_back(i);
         }
-    simplify(samples, edges, nodes);
-    //    simplify({ 0, 1, 2, 19, 33, 11, 12 }, edges, nodes);
+    start = std::chrono::steady_clock::now();
+    sort_tables(edges,nodes);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
+		<< "sort time = " 
+        << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
+        << " ms" << std::endl;
+    start = std::chrono::steady_clock::now();
+    simplify(samples, edges, nodes);
+    end = std::chrono::steady_clock::now();
+    diff = end - start;
+    std::cerr
+		<< "simplify time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
