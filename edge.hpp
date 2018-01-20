@@ -5,7 +5,6 @@
 #define ANCESTRY_EDGE_HPP__
 
 #include <cstdint>
-#include <tuple>
 
 struct edge
 {

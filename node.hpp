@@ -5,7 +5,6 @@
 #define ANCESTRY_NODE_HPP__
 
 #include <cstdint>
-#include <tuple>
 
 struct node
 {
