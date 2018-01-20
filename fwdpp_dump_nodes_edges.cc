@@ -80,21 +80,31 @@ struct table_collection
         // Add the edges
         for (auto&& brk : split.first)
             {
-				edges.write(reinterpret_cast<const char*>(&std::get<0>(parents)),sizeof(decltype(std::get<0>(parents))));
-				edges.write(reinterpret_cast<const char*>(&next_index),sizeof(next_index));
-				edges.write(reinterpret_cast<const char*>(&brk.first),sizeof(brk.first));
-				edges.write(reinterpret_cast<const char*>(&brk.second),sizeof(brk.second));
-                // edge_table.push_back(make_edge(
+                edges.write(
+                    reinterpret_cast<const char*>(&std::get<0>(parents)),
+                    sizeof(decltype(std::get<0>(parents))));
+                edges.write(reinterpret_cast<const char*>(&next_index),
+                            sizeof(next_index));
+                edges.write(reinterpret_cast<const char*>(&brk.first),
+                            sizeof(brk.first));
+                edges.write(reinterpret_cast<const char*>(&brk.second),
+                            sizeof(brk.second));
+                // edge_table.push_back(edge(
                 //    brk.first, brk.second, std::get<0>(parents),
                 //    next_index));
             }
         for (auto&& brk : split.second)
             {
-				edges.write(reinterpret_cast<const char*>(&std::get<1>(parents)),sizeof(decltype(std::get<1>(parents))));
-				edges.write(reinterpret_cast<const char*>(&next_index),sizeof(next_index));
-				edges.write(reinterpret_cast<const char*>(&brk.first),sizeof(brk.first));
-				edges.write(reinterpret_cast<const char*>(&brk.second),sizeof(brk.second));
-                // edge_table.push_back(make_edge(
+                edges.write(
+                    reinterpret_cast<const char*>(&std::get<1>(parents)),
+                    sizeof(decltype(std::get<1>(parents))));
+                edges.write(reinterpret_cast<const char*>(&next_index),
+                            sizeof(next_index));
+                edges.write(reinterpret_cast<const char*>(&brk.first),
+                            sizeof(brk.first));
+                edges.write(reinterpret_cast<const char*>(&brk.second),
+                            sizeof(brk.second));
+                // edge_table.push_back(edge(
                 //    brk.first, brk.second, std::get<1>(parents),
                 //    next_index));
             }
@@ -210,8 +220,7 @@ struct table_collection
                                 alpha = segment(l, r, v);
                                 for (auto& x : X)
                                     {
-                                        Eo.push_back(
-                                            make_edge(l, r, v, x.node));
+                                        Eo.push_back(edge(l, r, v, x.node));
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -233,8 +242,8 @@ struct table_collection
                 if (condition)
                     {
                         compacted_edges.push_back(
-                            make_edge(Eo[j - 1].left, Eo[j - 1].right,
-                                      Eo[j - 1].parent, Eo[j - 1].child));
+                            edge(Eo[j - 1].left, Eo[j - 1].right,
+                                 Eo[j - 1].parent, Eo[j - 1].child));
                         start = j;
                     }
             }
@@ -449,9 +458,9 @@ main(int argc, char** argv)
     double mudel = mu * pdel;
 
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
-	std::int32_t done=-1;
-	nodes.write(reinterpret_cast<char*>(&done),sizeof(decltype(done)));
-	edges.write(reinterpret_cast<char*>(&done),sizeof(decltype(done)));
+    std::int32_t done = -1;
+    nodes.write(reinterpret_cast<char*>(&done), sizeof(decltype(done)));
+    edges.write(reinterpret_cast<char*>(&done), sizeof(decltype(done)));
     nodes.close();
     edges.close();
 }

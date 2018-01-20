@@ -34,7 +34,11 @@
 
 // TODO explore
 // 1. Give node and edge constructors so that we may emplace_back them, too.
-//   As with the above list, this will reduce temporaries a lot.
+//   As with the above list, this will reduce temporaries a lot. Experimenting
+//   shows that for these types, emplacement is slower than push_back of a constructor call.
+//   The constructor call is more idiomatic than a make_foo function, so we 
+//   stick with that.  This means we must copy to get data to msprime, but that
+//   is probably what we want if we're going all-in on the fwdpp side.
 // 2. Replace segment with a plain tuple.  It is a hidden/internal data type,
 //   so we really don't need to see it.
 // 3. Move X higher in scope and clear() it each iteration.  This will
@@ -63,7 +67,7 @@
 //   refactoring
 //   to allow emplace_back wherever possible will help.
 
-// Any idea of reserving memory will be moot in practice.  When simplify 
+// Any idea of reserving memory will be moot in practice.  When simplify
 // becomes a member of a C++ class, all of the temporary containers
 // can be private variables whose memory gets re-used during each bout
 // of simplification.
@@ -128,7 +132,7 @@ simplify(const std::vector<std::int32_t>& samples,
     std::vector<node> No;
     std::vector<std::vector<segment>> Ancestry(node_table.size());
 
-	// Relates input node ids to output node ids
+    // Relates input node ids to output node ids
     std::vector<std::int32_t> idmap(node_table.size(), -1);
 
     // This plays the role of a min queue on segments, meaning
@@ -138,9 +142,9 @@ simplify(const std::vector<std::int32_t>& samples,
     // TODO: document a gotcha re: samples not being sorted w.r.to
     // index
 
-	// We take our samples and add them to both the output
-	// node list and initialize their ancestry with
-	// a segment on [0,L).
+    // We take our samples and add them to both the output
+    // node list and initialize their ancestry with
+    // a segment on [0,L).
     for (auto& s : samples)
         {
             No.push_back(make_node(No.size(), node_table[s].generation, 0));
@@ -156,23 +160,23 @@ simplify(const std::vector<std::int32_t>& samples,
     bool added2Q = false;
     X.reserve(1000); //Arbitrary
 
-	// At this point, our edges are sorted by birth
-	// order of parents, from present to past.
-	// We can now work our way up the pedigree.
-	// This outer loop differs from how we describe it in the 
-	// paper, but the strict sorting of edges means that this 
-	// equivalent.
+    // At this point, our edges are sorted by birth
+    // order of parents, from present to past.
+    // We can now work our way up the pedigree.
+    // This outer loop differs from how we describe it in the
+    // paper, but the strict sorting of edges means that this
+    // equivalent.
     while (edge_ptr < edge_table.end())
         {
             auto u = edge_ptr->parent;
             for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
                  ++edge_ptr)
                 {
-					//For each edge corresponding to this parent,
-					//we look at all segments from the child.
-					//If the two segments overlap, we add the minimal
-					//overlap to our queue.
-					//This is Step S3.
+                    //For each edge corresponding to this parent,
+                    //we look at all segments from the child.
+                    //If the two segments overlap, we add the minimal
+                    //overlap to our queue.
+                    //This is Step S3.
                     for (auto& seg : Ancestry[edge_ptr->child])
                         {
                             if (seg.right > edge_ptr->left
@@ -189,19 +193,19 @@ simplify(const std::vector<std::int32_t>& samples,
             added2Q = sort_queue(added2Q, Q);
             std::int32_t v = -1;
             while (!Q.empty())
-				// Steps S4 through S8 of the algorithm.
+                // Steps S4 through S8 of the algorithm.
                 {
                     X.clear();
                     auto l = Q.back().left;
                     double r = 1.0;
                     while (!Q.empty() && Q.back().left == l)
-					// This while loop is Step S4. This step 
-					// adds to X all segments with left == l
-					// and also finds the minimum right for 
-					// all segs with left == l.
-					// TODO: this can be done with reverse iteration,
-					// but testing on 0.5e9 edges didn't seem to 
-					// make it worthwhile.
+                        // This while loop is Step S4. This step
+                        // adds to X all segments with left == l
+                        // and also finds the minimum right for
+                        // all segs with left == l.
+                        // TODO: this can be done with reverse iteration,
+                        // but testing on 0.5e9 edges didn't seem to
+                        // make it worthwhile.
                         {
                             X.emplace_back(Q.back().left, Q.back().right,
                                            Q.back().node);
@@ -231,8 +235,8 @@ simplify(const std::vector<std::int32_t>& samples,
                         {
                             if (v == -1)
                                 {
-									// Overlap/coalescence, and thus
-									// a new node. Step S6.
+                                    // Overlap/coalescence, and thus
+                                    // a new node. Step S6.
                                     No.push_back(make_node(
                                         static_cast<std::int32_t>(No.size()),
                                         node_table[u].generation, 0));
@@ -245,7 +249,7 @@ simplify(const std::vector<std::int32_t>& samples,
                             anode = v;
                             for (auto& x : X)
                                 {
-                                    Eo.push_back(make_edge(l, r, v, x.node));
+                                    Eo.push_back(edge(l, r, v, x.node));
                                     if (x.right > r)
                                         {
                                             x.left = r;
@@ -285,14 +289,14 @@ simplify(const std::vector<std::int32_t>& samples,
                              || E[j - 1].child != E[j].child;
             if (condition)
                 {
-                    Eo.push_back(make_edge(E[start].left, E[j - 1].right,
-                                           E[j - 1].parent, E[j - 1].child));
+                    Eo.push_back(edge(E[start].left, E[j - 1].right,
+                                    E[j - 1].parent, E[j - 1].child));
                     start = j;
                 }
         }
     auto j = E.size();
-    Eo.push_back(make_edge(E[start].left, E[j - 1].right, E[j - 1].parent,
-                           E[j - 1].child));
+    Eo.push_back(edge(E[start].left, E[j - 1].right, E[j - 1].parent,
+                    E[j - 1].child));
     edge_table.swap(Eo);
     node_table.swap(No);
     assert(std::is_sorted(
@@ -347,7 +351,7 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&b), sizeof(decltype(b)));
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             in.read(reinterpret_cast<char*>(&y), sizeof(decltype(y)));
-            edges.push_back(make_edge(x, y, a, b));
+            edges.push_back(edge(x, y, a, b));
         }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;

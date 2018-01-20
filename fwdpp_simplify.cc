@@ -72,13 +72,13 @@ struct table_collection
         // Add the edges
         for (auto&& brk : split.first)
             {
-                edge_table.push_back(make_edge(
-                    brk.first, brk.second, std::get<0>(parents), next_index));
+                edge_table.push_back(edge(brk.first, brk.second,
+                                          std::get<0>(parents), next_index));
             }
         for (auto&& brk : split.second)
             {
-                edge_table.push_back(make_edge(
-                    brk.first, brk.second, std::get<1>(parents), next_index));
+                edge_table.push_back(edge(brk.first, brk.second,
+                                          std::get<1>(parents), next_index));
             }
         for (auto&& m : new_mutations)
             mutation_table.emplace_back(next_index, m);
@@ -192,8 +192,7 @@ struct table_collection
                                 alpha = segment(l, r, v);
                                 for (auto& x : X)
                                     {
-                                        Eo.push_back(
-                                            make_edge(l, r, v, x.node));
+                                        Eo.push_back(edge(l, r, v, x.node));
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -215,8 +214,8 @@ struct table_collection
                 if (condition)
                     {
                         compacted_edges.push_back(
-                            make_edge(Eo[j - 1].left, Eo[j - 1].right,
-                                      Eo[j - 1].parent, Eo[j - 1].child));
+                            edge(Eo[j - 1].left, Eo[j - 1].right,
+                                 Eo[j - 1].parent, Eo[j - 1].child));
                         start = j;
                     }
             }
