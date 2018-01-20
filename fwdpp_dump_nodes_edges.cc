@@ -59,7 +59,7 @@ struct table_collection
                 nodes.write(reinterpret_cast<char*>(&i), sizeof(decltype(i)));
                 nodes.write(reinterpret_cast<const char*>(&initial_time),
                             sizeof(decltype(initial_time)));
-                node_table.push_back(make_node(i, initial_time, 0));
+                node_table.push_back(node(i, initial_time, 0));
             }
     }
 
@@ -75,7 +75,7 @@ struct table_collection
                     sizeof(decltype(next_index)));
         nodes.write(reinterpret_cast<char*>(&g), sizeof(decltype(g)));
         // node_table.push_back(
-        //    make_node(next_index, generation + 1, 0)); // MUSTDOC
+        //    node(next_index, generation + 1, 0)); // MUSTDOC
         auto split = split_breakpoints(breakpoints, 0., 1.);
         // Add the edges
         for (auto&& brk : split.first)
@@ -149,7 +149,7 @@ struct table_collection
 
         for (auto& s : samples)
             {
-                No.push_back(make_node(s, node_table[s].generation, 0));
+                No.push_back(node(s, node_table[s].generation, 0));
                 Ancestry[s].push_back(
                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
             }
@@ -211,7 +211,7 @@ struct table_collection
                             {
                                 if (v == -1)
                                     {
-                                        No.push_back(make_node(
+                                        No.push_back(node(
                                             static_cast<std::int32_t>(
                                                 No.size()),
                                             node_table[u].generation, 0));

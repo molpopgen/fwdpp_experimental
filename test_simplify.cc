@@ -147,7 +147,7 @@ simplify(const std::vector<std::int32_t>& samples,
     // a segment on [0,L).
     for (auto& s : samples)
         {
-            No.push_back(make_node(No.size(), node_table[s].generation, 0));
+            No.push_back(node(No.size(), node_table[s].generation, 0));
             Ancestry[s].emplace_back(0, 1,
                                      static_cast<std::int32_t>(No.size() - 1));
             idmap[s] = static_cast<std::int32_t>(No.size() - 1);
@@ -237,7 +237,7 @@ simplify(const std::vector<std::int32_t>& samples,
                                 {
                                     // Overlap/coalescence, and thus
                                     // a new node. Step S6.
-                                    No.push_back(make_node(
+                                    No.push_back(node(
                                         static_cast<std::int32_t>(No.size()),
                                         node_table[u].generation, 0));
                                     v = No.size() - 1;
@@ -334,7 +334,7 @@ main(int argc, char** argv)
                 break;
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
-            nodes.push_back(make_node(a, x, 0));
+            nodes.push_back(node(a, x, 0));
         }
     // for(auto & n : nodes)
     //{
