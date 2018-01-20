@@ -24,17 +24,4 @@ make_node(std::uint32_t id, double generation, std::int32_t population)
     return n;
 }
 
-inline auto
-get_tied_node(const node& n) -> decltype(std::tie(n.generation, n.population, n.id))
-{
-    return std::tie(n.generation, n.id, n.population);
-}
-
-inline bool
-operator<(const node& lhs, const node& rhs)
-{
-    // sort order is generation, then population, then id
-    return get_tied_node(lhs) < get_tied_node(rhs);
-}
-
 #endif
