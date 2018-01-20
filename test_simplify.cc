@@ -199,6 +199,9 @@ simplify(const std::vector<std::int32_t>& samples,
 					// adds to X all segments with left == l
 					// and also finds the minimum right for 
 					// all segs with left == l.
+					// TODO: this can be done with reverse iteration,
+					// but testing on 0.5e9 edges didn't seem to 
+					// make it worthwhile.
                         {
                             X.emplace_back(Q.back().left, Q.back().right,
                                            Q.back().node);
