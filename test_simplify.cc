@@ -267,12 +267,12 @@ simplify(const std::vector<std::int32_t>& samples,
     assert(std::count_if(idmap.begin(), idmap.end(),
                          [](const std::int32_t i) { return i != -1; })
            == No.size());
-    std::size_t start = 0;
 
     // Now, we compact the edges,
     // which means removing redundant
     // info due to different edges
     // representing the same ancestry.
+    std::size_t start = 0;
     std::vector<edge> E;
     E.swap(Eo);
     assert(Eo.empty());
