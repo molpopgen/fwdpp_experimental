@@ -19,14 +19,4 @@ struct edge
     }
 };
 
-//inline edge
-//make_edge(double left, double right, std::int32_t parent, std::int32_t child)
-//{
-//    edge e;
-//    e.left = left;
-//    e.right = right;
-//    e.parent = parent;
-//    e.child = child;
-//    return e;
-//}
 #endif
