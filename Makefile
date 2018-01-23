@@ -10,5 +10,11 @@ all: fwdpp_lite.o fwdpp_lite_intrusive.o fwdpp_simplify.o split_breakpoints.o te
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o fwdpp_dump_nodes_edges fwdpp_dump_nodes_edges.o  split_breakpoints.o -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test_simplify test_simplify.o -lgsl -lgslcblas $(LDFLAGS)
 
+fwdpp_dump_nodes_edges.o: node.hpp edge.hpp
+test_simplify.o: node.hpp edge.hpp
+fwdpp_simplify.o: node.hpp edge.hpp
+
+
+
 clean:
 	rm -f *.o
