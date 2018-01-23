@@ -208,9 +208,8 @@ simplify(const std::vector<std::int32_t>& samples,
                         // but testing on 0.5e9 edges didn't seem to
                         // make it worthwhile.
                         {
-                            X.emplace_back(Q.back().left, Q.back().right,
-                                           Q.back().node);
                             r = std::min(r, Q.back().right);
+                            X.emplace_back(std::move(Q.back()));
                             Q.pop_back();
                         }
                     if (!Q.empty())
