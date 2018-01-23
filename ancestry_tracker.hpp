@@ -84,6 +84,11 @@ namespace fwdpp
 
             std::vector<std::int32_t>
             simplify(const std::vector<std::int32_t>& samples)
+			/// Set theoretic simplify.
+			/// TODO: shorten via additional function calls 
+			/// for readability
+			/// TODO: compare against implementation more
+			/// closely matching what msprime is doing.
             {
                 //std::vector<edge> Eo;
                 //std::vector<node> No;
@@ -91,13 +96,6 @@ namespace fwdpp
 
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
-
-                // This plays the role of a min queue on segments, meaning
-                // that it is always sorted such that Q.back() is the
-                // smallest value, according to the lambda in sort_queue
-                //std::vector<segment> Q;
-                // TODO: document a gotcha re: samples not being sorted w.r.to
-                // index
 
                 // We take our samples and add them to both the output
                 // node list and initialize their ancestry with
