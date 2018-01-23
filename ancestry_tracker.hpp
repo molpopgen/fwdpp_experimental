@@ -279,6 +279,7 @@ namespace fwdpp
                     edge(E[start].left, E[j - 1].right, E[j - 1].parent,
                          E[j - 1].child));
                 tables.swap(tables);
+                //TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 cleanup();
                 return idmap;
