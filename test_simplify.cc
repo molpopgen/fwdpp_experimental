@@ -76,8 +76,7 @@ struct segment
 {
     double left, right;
     std::int32_t node;
-    segment() : left{}, right{}, node{} {}
-    segment(double l, double r, std::int32_t n)
+    segment(double l, double r, std::int32_t n) noexcept
         : left{ l }, right{ r }, node{ n }
     {
     }
