@@ -105,10 +105,10 @@ namespace fwdpp
                 // a segment on [0,L).
                 for (auto& s : samples)
                     {
-                        tables_.node_table.push_back(
-                            node(tables_.node_table.size(),
-                                 tables.node_table[s].generation,
-                                 tables.node_table[s].population));
+                        tables_.push_back_node(
+                            tables_.node_table.size(),
+                            tables.node_table[s].generation,
+                            tables.node_table[s].population);
                         Ancestry[s].emplace_back(
                             0, L, static_cast<std::int32_t>(
                                       tables_.node_table.size() - 1));
@@ -205,16 +205,14 @@ namespace fwdpp
                                             {
                                                 // Overlap/coalescence, and thus
                                                 // a new node. Step S6.
-                                                tables_.node_table.push_back(
-                                                    node(
-                                                        static_cast<std::
-                                                                        int32_t>(
-                                                            tables_.node_table
-                                                                .size()),
-                                                        tables.node_table[u]
-                                                            .generation,
-                                                        tables.node_table[u]
-                                                            .population));
+                                                tables_.push_back_node(
+                                                    static_cast<std::int32_t>(
+                                                        tables_.node_table
+                                                            .size()),
+                                                    tables.node_table[u]
+                                                        .generation,
+                                                    tables.node_table[u]
+                                                        .population);
                                                 v = tables_.node_table.size()
                                                     - 1;
                                                 // update sample map
@@ -225,8 +223,8 @@ namespace fwdpp
                                         anode = v;
                                         for (auto& x : X)
                                             {
-                                                tables_.edge_table.push_back(
-                                                    edge(l, r, v, x.node));
+                                                tables_.push_back_edge(l, r, v,
+                                                                       x.node);
                                                 if (x.right > r)
                                                     {
                                                         x.left = r;
@@ -268,16 +266,15 @@ namespace fwdpp
                                          || E[j - 1].child != E[j].child;
                         if (condition)
                             {
-                                tables_.edge_table.push_back(
-                                    edge(E[start].left, E[j - 1].right,
-                                         E[j - 1].parent, E[j - 1].child));
+                                tables_.push_back_edge(
+                                    E[start].left, E[j - 1].right,
+                                    E[j - 1].parent, E[j - 1].child);
                                 start = j;
                             }
                     }
                 auto j = E.size();
-                tables_.edge_table.push_back(
-                    edge(E[start].left, E[j - 1].right, E[j - 1].parent,
-                         E[j - 1].child));
+                tables_.push_back_edge(E[start].left, E[j - 1].right,
+                                       E[j - 1].parent, E[j - 1].child);
                 tables.swap(tables);
                 //TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());

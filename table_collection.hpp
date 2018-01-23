@@ -41,9 +41,9 @@ namespace fwdpp
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
-			/// TODO: need offset
+            /// TODO: need offset
             {
-                std::sort(edge_table.begin()+edge_offset, edge_table.end(),
+                std::sort(edge_table.begin() + edge_offset, edge_table.end(),
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
@@ -60,10 +60,10 @@ namespace fwdpp
 
             void
             swap(table_collection& t) noexcept
-			/// Swaps out data members.
-			/// Primary use is after simplification,
-			/// where a table_collection is used
-			/// as a temp object.
+            /// Swaps out data members.
+            /// Primary use is after simplification,
+            /// where a table_collection is used
+            /// as a temp object.
             {
                 edge_table.swap(t.edge_table);
                 node_table.swap(t.node_table);
@@ -96,6 +96,34 @@ namespace fwdpp
                 node_table.clear();
                 edge_table.clear();
                 mutation_table.clear();
+            }
+
+            void
+            push_back_node(std::int32_t id, double generation,
+                           std::int32_t pop)
+            {
+                node_table.push_back(node(id, generation, pop));
+            }
+
+            template <typename... args>
+            void
+            emplace_back_node(args&&... Args)
+            {
+                node_table.emplace_back(std::forward<args>(Args)...);
+            }
+
+            void
+            push_back_edge(double l, double r, std::int32_t parent,
+                           std::int32_t child)
+            {
+                edge_table.push_back(edge(l, r, parent, child));
+            }
+
+            template <typename... args>
+            void
+            emplace_back_edge(args&&... Args)
+            {
+                edge_table.emplace_back(std::forward<args>(Args)...);
             }
         };
     }
