@@ -18,7 +18,7 @@
 #include <chrono>
 #include "edge.hpp"
 #include "node.hpp"
-
+#include "ancestry_tracker.hpp"
 using namespace fwdpp::ancestry;
 
 // The following needs to be dealt with before we'd be able to move
