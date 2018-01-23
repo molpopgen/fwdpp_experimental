@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cstddef>
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
@@ -26,20 +27,27 @@ namespace fwdpp
                 }
             };
 
-			// tables is the current data set.
-			// tables_ is used as temp
-			// space during simplification.
+            // tables is the current data set.
+            // tables_ is used as temp
+            // space during simplification.
             table_collection tables, tables_;
-			// Q mimics a min-queue, and X
-			// is a temp vector for segments
-			// while processing Q.
+            // Q mimics a min-queue, and X
+            // is a temp vector for segments
+            // while processing Q.
             std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             std::vector<edge> E;
+            // This reflects the length of
+            // tables.edge_table after last simplification.
+            // It can be used to make sure we only sort
+            // newly-added nodes.
+            std::ptrdiff_t edge_offset;
 
             bool
             sort_queue(bool added2Q) noexcept
+            // Sorts the priority queue during
+            // simplify as needed.
             {
                 if (added2Q)
                     {
@@ -53,6 +61,9 @@ namespace fwdpp
 
             void
             cleanup() noexcept
+            // Clears out data from
+            // temp containers after simplify.
+            // Retains container capacity.
             {
                 tables_.clear();
                 E.clear();
@@ -63,6 +74,13 @@ namespace fwdpp
             }
 
           public:
+            ancestry_tracker(const std::int32_t num_initial_nodes,
+                             const double initial_time, std::int32_t pop)
+                : tables{ num_initial_nodes, initial_time, pop }, tables_{},
+                  Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 }
+            {
+            }
+
             std::vector<std::int32_t>
             simplify(const std::vector<std::int32_t>& samples)
             {
@@ -195,7 +213,8 @@ namespace fwdpp
                                                             .generation,
                                                         tables.node_table[u]
                                                             .population));
-                                                v = tables_.node_table.size() - 1;
+                                                v = tables_.node_table.size()
+                                                    - 1;
                                                 // update sample map
                                                 idmap[u] = v;
                                             }
@@ -221,10 +240,10 @@ namespace fwdpp
                             }
                     }
 
-                assert(
-                    std::count_if(idmap.begin(), idmap.end(),
-                                  [](const std::int32_t i) { return i != -1; })
-                    == tables_.node_table.size());
+                assert(static_cast<std::size_t>(std::count_if(
+                           idmap.begin(), idmap.end(),
+                           [](const std::int32_t i) { return i != -1; }))
+                       == tables_.node_table.size());
 
                 // Now, we compact the edges,
                 // which means removing redundant

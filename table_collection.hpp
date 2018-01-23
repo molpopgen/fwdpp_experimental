@@ -7,6 +7,7 @@
 #include <tuple>
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include "node.hpp"
 #include "edge.hpp"
 
@@ -35,14 +36,14 @@ namespace fwdpp
             }
 
             void
-            sort_edges() noexcept
+            sort_edges(std::ptrdiff_t edge_offset) noexcept
             /// Sort the edge table.  On PARENT birth times.
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
 			/// TODO: need offset
             {
-                std::sort(edge_table.begin(), edge_table.end(),
+                std::sort(edge_table.begin()+edge_offset, edge_table.end(),
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
