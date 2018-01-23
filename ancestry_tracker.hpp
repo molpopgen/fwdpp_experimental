@@ -43,7 +43,8 @@ namespace fwdpp
             // It can be used to make sure we only sort
             // newly-added nodes.
             std::ptrdiff_t edge_offset;
-
+            // region length
+            const double L;
             bool
             sort_queue(bool added2Q) noexcept
             // Sorts the priority queue during
@@ -76,19 +77,21 @@ namespace fwdpp
 
           public:
             ancestry_tracker(const std::int32_t num_initial_nodes,
-                             const double initial_time, std::int32_t pop)
+                             const double initial_time, std::int32_t pop,
+                             const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 }
+                  Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
+                  L{ region_length }
             {
             }
 
             std::vector<std::int32_t>
             simplify(const std::vector<std::int32_t>& samples)
-			/// Set theoretic simplify.
-			/// TODO: shorten via additional function calls 
-			/// for readability
-			/// TODO: compare against implementation more
-			/// closely matching what msprime is doing.
+            /// Set theoretic simplify.
+            /// TODO: shorten via additional function calls
+            /// for readability
+            /// TODO: compare against implementation more
+            /// closely matching what msprime is doing.
             {
                 //std::vector<edge> Eo;
                 //std::vector<node> No;
@@ -107,7 +110,7 @@ namespace fwdpp
                                  tables.node_table[s].generation,
                                  tables.node_table[s].population));
                         Ancestry[s].emplace_back(
-                            0, 1, static_cast<std::int32_t>(
+                            0, L, static_cast<std::int32_t>(
                                       tables_.node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             tables_.node_table.size() - 1);
@@ -158,7 +161,7 @@ namespace fwdpp
                             {
                                 X.clear();
                                 auto l = Q.back().left;
-                                double r = 1.0;
+                                double r = L;
                                 while (!Q.empty() && Q.back().left == l)
                                     // This while loop is Step S4. This step
                                     // adds to X all segments with left == l
