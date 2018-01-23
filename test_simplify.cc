@@ -154,7 +154,6 @@ simplify(const std::vector<std::int32_t>& samples,
             idmap[s] = static_cast<std::int32_t>(No.size() - 1);
         }
 
-    auto edge_ptr = edge_table.begin();
     std::int32_t anode;
     double aleft, aright;
     std::vector<segment> X;
@@ -167,7 +166,8 @@ simplify(const std::vector<std::int32_t>& samples,
     // This outer loop differs from how we describe it in the
     // paper, but the strict sorting of edges means that this
     // equivalent.
-    while (edge_ptr < edge_table.end())
+    auto edge_ptr = edge_table.cbegin();
+    while (edge_ptr < edge_table.cend())
         {
             auto u = edge_ptr->parent;
             for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
@@ -218,9 +218,6 @@ simplify(const std::vector<std::int32_t>& samples,
                         }
                     if (X.size() == 1)
                         {
-                            aleft = X[0].left;
-                            aright = X[0].right;
-                            anode = X[0].node;
                             if (!Q.empty() && Q.back().left < X[0].right)
                                 {
                                     aleft = X[0].left;
@@ -229,6 +226,12 @@ simplify(const std::vector<std::int32_t>& samples,
                                     Q.emplace_back(Q.back().left, X[0].right,
                                                    X[0].node);
                                     added2Q = true;
+                                }
+                            else
+                                {
+                                    aleft = X[0].left;
+                                    aright = X[0].right;
+                                    anode = X[0].node;
                                 }
                         }
                     else
