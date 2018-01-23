@@ -71,6 +71,7 @@ namespace fwdpp
                     {
                         ai.clear();
                     }
+                edge_offset = tables.edge_table.size();
             }
 
           public:
@@ -280,6 +281,12 @@ namespace fwdpp
                 assert(tables.edges_are_sorted());
                 cleanup();
                 return idmap;
+            }
+
+            void
+            sort_tables() noexcept
+            {
+                tables.sort_edges(edge_offset);
             }
         };
     }
