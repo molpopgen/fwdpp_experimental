@@ -36,7 +36,7 @@
 // 1. Give node and edge constructors so that we may emplace_back them, too.
 //   As with the above list, this will reduce temporaries a lot. Experimenting
 //   shows that for these types, emplacement is slower than push_back of a constructor call.
-//   The constructor call is more idiomatic than a make_foo function, so we 
+//   The constructor call is more idiomatic than a make_foo function, so we
 //   stick with that.  This means we must copy to get data to msprime, but that
 //   is probably what we want if we're going all-in on the fwdpp side.
 // 2. Replace segment with a plain tuple.  It is a hidden/internal data type,
@@ -76,8 +76,9 @@ struct segment
 {
     double left, right;
     std::int32_t node;
-    segment(double l, double r, std::int32_t n) noexcept
-        : left{ l }, right{ r }, node{ n }
+    segment(double l, double r, std::int32_t n) noexcept : left{ l },
+                                                           right{ r },
+                                                           node{ n }
     {
     }
 };
@@ -146,7 +147,8 @@ simplify(const std::vector<std::int32_t>& samples,
     // a segment on [0,L).
     for (auto& s : samples)
         {
-            No.push_back(node(No.size(), node_table[s].generation, 0));
+            No.push_back(node(No.size(), node_table[s].generation,
+                              node_table[s].population));
             Ancestry[s].emplace_back(0, 1,
                                      static_cast<std::int32_t>(No.size() - 1));
             idmap[s] = static_cast<std::int32_t>(No.size() - 1);
@@ -238,7 +240,8 @@ simplify(const std::vector<std::int32_t>& samples,
                                     // a new node. Step S6.
                                     No.push_back(node(
                                         static_cast<std::int32_t>(No.size()),
-                                        node_table[u].generation, 0));
+                                        node_table[u].generation,
+                                        node_table[u].population));
                                     v = No.size() - 1;
                                     // update sample map
                                     idmap[u] = v;
@@ -289,13 +292,13 @@ simplify(const std::vector<std::int32_t>& samples,
             if (condition)
                 {
                     Eo.push_back(edge(E[start].left, E[j - 1].right,
-                                    E[j - 1].parent, E[j - 1].child));
+                                      E[j - 1].parent, E[j - 1].child));
                     start = j;
                 }
         }
     auto j = E.size();
-    Eo.push_back(edge(E[start].left, E[j - 1].right, E[j - 1].parent,
-                    E[j - 1].child));
+    Eo.push_back(
+        edge(E[start].left, E[j - 1].right, E[j - 1].parent, E[j - 1].child));
     edge_table.swap(Eo);
     node_table.swap(No);
     assert(std::is_sorted(
