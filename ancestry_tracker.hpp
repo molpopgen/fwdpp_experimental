@@ -140,6 +140,7 @@ namespace fwdpp
                                 //If the two segments overlap, we add the minimal
                                 //overlap to our queue.
                                 //This is Step S3.
+								//TODO: can we do binary lookup here?
                                 for (auto& seg : Ancestry[edge_ptr->child])
                                     {
                                         if (seg.right > edge_ptr->left
