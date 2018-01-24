@@ -74,249 +74,6 @@ using namespace fwdpp::ancestry;
 // can be private variables whose memory gets re-used during each bout
 // of simplification.
 
-struct segment
-{
-    double left, right;
-    std::int32_t node;
-    segment(double l, double r, std::int32_t n) noexcept : left{ l },
-                                                           right{ r },
-                                                           node{ n }
-    {
-    }
-};
-
-void
-sort_tables(std::vector<edge>& edge_table,
-            const std::vector<node>& node_table) noexcept
-{
-    // Sort the edge table.  On PARENT birth times.
-    // The sorting differs from msprime here. We
-    // assume that birth times are recorded forward in
-    // time rather than backwards.
-    std::sort(edge_table.begin(), edge_table.end(),
-              [&node_table](const edge& a, const edge& b) {
-                  auto ga = node_table[a.parent].generation;
-                  auto gb = node_table[b.parent].generation;
-                  return ga > gb
-                         || (ga == gb
-                             && std::tie(a.parent, a.child, a.left)
-                                    < std::tie(b.parent, b.child, b.left));
-              });
-    assert(std::is_sorted(
-        edge_table.begin(), edge_table.end(),
-        [&node_table](const edge& a, const edge& b) {
-            auto ga = node_table[a.parent].generation;
-            auto gb = node_table[b.parent].generation;
-            return ga > gb || (ga == gb
-                               && std::tie(a.parent, a.child, a.left)
-                                      < std::tie(b.parent, b.child, b.left));
-        }));
-}
-
-bool
-sort_queue(bool added2Q, std::vector<segment>& Q) noexcept
-{
-    if (added2Q)
-        {
-            std::sort(Q.begin(), Q.end(),
-                      [](const segment& a, const segment& b) {
-                          return a.left > b.left;
-                      });
-        }
-    return false;
-}
-
-std::vector<std::int32_t>
-simplify(const std::vector<std::int32_t>& samples,
-         std::vector<edge>& edge_table, std::vector<node>& node_table)
-{
-    std::vector<edge> Eo;
-    std::vector<node> No;
-    std::vector<std::vector<segment>> Ancestry(node_table.size());
-
-    // Relates input node ids to output node ids
-    std::vector<std::int32_t> idmap(node_table.size(), -1);
-
-    // This plays the role of a min queue on segments, meaning
-    // that it is always sorted such that Q.back() is the
-    // smallest value, according to the lambda in sort_queue
-    std::vector<segment> Q;
-    // TODO: document a gotcha re: samples not being sorted w.r.to
-    // index
-
-    // We take our samples and add them to both the output
-    // node list and initialize their ancestry with
-    // a segment on [0,L).
-    for (auto& s : samples)
-        {
-            No.push_back(node(No.size(), node_table[s].generation,
-                              node_table[s].population));
-            Ancestry[s].emplace_back(0, 1,
-                                     static_cast<std::int32_t>(No.size() - 1));
-            idmap[s] = static_cast<std::int32_t>(No.size() - 1);
-        }
-
-    std::int32_t anode;
-    double aleft, aright;
-    std::vector<segment> X;
-    bool added2Q = false;
-    X.reserve(1000); //Arbitrary
-
-    // At this point, our edges are sorted by birth
-    // order of parents, from present to past.
-    // We can now work our way up the pedigree.
-    // This outer loop differs from how we describe it in the
-    // paper, but the strict sorting of edges means that this
-    // equivalent.
-    auto edge_ptr = edge_table.cbegin();
-    while (edge_ptr < edge_table.cend())
-        {
-            auto u = edge_ptr->parent;
-            for (; edge_ptr < edge_table.end() && edge_ptr->parent == u;
-                 ++edge_ptr)
-                {
-                    //For each edge corresponding to this parent,
-                    //we look at all segments from the child.
-                    //If the two segments overlap, we add the minimal
-                    //overlap to our queue.
-                    //This is Step S3.
-                    for (auto& seg : Ancestry[edge_ptr->child])
-                        {
-                            if (seg.right > edge_ptr->left
-                                && edge_ptr->right > seg.left)
-                                {
-                                    Q.emplace_back(
-                                        std::max(seg.left, edge_ptr->left),
-                                        std::min(seg.right, edge_ptr->right),
-                                        seg.node);
-                                    added2Q = true;
-                                }
-                        }
-                }
-            added2Q = sort_queue(added2Q, Q);
-            std::int32_t v = -1;
-            while (!Q.empty())
-                // Steps S4 through S8 of the algorithm.
-                {
-                    X.clear();
-                    auto l = Q.back().left;
-                    double r = 1.0;
-                    while (!Q.empty() && Q.back().left == l)
-                        // This while loop is Step S4. This step
-                        // adds to X all segments with left == l
-                        // and also finds the minimum right for
-                        // all segs with left == l.
-                        // TODO: this can be done with reverse iteration,
-                        // but testing on 0.5e9 edges didn't seem to
-                        // make it worthwhile.
-                        {
-                            r = std::min(r, Q.back().right);
-                            X.emplace_back(std::move(Q.back()));
-                            Q.pop_back();
-                        }
-                    if (!Q.empty())
-                        {
-                            r = std::min(r, Q.back().left);
-                        }
-                    if (X.size() == 1)
-                        {
-                            if (!Q.empty() && Q.back().left < X[0].right)
-                                {
-                                    aleft = X[0].left;
-                                    aright = Q.back().left;
-                                    anode = X[0].node;
-                                    Q.emplace_back(Q.back().left, X[0].right,
-                                                   X[0].node);
-                                    added2Q = true;
-                                }
-                            else
-                                {
-                                    aleft = X[0].left;
-                                    aright = X[0].right;
-                                    anode = X[0].node;
-                                }
-                        }
-                    else
-                        {
-                            if (v == -1)
-                                {
-                                    // Overlap/coalescence, and thus
-                                    // a new node. Step S6.
-                                    No.push_back(node(
-                                        static_cast<std::int32_t>(No.size()),
-                                        node_table[u].generation,
-                                        node_table[u].population));
-                                    v = No.size() - 1;
-                                    // update sample map
-                                    idmap[u] = v;
-                                }
-                            aleft = l;
-                            aright = r;
-                            anode = v;
-                            for (auto& x : X)
-                                {
-                                    Eo.push_back(edge(l, r, v, x.node));
-                                    if (x.right > r)
-                                        {
-                                            x.left = r;
-                                            Q.emplace_back(x.left, x.right,
-                                                           x.node);
-                                            added2Q = true;
-                                        }
-                                }
-                        }
-                    added2Q = sort_queue(added2Q, Q);
-                    Ancestry[u].emplace_back(aleft, aright, anode);
-                }
-        }
-
-    assert(std::count_if(idmap.begin(), idmap.end(),
-                         [](const std::int32_t i) { return i != -1; })
-           == No.size());
-
-    // Now, we compact the edges,
-    // which means removing redundant
-    // info due to different edges
-    // representing the same ancestry.
-    std::size_t start = 0;
-    std::vector<edge> E;
-    E.swap(Eo);
-    assert(Eo.empty());
-
-    std::sort(E.begin(), E.end(), [](const edge& a, const edge& b) {
-        return std::tie(a.parent, a.child, a.left, a.right)
-               < std::tie(b.parent, b.child, b.left, b.right);
-    });
-
-    for (std::size_t j = 1; j < E.size(); ++j)
-        {
-            bool condition = E[j - 1].right != E[j].left
-                             || E[j - 1].parent != E[j].parent
-                             || E[j - 1].child != E[j].child;
-            if (condition)
-                {
-                    Eo.push_back(edge(E[start].left, E[j - 1].right,
-                                      E[j - 1].parent, E[j - 1].child));
-                    start = j;
-                }
-        }
-    auto j = E.size();
-    Eo.push_back(
-        edge(E[start].left, E[j - 1].right, E[j - 1].parent, E[j - 1].child));
-    edge_table.swap(Eo);
-    node_table.swap(No);
-    assert(std::is_sorted(
-        edge_table.begin(), edge_table.end(),
-        [&node_table](const edge& a, const edge& b) {
-            auto ga = node_table[a.parent].generation;
-            auto gb = node_table[b.parent].generation;
-            return ga > gb || (ga == gb
-                               && std::tie(a.parent, a.child, a.left)
-                                      < std::tie(b.parent, b.child, b.left));
-        }));
-    return idmap;
-}
-
 int
 main(int argc, char** argv)
 {
@@ -326,12 +83,11 @@ main(int argc, char** argv)
     nodeoutfile = std::string(argv[3]);
     edgeoutfile = std::string(argv[4]);
     std::int32_t N = std::atoi(argv[5]);
-    std::vector<node> nodes;
-    std::vector<edge> edges;
 
     std::ifstream in(nodefilename.c_str());
     std::int32_t a, b;
     double x, y;
+	table_collection tables;
     auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
@@ -340,7 +96,7 @@ main(int argc, char** argv)
                 break;
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
-            nodes.push_back(node(a, x, 0));
+			tables.emplace_back_node(a,x,0);
         }
     // for(auto & n : nodes)
     //{
@@ -357,29 +113,30 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&b), sizeof(decltype(b)));
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             in.read(reinterpret_cast<char*>(&y), sizeof(decltype(y)));
-            edges.push_back(edge(x, y, a, b));
+			tables.emplace_back_edge(x,y,a,b);
         }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;
     std::cerr
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
-    std::cerr << nodes.size() << " nodes, " << edges.size() << " edges\n";
+    std::cerr << tables.node_table.size() << " nodes, " << tables.edge_table.size() << " edges\n";
     std::vector<std::int32_t> samples;
-    for (unsigned i = nodes.size() - 2 * N; i < nodes.size(); ++i)
+    for (unsigned i = tables.node_table.size() - 2 * N; i < tables.node_table.size(); ++i)
         {
             samples.push_back(i);
         }
     start = std::chrono::steady_clock::now();
-    sort_tables(edges, nodes);
+	tables.sort_edges(0);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
         << "sort time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
+	ancestry_tracker ancestry(std::move(tables),1.0);
     start = std::chrono::steady_clock::now();
-    simplify(samples, edges, nodes);
+    ancestry.simplify(samples);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
@@ -387,14 +144,15 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
+	tables = ancestry.dump_tables();
     std::ofstream out(nodeoutfile.c_str());
-    for (auto& n : nodes)
+    for (auto& n : tables.node_table)
         {
             out << n.id << ' ' << n.generation << '\n';
         }
     out.close();
     out.open(edgeoutfile.c_str());
-    for (auto& n : edges)
+    for (auto& n : tables.edge_table)
         {
             out << n.left << ' ' << n.right << ' ' << n.parent << ' '
                 << n.child << '\n';
