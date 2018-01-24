@@ -98,10 +98,10 @@ namespace fwdpp
                       tables.edge_table.size()) },
                   L{ region_length }
             {
-				if(!tables.edges_are_sorted())
-				{
-					throw std::invalid_argument("edges are not sorted");
-				}
+                if (!tables.edges_are_sorted())
+                    {
+                        throw std::invalid_argument("edges are not sorted");
+                    }
             }
             std::vector<std::int32_t>
             simplify(const std::vector<std::int32_t>& samples)
@@ -294,7 +294,7 @@ namespace fwdpp
                 auto j = E.size();
                 tables_.push_back_edge(E[start].left, E[j - 1].right,
                                        E[j - 1].parent, E[j - 1].child);
-                tables.swap(tables);
+                tables.swap(tables_);
                 //TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 cleanup();
@@ -305,6 +305,15 @@ namespace fwdpp
             sort_tables() noexcept
             {
                 tables.sort_edges(edge_offset);
+            }
+
+            table_collection
+            dump_tables()
+            /// Returns the tables via a move-constructed object.
+            /// The ancestry_tracker instance is now in an inconsistent state.
+            {
+                table_collection rv(std::move(tables));
+				return rv;
             }
         };
     }
