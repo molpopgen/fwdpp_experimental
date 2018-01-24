@@ -33,7 +33,9 @@ namespace fwdpp
             table_collection tables, tables_;
             // Q mimics a min-queue, and X
             // is a temp vector for segments
-            // while processing Q.
+            // while processing Q.  The sorting
+			// of Q is handled by 
+			// ancestry_tracker::sort_queue.
             std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
@@ -45,6 +47,7 @@ namespace fwdpp
             std::ptrdiff_t edge_offset;
             // region length
             const double L;
+
             bool
             sort_queue(bool added2Q) noexcept
             // Sorts the priority queue during
