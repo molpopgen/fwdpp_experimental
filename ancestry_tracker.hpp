@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstddef>
+#include <stdexcept>
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
@@ -34,8 +35,8 @@ namespace fwdpp
             // Q mimics a min-queue, and X
             // is a temp vector for segments
             // while processing Q.  The sorting
-			// of Q is handled by 
-			// ancestry_tracker::sort_queue.
+            // of Q is handled by
+            // ancestry_tracker::sort_queue.
             std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
@@ -88,6 +89,20 @@ namespace fwdpp
             {
             }
 
+            template <typename TC>
+            ancestry_tracker(TC&& initial_table_collection,
+                             const double region_length)
+                : tables{ std::forward<TC>(initial_table_collection) },
+                  tables_{}, Q{}, X{}, Ancestry{},
+                  edge_offset{ static_cast<std::ptrdiff_t>(
+                      tables.edge_table.size()) },
+                  L{ region_length }
+            {
+				if(!tables.edges_are_sorted())
+				{
+					throw std::invalid_argument("edges are not sorted");
+				}
+            }
             std::vector<std::int32_t>
             simplify(const std::vector<std::int32_t>& samples)
             /// Set theoretic simplify.
@@ -140,9 +155,9 @@ namespace fwdpp
                                 //If the two segments overlap, we add the minimal
                                 //overlap to our queue.
                                 //This is Step S3.
-								//TODO: the data here are sorted in ascending
-								//order by left, meaning we can process these
-								//data using binary searches
+                                //TODO: the data here are sorted in ascending
+                                //order by left, meaning we can process these
+                                //data using binary searches
                                 for (auto& seg : Ancestry[edge_ptr->child])
                                     {
                                         if (seg.right > edge_ptr->left
