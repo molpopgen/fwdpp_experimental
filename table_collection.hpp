@@ -15,11 +15,15 @@ namespace fwdpp
 {
     namespace ancestry
     {
+        using edge_vector = std::vector<edge>;
+        using node_vector = std::vector<node>;
+        using mutation_key_vector
+            = std::vector<std::pair<std::int32_t, std::size_t>>;
         struct table_collection
         {
-            std::vector<node> node_table;
-            std::vector<edge> edge_table;
-            std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
+            node_vector node_table;
+            edge_vector edge_table;
+            mutation_key_vector mutation_table;
 
             table_collection() : node_table{}, edge_table{}, mutation_table{}
             {

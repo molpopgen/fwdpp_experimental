@@ -37,7 +37,7 @@ namespace fwdpp
             std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
-            std::vector<edge> E;
+            edge_vector E;
             // This reflects the length of
             // tables.edge_table after last simplification.
             // It can be used to make sure we only sort
@@ -93,8 +93,6 @@ namespace fwdpp
             /// TODO: compare against implementation more
             /// closely matching what msprime is doing.
             {
-                //std::vector<edge> Eo;
-                //std::vector<node> No;
                 Ancestry.resize(tables.node_table.size());
 
                 // Relates input node ids to output node ids
