@@ -25,214 +25,215 @@
 #include <fwdpp/util.hpp>
 #include "node.hpp"
 #include "edge.hpp"
+#include "ancestry_tracker.hpp"
 #include "split_breakpoints.hpp"
 
 using namespace fwdpp::ancestry;
 
-static constexpr std::int32_t ROOTNODE
-    = std::numeric_limits<std::int32_t>::min();
-
-struct table_collection
-{
-    struct segment
-    {
-        double left, right;
-        std::int32_t node;
-        segment() : left{}, right{}, node{} {}
-        segment(double l, double r, std::int32_t n)
-            : left{ l }, right{ r }, node{ n }
-        {
-        }
-    };
-
-    std::vector<node> node_table;
-    std::vector<edge> edge_table;
-    std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
-
-    table_collection() : node_table{}, edge_table{}, mutation_table{} {}
-
-    table_collection(const std::int32_t num_initial_nodes,
-                     const double initial_time)
-        : node_table{}, edge_table{}, mutation_table{}
-    {
-        for (std::int32_t i = 0; i < num_initial_nodes; ++i)
-            {
-                node_table.push_back(node(i, initial_time, 0));
-            }
-    }
-
-    std::int32_t
-    add_offspring_data(const std::int32_t next_index,
-                       const std::vector<double>& breakpoints,
-                       const std::vector<fwdpp::uint_t>& new_mutations,
-                       const std::tuple<std::int32_t, std::int32_t>& parents,
-                       const double generation)
-    {
-        node_table.push_back(
-            node(next_index, generation + 1, 0)); // MUSTDOC
-        auto split = split_breakpoints(breakpoints, 0., 1.);
-        // Add the edges
-        for (auto&& brk : split.first)
-            {
-                edge_table.push_back(edge(brk.first, brk.second,
-                                          std::get<0>(parents), next_index));
-            }
-        for (auto&& brk : split.second)
-            {
-                edge_table.push_back(edge(brk.first, brk.second,
-                                          std::get<1>(parents), next_index));
-            }
-        for (auto&& m : new_mutations)
-            mutation_table.emplace_back(next_index, m);
-        return next_index + 1;
-    }
-
-    void
-    simplify(const std::vector<std::int32_t>& samples)
-    {
-        // reverse time
-        auto maxtime = node_table.back().generation;
-        for (auto& n : node_table)
-            {
-                n.generation -= maxtime;
-                // Note: leads to 0 being -0.  SHOULDFIX
-                n.generation *= -1.0;
-            }
-
-        // Sort the edge table
-        std::sort(edge_table.begin(), edge_table.end(),
-                  [this](const edge& a, const edge& b) {
-                      return std::tie(this->node_table[a.child].generation,
-                                      a.parent, a.child, a.left)
-                             < std::tie(this->node_table[b.child].generation,
-                                        b.parent, b.child, b.left);
-                  });
-
-        std::vector<edge> Eo;
-        std::vector<node> No;
-        std::vector<std::vector<segment>> Ancestry(node_table.size());
-        // The algorithm using a min queue.  The default C++ queue
-        // is a max queue.  Thus, we must use > rather than <
-        // to generate a min queue;
-        const auto segment_sorter_q = [](const segment& a, const segment& b) {
-            return a.left > b.left;
-        };
-        std::priority_queue<segment, std::vector<segment>,
-                            decltype(segment_sorter_q)>
-            Q(segment_sorter_q);
-
-        for (auto& s : samples)
-            {
-                No.push_back(node(s, node_table[s].generation, 0));
-                Ancestry[s].push_back(
-                    segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
-            }
-
-        auto last_edge = edge_table.begin();
-        segment alpha;
-        std::int32_t u;
-        while (last_edge < edge_table.end())
-            {
-                u = last_edge->parent;
-                for (; last_edge < edge_table.end() && last_edge->parent == u;
-                     ++last_edge)
-                    {
-                        for (auto& seg : Ancestry[last_edge->child])
-                            {
-                                if (seg.right > last_edge->left
-                                    && seg.right > last_edge->left)
-                                    {
-                                        Q.emplace(std::max(seg.left,
-                                                           last_edge->left),
-                                                  std::min(seg.right,
-                                                           last_edge->right),
-                                                  seg.node);
-                                    }
-                            }
-                    }
-
-                std::int32_t v = -1;
-                while (!Q.empty())
-                    {
-                        auto l = Q.top().left;
-                        double r = 1.0;
-                        std::vector<segment> X;
-                        while (!Q.empty() && Q.top().left == l)
-                            {
-                                // Can be done w/fewer lines of code.
-                                auto seg = Q.top();
-                                Q.pop();
-                                r = std::min(r, seg.right);
-                                X.push_back(std::move(seg));
-                            }
-                        if (!Q.empty())
-                            {
-                                r = std::min(r, Q.top().left);
-                            }
-                        if (X.size() == 1)
-                            {
-                                alpha = X[0];
-                                auto x = X[0];
-                                if (!Q.empty() && Q.top().left < x.right)
-                                    {
-                                        alpha = segment(x.left, Q.top().left,
-                                                        x.node);
-                                        x.left = Q.top().left;
-                                        Q.push(x);
-                                    }
-                            }
-                        else
-                            {
-                                if (v == -1)
-                                    {
-                                        No.push_back(node(
-                                            static_cast<std::int32_t>(
-                                                No.size()),
-                                            node_table[u].generation, 0));
-                                        v = No.size() - 1;
-                                    }
-                                alpha = segment(l, r, v);
-                                for (auto& x : X)
-                                    {
-                                        Eo.push_back(edge(l, r, v, x.node));
-                                        if (x.right > r)
-                                            {
-                                                x.left = r;
-                                                Q.emplace(x);
-                                            }
-                                    }
-                            }
-                        Ancestry[u].push_back(alpha);
-                    }
-            }
-
-        std::size_t start = 0;
-        std::vector<edge> compacted_edges;
-        for (std::size_t j = 1; j < Eo.size(); ++j)
-            {
-                bool condition = Eo[j - 1].right != Eo[j].left
-                                 || Eo[j - 1].parent != Eo[j].parent
-                                 || Eo[j - 1].child != Eo[j].child;
-                if (condition)
-                    {
-                        compacted_edges.push_back(
-                            edge(Eo[j - 1].left, Eo[j - 1].right,
-                                 Eo[j - 1].parent, Eo[j - 1].child));
-                        start = j;
-                    }
-            }
-        // This is probably really close to the above
-        Eo.erase(std::unique(Eo.begin(), Eo.end(),
-                             [](const edge& a, const edge& b) {
-                                 return a.parent == b.parent
-                                        && a.child == b.child
-                                        && a.right == b.left;
-                             }),
-                 Eo.end());
-        edge_table.swap(compacted_edges);
-        node_table.swap(No);
-    }
-};
+// static constexpr std::int32_t ROOTNODE
+//     = std::numeric_limits<std::int32_t>::min();
+//
+// struct table_collection
+// {
+//     struct segment
+//     {
+//         double left, right;
+//         std::int32_t node;
+//         segment() : left{}, right{}, node{} {}
+//         segment(double l, double r, std::int32_t n)
+//             : left{ l }, right{ r }, node{ n }
+//         {
+//         }
+//     };
+//
+//     std::vector<node> node_table;
+//     std::vector<edge> edge_table;
+//     std::vector<std::pair<std::int32_t, std::size_t>> mutation_table;
+//
+//     table_collection() : node_table{}, edge_table{}, mutation_table{} {}
+//
+//     table_collection(const std::int32_t num_initial_nodes,
+//                      const double initial_time)
+//         : node_table{}, edge_table{}, mutation_table{}
+//     {
+//         for (std::int32_t i = 0; i < num_initial_nodes; ++i)
+//             {
+//                 node_table.push_back(node(i, initial_time, 0));
+//             }
+//     }
+//
+//     std::int32_t
+//     add_offspring_data(const std::int32_t next_index,
+//                        const std::vector<double>& breakpoints,
+//                        const std::vector<fwdpp::uint_t>& new_mutations,
+//                        const std::tuple<std::int32_t, std::int32_t>& parents,
+//                        const double generation)
+//     {
+//         node_table.push_back(
+//             node(next_index, generation + 1, 0)); // MUSTDOC
+//         auto split = split_breakpoints(breakpoints, 0., 1.);
+//         // Add the edges
+//         for (auto&& brk : split.first)
+//             {
+//                 edge_table.push_back(edge(brk.first, brk.second,
+//                                           std::get<0>(parents), next_index));
+//             }
+//         for (auto&& brk : split.second)
+//             {
+//                 edge_table.push_back(edge(brk.first, brk.second,
+//                                           std::get<1>(parents), next_index));
+//             }
+//         for (auto&& m : new_mutations)
+//             mutation_table.emplace_back(next_index, m);
+//         return next_index + 1;
+//     }
+//
+//     void
+//     simplify(const std::vector<std::int32_t>& samples)
+//     {
+//         // reverse time
+//         auto maxtime = node_table.back().generation;
+//         for (auto& n : node_table)
+//             {
+//                 n.generation -= maxtime;
+//                 // Note: leads to 0 being -0.  SHOULDFIX
+//                 n.generation *= -1.0;
+//             }
+//
+//         // Sort the edge table
+//         std::sort(edge_table.begin(), edge_table.end(),
+//                   [this](const edge& a, const edge& b) {
+//                       return std::tie(this->node_table[a.child].generation,
+//                                       a.parent, a.child, a.left)
+//                              < std::tie(this->node_table[b.child].generation,
+//                                         b.parent, b.child, b.left);
+//                   });
+//
+//         std::vector<edge> Eo;
+//         std::vector<node> No;
+//         std::vector<std::vector<segment>> Ancestry(node_table.size());
+//         // The algorithm using a min queue.  The default C++ queue
+//         // is a max queue.  Thus, we must use > rather than <
+//         // to generate a min queue;
+//         const auto segment_sorter_q = [](const segment& a, const segment& b) {
+//             return a.left > b.left;
+//         };
+//         std::priority_queue<segment, std::vector<segment>,
+//                             decltype(segment_sorter_q)>
+//             Q(segment_sorter_q);
+//
+//         for (auto& s : samples)
+//             {
+//                 No.push_back(node(s, node_table[s].generation, 0));
+//                 Ancestry[s].push_back(
+//                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
+//             }
+//
+//         auto last_edge = edge_table.begin();
+//         segment alpha;
+//         std::int32_t u;
+//         while (last_edge < edge_table.end())
+//             {
+//                 u = last_edge->parent;
+//                 for (; last_edge < edge_table.end() && last_edge->parent == u;
+//                      ++last_edge)
+//                     {
+//                         for (auto& seg : Ancestry[last_edge->child])
+//                             {
+//                                 if (seg.right > last_edge->left
+//                                     && seg.right > last_edge->left)
+//                                     {
+//                                         Q.emplace(std::max(seg.left,
+//                                                            last_edge->left),
+//                                                   std::min(seg.right,
+//                                                            last_edge->right),
+//                                                   seg.node);
+//                                     }
+//                             }
+//                     }
+//
+//                 std::int32_t v = -1;
+//                 while (!Q.empty())
+//                     {
+//                         auto l = Q.top().left;
+//                         double r = 1.0;
+//                         std::vector<segment> X;
+//                         while (!Q.empty() && Q.top().left == l)
+//                             {
+//                                 // Can be done w/fewer lines of code.
+//                                 auto seg = Q.top();
+//                                 Q.pop();
+//                                 r = std::min(r, seg.right);
+//                                 X.push_back(std::move(seg));
+//                             }
+//                         if (!Q.empty())
+//                             {
+//                                 r = std::min(r, Q.top().left);
+//                             }
+//                         if (X.size() == 1)
+//                             {
+//                                 alpha = X[0];
+//                                 auto x = X[0];
+//                                 if (!Q.empty() && Q.top().left < x.right)
+//                                     {
+//                                         alpha = segment(x.left, Q.top().left,
+//                                                         x.node);
+//                                         x.left = Q.top().left;
+//                                         Q.push(x);
+//                                     }
+//                             }
+//                         else
+//                             {
+//                                 if (v == -1)
+//                                     {
+//                                         No.push_back(node(
+//                                             static_cast<std::int32_t>(
+//                                                 No.size()),
+//                                             node_table[u].generation, 0));
+//                                         v = No.size() - 1;
+//                                     }
+//                                 alpha = segment(l, r, v);
+//                                 for (auto& x : X)
+//                                     {
+//                                         Eo.push_back(edge(l, r, v, x.node));
+//                                         if (x.right > r)
+//                                             {
+//                                                 x.left = r;
+//                                                 Q.emplace(x);
+//                                             }
+//                                     }
+//                             }
+//                         Ancestry[u].push_back(alpha);
+//                     }
+//             }
+//
+//         std::size_t start = 0;
+//         std::vector<edge> compacted_edges;
+//         for (std::size_t j = 1; j < Eo.size(); ++j)
+//             {
+//                 bool condition = Eo[j - 1].right != Eo[j].left
+//                                  || Eo[j - 1].parent != Eo[j].parent
+//                                  || Eo[j - 1].child != Eo[j].child;
+//                 if (condition)
+//                     {
+//                         compacted_edges.push_back(
+//                             edge(Eo[j - 1].left, Eo[j - 1].right,
+//                                  Eo[j - 1].parent, Eo[j - 1].child));
+//                         start = j;
+//                     }
+//             }
+//         // This is probably really close to the above
+//         Eo.erase(std::unique(Eo.begin(), Eo.end(),
+//                              [](const edge& a, const edge& b) {
+//                                  return a.parent == b.parent
+//                                         && a.child == b.child
+//                                         && a.right == b.left;
+//                              }),
+//                  Eo.end());
+//         edge_table.swap(compacted_edges);
+//         node_table.swap(No);
+//     }
+// };
 
 using singlepop_t = fwdpp::singlepop<fwdpp::popgenmut>;
 using GSLrng_t = fwdpp::GSLrng_t<fwdpp::GSL_RNG_MT19937>;
@@ -275,7 +276,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
-                  const fwdpp::uint_t generation, table_collection& tables,
+                  const fwdpp::uint_t generation, ancestry_tracker& ancestry,
                   std::int32_t first_parental_index, std::int32_t next_index)
 {
 
@@ -320,10 +321,9 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
 
-            next_index_local
-                = tables.add_offspring_data(next_index_local, breakpoints,
-                                            new_mutations, p1id, generation);
-
+            ancestry.add_offspring_data(next_index_local, breakpoints,
+                                        new_mutations, p1id, generation);
+            next_index_local++;
             breakpoints = fwdpp::generate_breakpoints(pop.diploids[p2], p2g1,
                                                       p2g2, pop.gametes,
                                                       pop.mutations, recmodel);
@@ -334,9 +334,9 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
                 new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
-            next_index_local
-                = tables.add_offspring_data(next_index_local, breakpoints,
-                                            new_mutations, p2id, generation);
+            ancestry.add_offspring_data(next_index_local, breakpoints,
+                                        new_mutations, p2id, generation);
+            next_index_local++;
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
         }
@@ -348,7 +348,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
     pop.diploids.swap(offspring);
 }
 
-table_collection
+ancestry_tracker
 evolve(const GSLrng_t& rng, singlepop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
        const double mu_selected, const double recrate)
@@ -384,14 +384,14 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                          []() { return 0.; }, []() { return 0.; });
           };
 
-    table_collection tables(2 * pop.diploids.size(), 0.0);
+	ancestry_tracker ancestry(2*pop.diploids.size(),0,0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
-                              mmodel, recmap, generation, tables,
+                              mmodel, recmap, generation, ancestry,
                               first_parental_index, next_index);
             // if (first_parental_index == ROOTNODE)
             //    {
@@ -408,7 +408,7 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
-    return tables;
+    return ancestry;
 }
 
 int
@@ -428,47 +428,9 @@ main(int argc, char** argv)
     double recrate = rho / (4. * static_cast<double>(N));
     double mudel = mu * pdel;
 
-    auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
+    auto ancestry = evolve(rng, pop, popsizes, mu, mudel, recrate);
+	auto tables=ancestry.dump_tables();
     std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
-
-    std::vector<std::int32_t> samples;
-    auto last_id = tables.node_table.back().id;
-    for (std::int32_t i = last_id - 2 * N; i < last_id; ++i)
-        {
-            samples.push_back(i + 1);
-        }
-    assert(samples.back() == last_id);
-    tables.simplify(samples);
-
-    std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
-              << tables.edge_table.size() << ' '
-              << tables.mutation_table.size() << '\n';
-
-    // What kind of algos can we apply?
-    auto lower = tables.edge_table.begin();
-    auto p = tables.edge_table[0].parent;
-    while (lower < tables.edge_table.end())
-        {
-            auto upper
-                = std::find_if(lower, tables.edge_table.end(),
-                               [p](const edge& e) { return e.parent != p; });
-            for (; lower < upper; ++lower)
-                {
-                    if (lower->parent != p)
-                        {
-                            throw std::runtime_error("parents not contiguous");
-                        }
-                }
-            p = upper->parent;
-        }
-
-    for (auto& e : tables.edge_table)
-        {
-            std::cout << tables.node_table[e.child].id << ' '
-                      << tables.node_table[e.child].generation << ' '
-                      << e.parent << ' ' << e.child << ' ' << e.left << ' '
-                      << e.right << '\n';
-        }
 }
