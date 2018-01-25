@@ -1,4 +1,3 @@
-CXX=g++
 DEBUG=-DNDEBUG
 DEBUG=
 CXXFLAGS=-std=c++11 -O2 -Wall -W $(DEBUG) -g
