@@ -401,8 +401,8 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
             //    {
             //        first_parental_index += 2 * pop.diploids.size();
             //    }
-            first_parental_index += 2 * pop.diploids.size();
-            next_index += 2 * pop.diploids.size();
+            next_index = ancestry.num_nodes();
+			first_parental_index=next_index-2*pop.diploids.size();
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
