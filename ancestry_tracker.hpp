@@ -21,7 +21,9 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l }, right{ r }, node{ n }
+                    : left{ l },
+                      right{ r },
+                      node{ n }
                 {
                 }
             };
@@ -131,6 +133,76 @@ namespace fwdpp
                 edge_offset = tables.edge_table.size();
             }
 
+            edge_vector::const_iterator
+            step_S3(edge_vector::const_iterator edge_ptr, std::int32_t u)
+            {
+                bool added2Q = false;
+                for (; edge_ptr < tables.edge_table.end()
+                       && edge_ptr->parent == u;
+                     ++edge_ptr)
+                    {
+                        // For each edge corresponding to this parent,
+                        // we look at all segments from the child.
+                        // If the two segments overlap, we add the
+                        // minimal
+                        // overlap to our queue.
+                        // This is Step S3.
+                        // TODO: the data here are sorted in ascending
+                        // order by left, meaning we can process these
+                        // data using binary searches if we had an
+                        // interval
+                        // tree data structure instead of a straight
+                        // vector.
+                        for (auto& seg : Ancestry[edge_ptr->child])
+                            {
+                                if (seg.right > edge_ptr->left
+                                    && edge_ptr->right > seg.left)
+                                    {
+                                        Q.emplace_back(
+                                            std::max(seg.left, edge_ptr->left),
+                                            std::min(seg.right,
+                                                     edge_ptr->right),
+                                            seg.node);
+                                        added2Q = true;
+                                    }
+                            }
+                    }
+                added2Q = sort_queue(added2Q);
+                return edge_ptr;
+            }
+
+            void
+            compact_tables()
+            {
+                std::size_t start = 0;
+                E.swap(tables_.edge_table);
+                assert(tables_.edge_table.empty());
+
+                std::sort(
+                    E.begin(), E.end(), [](const edge& a, const edge& b) {
+                        return std::tie(a.parent, a.child, a.left, a.right)
+                               < std::tie(b.parent, b.child, b.left, b.right);
+                    });
+
+                for (std::size_t j = 1; j < E.size(); ++j)
+                    {
+                        bool condition = E[j - 1].right != E[j].left
+                                         || E[j - 1].parent != E[j].parent
+                                         || E[j - 1].child != E[j].child;
+                        if (condition)
+                            {
+                                tables_.push_back_edge(
+                                    E[start].left, E[j - 1].right,
+                                    E[j - 1].parent, E[j - 1].child);
+                                start = j;
+                            }
+                    }
+                auto j = E.size();
+                tables_.push_back_edge(E[start].left, E[j - 1].right,
+                                       E[j - 1].parent, E[j - 1].child);
+                tables.swap(tables_);
+            }
+
           public:
             ancestry_tracker(const std::int32_t num_initial_nodes,
                              const double initial_time, std::int32_t pop,
@@ -198,38 +270,7 @@ namespace fwdpp
                 while (edge_ptr < tables.edge_table.cend())
                     {
                         auto u = edge_ptr->parent;
-                        for (; edge_ptr < tables.edge_table.end()
-                               && edge_ptr->parent == u;
-                             ++edge_ptr)
-                            {
-                                // For each edge corresponding to this parent,
-                                // we look at all segments from the child.
-                                // If the two segments overlap, we add the
-                                // minimal
-                                // overlap to our queue.
-                                // This is Step S3.
-                                // TODO: the data here are sorted in ascending
-                                // order by left, meaning we can process these
-                                // data using binary searches if we had an
-                                // interval
-                                // tree data structure instead of a straight
-                                // vector.
-                                for (auto& seg : Ancestry[edge_ptr->child])
-                                    {
-                                        if (seg.right > edge_ptr->left
-                                            && edge_ptr->right > seg.left)
-                                            {
-                                                Q.emplace_back(
-                                                    std::max(seg.left,
-                                                             edge_ptr->left),
-                                                    std::min(seg.right,
-                                                             edge_ptr->right),
-                                                    seg.node);
-                                                added2Q = true;
-                                            }
-                                    }
-                            }
-                        added2Q = sort_queue(added2Q);
+                        edge_ptr = step_S3(edge_ptr, u);
                         std::int32_t v = -1;
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
@@ -327,33 +368,7 @@ namespace fwdpp
                 // which means removing redundant
                 // info due to different edges
                 // representing the same ancestry.
-                std::size_t start = 0;
-                E.swap(tables_.edge_table);
-                assert(tables_.edge_table.empty());
-
-                std::sort(
-                    E.begin(), E.end(), [](const edge& a, const edge& b) {
-                        return std::tie(a.parent, a.child, a.left, a.right)
-                               < std::tie(b.parent, b.child, b.left, b.right);
-                    });
-
-                for (std::size_t j = 1; j < E.size(); ++j)
-                    {
-                        bool condition = E[j - 1].right != E[j].left
-                                         || E[j - 1].parent != E[j].parent
-                                         || E[j - 1].child != E[j].child;
-                        if (condition)
-                            {
-                                tables_.push_back_edge(
-                                    E[start].left, E[j - 1].right,
-                                    E[j - 1].parent, E[j - 1].child);
-                                start = j;
-                            }
-                    }
-                auto j = E.size();
-                tables_.push_back_edge(E[start].left, E[j - 1].right,
-                                       E[j - 1].parent, E[j - 1].child);
-                tables.swap(tables_);
+                compact_tables();
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 cleanup();
