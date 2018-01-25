@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
+#include <chrono>
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
@@ -21,9 +22,7 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l },
-                      right{ r },
-                      node{ n }
+                    : left{ l }, right{ r }, node{ n }
                 {
                 }
             };
@@ -49,40 +48,59 @@ namespace fwdpp
             // region length
             const double L;
 
-            std::pair<std::vector<std::pair<double, double>>,
-                      std::vector<std::pair<double, double>>>
-            split_breakpoints(const std::vector<double>& breakpoints,
-                              const double start, const double stop)
-            //TODO add data directly rather than create more intermediate containers
+            double parent_time, queue_time, compact_time;
+            // std::pair<std::vector<std::pair<double, double>>,
+            //          std::vector<std::pair<double, double>>>
+            void
+            split_breakpoints(
+                const std::vector<double>& breakpoints,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::int32_t next_index)
+            // TODO add data directly rather than create more intermediate
+            // containers
             {
                 std::vector<std::pair<double, double>> r1, r2;
                 if (breakpoints.empty())
                     {
-                        r1.emplace_back(start, stop);
+                        // r1.emplace_back(start, stop);
+                        tables.push_back_edge(0., L, std::get<0>(parents),
+                                              next_index);
+                        // tables.emplace_back_edge(
+                        //    start, stop, std::get<0>(parents), next_index);
                         goto out;
                     }
                 if (breakpoints.front() != 0.0)
                     {
-                        r1.emplace_back(
-                            std::make_pair(start, breakpoints.front()));
+                        tables.push_back_edge(0., breakpoints.front(),
+                                              std::get<0>(parents),
+                                              next_index);
+                        // tables.emplace_back_edge(start, breakpoints.front(),
+                        //                         std::get<0>(parents),
+                        //                         next_index);
+                        // r1.emplace_back(
+                        //    std::make_pair(start, breakpoints.front()));
                     }
                 for (unsigned j = 1; j < breakpoints.size(); ++j)
                     {
                         double a = breakpoints[j - 1];
                         double b = (j < breakpoints.size() - 1)
                                        ? breakpoints[j]
-                                       : stop;
+                                       : L;
                         if (j % 2 == 0.)
                             {
-                                r1.emplace_back(a, b);
+                                tables.push_back_edge(
+                                    a, b, std::get<0>(parents), next_index);
+                                // r1.emplace_back(a, b);
                             }
                         else
                             {
-                                r2.emplace_back(a, b);
+                                tables.push_back_edge(
+                                    a, b, std::get<1>(parents), next_index);
+                                // r2.emplace_back(a, b);
                             }
                     }
             out:
-                return std::make_pair(std::move(r1), std::move(r2));
+                return; // std::make_pair(std::move(r1), std::move(r2));
             }
 
             bool
@@ -121,7 +139,8 @@ namespace fwdpp
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
                   Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
-                  L{ region_length }
+                  L{ region_length }, parent_time{}, queue_time{},
+                  compact_time{}
             {
             }
 
@@ -132,7 +151,8 @@ namespace fwdpp
                   tables_{}, Q{}, X{}, Ancestry{},
                   edge_offset{ static_cast<std::ptrdiff_t>(
                       tables.edge_table.size()) },
-                  L{ region_length }
+                  L{ region_length }, parent_time{}, queue_time{},
+                  compact_time{}
             {
                 if (!tables.edges_are_sorted())
                     {
@@ -182,19 +202,23 @@ namespace fwdpp
                 while (edge_ptr < tables.edge_table.cend())
                     {
                         auto u = edge_ptr->parent;
+                        auto start = std::clock();
                         for (; edge_ptr < tables.edge_table.end()
                                && edge_ptr->parent == u;
                              ++edge_ptr)
                             {
-                                //For each edge corresponding to this parent,
-                                //we look at all segments from the child.
-                                //If the two segments overlap, we add the minimal
-                                //overlap to our queue.
-                                //This is Step S3.
-                                //TODO: the data here are sorted in ascending
-                                //order by left, meaning we can process these
-                                //data using binary searches if we had an interval
-                                //tree data structure instead of a straight vector.
+                                // For each edge corresponding to this parent,
+                                // we look at all segments from the child.
+                                // If the two segments overlap, we add the
+                                // minimal
+                                // overlap to our queue.
+                                // This is Step S3.
+                                // TODO: the data here are sorted in ascending
+                                // order by left, meaning we can process these
+                                // data using binary searches if we had an
+                                // interval
+                                // tree data structure instead of a straight
+                                // vector.
                                 for (auto& seg : Ancestry[edge_ptr->child])
                                     {
                                         if (seg.right > edge_ptr->left
@@ -210,8 +234,12 @@ namespace fwdpp
                                             }
                                     }
                             }
+                        auto end = std::clock();
+                        parent_time += (end - start)
+                                       / static_cast<double>(CLOCKS_PER_SEC);
                         added2Q = sort_queue(added2Q);
                         std::int32_t v = -1;
+                        start = std::clock();
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
@@ -223,8 +251,10 @@ namespace fwdpp
                                     // adds to X all segments with left == l
                                     // and also finds the minimum right for
                                     // all segs with left == l.
-                                    // TODO: this can be done with reverse iteration,
-                                    // but testing on 0.5e9 edges didn't seem to
+                                    // TODO: this can be done with reverse
+                                    // iteration,
+                                    // but testing on 0.5e9 edges didn't seem
+                                    // to
                                     // make it worthwhile.
                                     {
                                         r = std::min(r, Q.back().right);
@@ -259,7 +289,8 @@ namespace fwdpp
                                     {
                                         if (v == -1)
                                             {
-                                                // Overlap/coalescence, and thus
+                                                // Overlap/coalescence, and
+                                                // thus
                                                 // a new node. Step S6.
                                                 tables_.push_back_node(
                                                     static_cast<std::int32_t>(
@@ -294,6 +325,9 @@ namespace fwdpp
                                 added2Q = sort_queue(added2Q);
                                 Ancestry[u].emplace_back(aleft, aright, anode);
                             }
+                        end = std::clock();
+                        queue_time += (end - start)
+                                      / static_cast<double>(CLOCKS_PER_SEC);
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
@@ -305,6 +339,7 @@ namespace fwdpp
                 // which means removing redundant
                 // info due to different edges
                 // representing the same ancestry.
+                auto now = std::clock();
                 std::size_t start = 0;
                 E.swap(tables_.edge_table);
                 assert(tables_.edge_table.empty());
@@ -332,9 +367,12 @@ namespace fwdpp
                 tables_.push_back_edge(E[start].left, E[j - 1].right,
                                        E[j - 1].parent, E[j - 1].child);
                 tables.swap(tables_);
-                //TODO: allow for exception instead of assert
+                // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 cleanup();
+                auto end = std::clock();
+                compact_time
+                    += (end - now) / static_cast<double>(CLOCKS_PER_SEC);
                 return idmap;
             }
 
@@ -346,29 +384,30 @@ namespace fwdpp
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
             {
-                //TODO document why this is generation + 1
+                // TODO document why this is generation + 1
                 tables.emplace_back_node(next_index, generation + 1, 0);
-                auto split = split_breakpoints(breakpoints, 0., L);
+                // auto split =
+                split_breakpoints(breakpoints, parents, next_index);
                 // Add the edges
-                for (auto&& brk : split.first)
-                    {
-                        tables.emplace_back_edge(brk.first, brk.second,
-                                                 std::get<0>(parents),
-                                                 next_index);
-                    }
-                for (auto&& brk : split.second)
-                    {
-                        tables.emplace_back_edge(brk.first, brk.second,
-                                                 std::get<1>(parents),
-                                                 next_index);
-                    }
+                // for (auto&& brk : split.first)
+                //    {
+                //        tables.emplace_back_edge(brk.first, brk.second,
+                //                                 std::get<0>(parents),
+                //                                 next_index);
+                //    }
+                // for (auto&& brk : split.second)
+                //    {
+                //        tables.emplace_back_edge(brk.first, brk.second,
+                //                                 std::get<1>(parents),
+                //                                 next_index);
+                //    }
                 // TODO: add mutation to tables
             }
 
             void
             sort_tables() noexcept
             {
-                tables.sort_edges(edge_offset);
+                tables.sort_edges();
             }
 
             table_collection
@@ -380,10 +419,29 @@ namespace fwdpp
                 return rv;
             }
 
+            const node_vector&
+            nodes() const
+            {
+                return tables.node_table;
+            }
+
             std::size_t
             num_nodes() const
             {
                 return tables.node_table.size();
+            }
+
+            std::size_t
+            num_edges() const
+            {
+                return tables.edge_table.size();
+            }
+
+            ~ancestry_tracker()
+            {
+                std::cerr << "parent time = " << parent_time << '\n'
+                          << "queue time = " << queue_time << '\n'
+                          << "compact time = " << compact_time << '\n';
             }
         };
     }
