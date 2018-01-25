@@ -26,7 +26,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "ancestry_tracker.hpp"
-#include "split_breakpoints.hpp"
+//#include "split_breakpoints.hpp"
 
 using namespace fwdpp::ancestry;
 
@@ -66,7 +66,8 @@ using namespace fwdpp::ancestry;
 //     add_offspring_data(const std::int32_t next_index,
 //                        const std::vector<double>& breakpoints,
 //                        const std::vector<fwdpp::uint_t>& new_mutations,
-//                        const std::tuple<std::int32_t, std::int32_t>& parents,
+//                        const std::tuple<std::int32_t, std::int32_t>&
+//                        parents,
 //                        const double generation)
 //     {
 //         node_table.push_back(
@@ -76,12 +77,14 @@ using namespace fwdpp::ancestry;
 //         for (auto&& brk : split.first)
 //             {
 //                 edge_table.push_back(edge(brk.first, brk.second,
-//                                           std::get<0>(parents), next_index));
+//                                           std::get<0>(parents),
+//                                           next_index));
 //             }
 //         for (auto&& brk : split.second)
 //             {
 //                 edge_table.push_back(edge(brk.first, brk.second,
-//                                           std::get<1>(parents), next_index));
+//                                           std::get<1>(parents),
+//                                           next_index));
 //             }
 //         for (auto&& m : new_mutations)
 //             mutation_table.emplace_back(next_index, m);
@@ -105,7 +108,8 @@ using namespace fwdpp::ancestry;
 //                   [this](const edge& a, const edge& b) {
 //                       return std::tie(this->node_table[a.child].generation,
 //                                       a.parent, a.child, a.left)
-//                              < std::tie(this->node_table[b.child].generation,
+//                              <
+//                              std::tie(this->node_table[b.child].generation,
 //                                         b.parent, b.child, b.left);
 //                   });
 //
@@ -115,7 +119,8 @@ using namespace fwdpp::ancestry;
 //         // The algorithm using a min queue.  The default C++ queue
 //         // is a max queue.  Thus, we must use > rather than <
 //         // to generate a min queue;
-//         const auto segment_sorter_q = [](const segment& a, const segment& b) {
+//         const auto segment_sorter_q = [](const segment& a, const segment& b)
+//         {
 //             return a.left > b.left;
 //         };
 //         std::priority_queue<segment, std::vector<segment>,
@@ -126,7 +131,8 @@ using namespace fwdpp::ancestry;
 //             {
 //                 No.push_back(node(s, node_table[s].generation, 0));
 //                 Ancestry[s].push_back(
-//                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
+//                     segment(0, 1, static_cast<std::int32_t>(No.size() -
+//                     1)));
 //             }
 //
 //         auto last_edge = edge_table.begin();
@@ -135,7 +141,8 @@ using namespace fwdpp::ancestry;
 //         while (last_edge < edge_table.end())
 //             {
 //                 u = last_edge->parent;
-//                 for (; last_edge < edge_table.end() && last_edge->parent == u;
+//                 for (; last_edge < edge_table.end() && last_edge->parent ==
+//                 u;
 //                      ++last_edge)
 //                     {
 //                         for (auto& seg : Ancestry[last_edge->child])
@@ -176,7 +183,8 @@ using namespace fwdpp::ancestry;
 //                                 auto x = X[0];
 //                                 if (!Q.empty() && Q.top().left < x.right)
 //                                     {
-//                                         alpha = segment(x.left, Q.top().left,
+//                                         alpha = segment(x.left,
+//                                         Q.top().left,
 //                                                         x.node);
 //                                         x.left = Q.top().left;
 //                                         Q.push(x);
@@ -310,17 +318,18 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             auto p1id = get_parent_ids(first_parental_index, p1, swap1);
             auto p2id = get_parent_ids(first_parental_index, p2, swap2);
 
-			assert(std::get<0>(p1id)>=next_index-2*N_next);
-			assert(std::get<1>(p1id)>=next_index-2*N_next);
-			assert(std::get<0>(p2id)>=next_index-2*N_next);
-			assert(std::get<1>(p2id)>=next_index-2*N_next);
-			assert(std::get<0>(p1id)<next_index);
-			assert(std::get<1>(p1id)<next_index);
-			assert(std::get<0>(p2id)<next_index);
-			assert(std::get<1>(p2id)<next_index);
-            auto breakpoints = fwdpp::generate_breakpoints(
-                pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
-                recmodel);
+            assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            // auto breakpoints = fwdpp::generate_breakpoints(
+            //    pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
+            //    recmodel);
+            auto breakpoints = recmodel();
             auto new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
                 pop.gametes, pop.mutations, p1g1, mmodel);
@@ -332,9 +341,11 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             ancestry.add_offspring_data(next_index_local, breakpoints,
                                         new_mutations, p1id, generation);
             next_index_local++;
-            breakpoints = fwdpp::generate_breakpoints(pop.diploids[p2], p2g1,
-                                                      p2g2, pop.gametes,
-                                                      pop.mutations, recmodel);
+            breakpoints
+                = recmodel(); // fwdpp::generate_breakpoints(pop.diploids[p2],
+                              // p2g1,
+            //                 p2g2, pop.gametes,
+            //               pop.mutations, recmodel);
             new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
                 pop.gametes, pop.mutations, p2g1, mmodel);
@@ -348,7 +359,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
         }
-	assert(next_index_local==next_index+2*N_next);
+    assert(next_index_local == next_index + 2 * N_next);
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
                                            pop.mcounts);
     fwdpp::fwdpp_internal::gamete_cleaner(
@@ -396,6 +407,7 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
     ancestry_tracker ancestry(2 * pop.diploids.size(), 0, 0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
+    double sort_time = 0.0;
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
@@ -410,22 +422,36 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
             //    {
             //        first_parental_index += 2 * pop.diploids.size();
             //    }
-			//std::cout<<next_index<<' '<<first_parental_index<<"->";
+            // std::cout<<next_index<<' '<<first_parental_index<<"->";
+
+            std::vector<std::int32_t> samples;
+            for (auto i = ancestry.num_nodes() - 2 * pop.diploids.size();
+                 i < ancestry.num_nodes(); ++i)
+                {
+                    assert(ancestry.nodes()[i].generation == generation+1);
+                    samples.push_back(i);
+                }
+            auto start = std::clock();
+            ancestry.sort_tables();
+            auto stop = std::clock();
+            sort_time += (stop-start)/static_cast<double>(CLOCKS_PER_SEC);
+            ancestry.simplify(samples);
             next_index = ancestry.num_nodes();
-            first_parental_index = next_index - 2 * pop.diploids.size();
-			//std::cout<<next_index<<' '<<first_parental_index<<"\n";
+            first_parental_index = 0;
+            // std::cout<<next_index<<' '<<first_parental_index<<"\n";
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
-    std::vector<std::int32_t> samples;
-    for (auto i = next_index - 2 * pop.diploids.size(); i < next_index; ++i)
-        {
-            samples.push_back(i);
-        }
-    ancestry.sort_tables();
-    ancestry.simplify(samples);
+    std::cout << "sort time = " << sort_time << '\n';
+    // std::vector<std::int32_t> samples;
+    // for (auto i = next_index - 2 * pop.diploids.size(); i < next_index; ++i)
+    //    {
+    //        samples.push_back(i);
+    //    }
+    // ancestry.sort_tables();
+    // ancestry.simplify(samples);
     return ancestry;
 }
 
@@ -451,4 +477,14 @@ main(int argc, char** argv)
     std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
+    // for (auto& a : tables.edge_table)
+    //    {
+    //        std::cout << tables.node_table[a.parent].generation << ' '
+    //                  << a.parent << ' ' << a.child << ' ' << a.left << ' '
+    //                  << a.right << '\n';
+    //    }
+    // for (auto& n : tables.node_table)
+    //    {
+    //        std::cout << n.id << ' ' << n.generation << '\n';
+    //    }
 }
