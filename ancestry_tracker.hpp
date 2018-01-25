@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <stdexcept>
-#include <chrono>
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
@@ -48,7 +47,6 @@ namespace fwdpp
             // region length
             const double L;
 
-            double parent_time, queue_time, compact_time;
             // std::pair<std::vector<std::pair<double, double>>,
             //          std::vector<std::pair<double, double>>>
             void
@@ -139,8 +137,7 @@ namespace fwdpp
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
                   Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
-                  L{ region_length }, parent_time{}, queue_time{},
-                  compact_time{}
+                  L{ region_length }
             {
             }
 
@@ -151,8 +148,7 @@ namespace fwdpp
                   tables_{}, Q{}, X{}, Ancestry{},
                   edge_offset{ static_cast<std::ptrdiff_t>(
                       tables.edge_table.size()) },
-                  L{ region_length }, parent_time{}, queue_time{},
-                  compact_time{}
+                  L{ region_length }
             {
                 if (!tables.edges_are_sorted())
                     {
@@ -202,7 +198,6 @@ namespace fwdpp
                 while (edge_ptr < tables.edge_table.cend())
                     {
                         auto u = edge_ptr->parent;
-                        auto start = std::clock();
                         for (; edge_ptr < tables.edge_table.end()
                                && edge_ptr->parent == u;
                              ++edge_ptr)
@@ -234,12 +229,8 @@ namespace fwdpp
                                             }
                                     }
                             }
-                        auto end = std::clock();
-                        parent_time += (end - start)
-                                       / static_cast<double>(CLOCKS_PER_SEC);
                         added2Q = sort_queue(added2Q);
                         std::int32_t v = -1;
-                        start = std::clock();
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
@@ -325,9 +316,6 @@ namespace fwdpp
                                 added2Q = sort_queue(added2Q);
                                 Ancestry[u].emplace_back(aleft, aright, anode);
                             }
-                        end = std::clock();
-                        queue_time += (end - start)
-                                      / static_cast<double>(CLOCKS_PER_SEC);
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
@@ -339,7 +327,6 @@ namespace fwdpp
                 // which means removing redundant
                 // info due to different edges
                 // representing the same ancestry.
-                auto now = std::clock();
                 std::size_t start = 0;
                 E.swap(tables_.edge_table);
                 assert(tables_.edge_table.empty());
@@ -370,9 +357,6 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 cleanup();
-                auto end = std::clock();
-                compact_time
-                    += (end - now) / static_cast<double>(CLOCKS_PER_SEC);
                 return idmap;
             }
 
@@ -435,13 +419,6 @@ namespace fwdpp
             num_edges() const
             {
                 return tables.edge_table.size();
-            }
-
-            ~ancestry_tracker()
-            {
-                std::cerr << "parent time = " << parent_time << '\n'
-                          << "queue time = " << queue_time << '\n'
-                          << "compact time = " << compact_time << '\n';
             }
         };
     }

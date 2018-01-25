@@ -431,10 +431,7 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                     assert(ancestry.nodes()[i].generation == generation+1);
                     samples.push_back(i);
                 }
-            auto start = std::clock();
             ancestry.sort_tables();
-            auto stop = std::clock();
-            sort_time += (stop-start)/static_cast<double>(CLOCKS_PER_SEC);
             ancestry.simplify(samples);
             next_index = ancestry.num_nodes();
             first_parental_index = 0;
