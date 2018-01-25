@@ -49,6 +49,42 @@ namespace fwdpp
             // region length
             const double L;
 
+            std::pair<std::vector<std::pair<double, double>>,
+                      std::vector<std::pair<double, double>>>
+            split_breakpoints(const std::vector<double>& breakpoints,
+                              const double start, const double stop)
+            //TODO add data directly rather than create more intermediate containers
+            {
+                std::vector<std::pair<double, double>> r1, r2;
+                if (breakpoints.empty())
+                    {
+                        r1.emplace_back(start, stop);
+                        goto out;
+                    }
+                if (breakpoints.front() != 0.0)
+                    {
+                        r1.emplace_back(
+                            std::make_pair(start, breakpoints.front()));
+                    }
+                for (unsigned j = 1; j < breakpoints.size(); ++j)
+                    {
+                        double a = breakpoints[j - 1];
+                        double b = (j < breakpoints.size() - 1)
+                                       ? breakpoints[j]
+                                       : stop;
+                        if (j % 2 == 0.)
+                            {
+                                r1.emplace_back(a, b);
+                            }
+                        else
+                            {
+                                r2.emplace_back(a, b);
+                            }
+                    }
+            out:
+                return std::make_pair(std::move(r1), std::move(r2));
+            }
+
             bool
             sort_queue(bool added2Q) noexcept
             // Sorts the priority queue during
@@ -158,7 +194,7 @@ namespace fwdpp
                                 //TODO: the data here are sorted in ascending
                                 //order by left, meaning we can process these
                                 //data using binary searches if we had an interval
-								//tree data structure instead of a straight vector.
+                                //tree data structure instead of a straight vector.
                                 for (auto& seg : Ancestry[edge_ptr->child])
                                     {
                                         if (seg.right > edge_ptr->left
@@ -302,6 +338,34 @@ namespace fwdpp
                 return idmap;
             }
 
+			void
+            add_offspring_data(
+                const std::int32_t next_index,
+                const std::vector<double>& breakpoints,
+                const std::vector<std::uint32_t>& new_mutations,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const double generation)
+            {
+				//TODO document why this is generation + 1
+                tables.emplace_back_node(next_index, generation + 1,
+                                         0);
+                auto split = split_breakpoints(breakpoints, 0., L);
+                // Add the edges
+                for (auto&& brk : split.first)
+                    {
+                        tables.emplace_back_edge(brk.first, brk.second,
+                                                 std::get<0>(parents),
+                                                 next_index);
+                    }
+                for (auto&& brk : split.second)
+                    {
+                        tables.emplace_back_edge(brk.first, brk.second,
+                                                 std::get<1>(parents),
+                                                 next_index);
+                    }
+                // TODO: add mutation to tables
+            }
+
             void
             sort_tables() noexcept
             {
@@ -314,7 +378,7 @@ namespace fwdpp
             /// The ancestry_tracker instance is now in an inconsistent state.
             {
                 table_collection rv(std::move(tables));
-				return rv;
+                return rv;
             }
         };
     }
