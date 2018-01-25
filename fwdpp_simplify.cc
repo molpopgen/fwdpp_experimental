@@ -384,7 +384,7 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
                          []() { return 0.; }, []() { return 0.; });
           };
 
-	ancestry_tracker ancestry(2*pop.diploids.size(),0,0);
+    ancestry_tracker ancestry(2 * pop.diploids.size(), 0, 0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
@@ -402,12 +402,19 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
             //        first_parental_index += 2 * pop.diploids.size();
             //    }
             next_index = ancestry.num_nodes();
-			first_parental_index=next_index-2*pop.diploids.size();
+            first_parental_index = next_index - 2 * pop.diploids.size();
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
+    std::vector<std::int32_t> samples;
+    for (auto i = next_index - 2 * pop.diploids.size(); i < next_index; ++i)
+        {
+            samples.push_back(i);
+        }
+    ancestry.sort_tables();
+    ancestry.simplify(samples);
     return ancestry;
 }
 
@@ -429,7 +436,7 @@ main(int argc, char** argv)
     double mudel = mu * pdel;
 
     auto ancestry = evolve(rng, pop, popsizes, mu, mudel, recrate);
-	auto tables=ancestry.dump_tables();
+    auto tables = ancestry.dump_tables();
     std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';
