@@ -338,7 +338,7 @@ namespace fwdpp
                 return idmap;
             }
 
-			void
+            void
             add_offspring_data(
                 const std::int32_t next_index,
                 const std::vector<double>& breakpoints,
@@ -346,9 +346,8 @@ namespace fwdpp
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
             {
-				//TODO document why this is generation + 1
-                tables.emplace_back_node(next_index, generation + 1,
-                                         0);
+                //TODO document why this is generation + 1
+                tables.emplace_back_node(next_index, generation + 1, 0);
                 auto split = split_breakpoints(breakpoints, 0., L);
                 // Add the edges
                 for (auto&& brk : split.first)
@@ -379,6 +378,12 @@ namespace fwdpp
             {
                 table_collection rv(std::move(tables));
                 return rv;
+            }
+
+            std::size_t
+            num_nodes() const
+            {
+                return tables.node_table.size();
             }
         };
     }
