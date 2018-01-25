@@ -310,6 +310,14 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             auto p1id = get_parent_ids(first_parental_index, p1, swap1);
             auto p2id = get_parent_ids(first_parental_index, p2, swap2);
 
+			assert(std::get<0>(p1id)>=next_index-2*N_next);
+			assert(std::get<1>(p1id)>=next_index-2*N_next);
+			assert(std::get<0>(p2id)>=next_index-2*N_next);
+			assert(std::get<1>(p2id)>=next_index-2*N_next);
+			assert(std::get<0>(p1id)<next_index);
+			assert(std::get<1>(p1id)<next_index);
+			assert(std::get<0>(p2id)<next_index);
+			assert(std::get<1>(p2id)<next_index);
             auto breakpoints = fwdpp::generate_breakpoints(
                 pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
                 recmodel);
@@ -340,6 +348,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
         }
+	assert(next_index_local==next_index+2*N_next);
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
                                            pop.mcounts);
     fwdpp::fwdpp_internal::gamete_cleaner(
@@ -401,8 +410,10 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
             //    {
             //        first_parental_index += 2 * pop.diploids.size();
             //    }
+			//std::cout<<next_index<<' '<<first_parental_index<<"->";
             next_index = ancestry.num_nodes();
             first_parental_index = next_index - 2 * pop.diploids.size();
+			//std::cout<<next_index<<' '<<first_parental_index<<"\n";
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
