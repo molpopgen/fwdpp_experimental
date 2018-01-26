@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstddef>
+#include <queue>
 #include <stdexcept>
 #include "node.hpp"
 #include "edge.hpp"
@@ -26,18 +27,23 @@ namespace fwdpp
                       node{ n }
                 {
                 }
+                inline bool
+                operator>(const segment& rhs) const noexcept
+                {
+                    return left > rhs.left;
+                }
             };
 
             // tables is the current data set.
             // tables_ is used as temp
             // space during simplification.
             table_collection tables, tables_;
-            // Q mimics a min-queue, and X
-            // is a temp vector for segments
-            // while processing Q.  The sorting
-            // of Q is handled by
-            // ancestry_tracker::sort_queue.
-            std::vector<segment> Q, X;
+            // Q is a min queue according to segment::left
+            std::priority_queue<segment, std::vector<segment>,
+                                std::greater<segment>>
+                Q;
+            // temp container for segments while processing Q
+            std::vector<segment> X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             edge_vector E;
@@ -103,21 +109,6 @@ namespace fwdpp
                 return; // std::make_pair(std::move(r1), std::move(r2));
             }
 
-            bool
-            sort_queue(bool added2Q) noexcept
-            // Sorts the priority queue during
-            // simplify as needed.
-            {
-                if (added2Q)
-                    {
-                        std::sort(Q.begin(), Q.end(),
-                                  [](const segment& a, const segment& b) {
-                                      return a.left > b.left;
-                                  });
-                    }
-                return false;
-            }
-
             void
             cleanup() noexcept
             // Clears out data from
@@ -136,7 +127,6 @@ namespace fwdpp
             edge_vector::const_iterator
             step_S3(edge_vector::const_iterator edge_ptr, std::int32_t u)
             {
-                bool added2Q = false;
                 for (; edge_ptr < tables.edge_table.end()
                        && edge_ptr->parent == u;
                      ++edge_ptr)
@@ -158,16 +148,14 @@ namespace fwdpp
                                 if (seg.right > edge_ptr->left
                                     && edge_ptr->right > seg.left)
                                     {
-                                        Q.emplace_back(
+                                        Q.emplace(
                                             std::max(seg.left, edge_ptr->left),
                                             std::min(seg.right,
                                                      edge_ptr->right),
                                             seg.node);
-                                        added2Q = true;
                                     }
                             }
                     }
-                added2Q = sort_queue(added2Q);
                 return edge_ptr;
             }
 
@@ -200,7 +188,41 @@ namespace fwdpp
                 auto j = E.size();
                 tables_.push_back_edge(E[start].left, E[j - 1].right,
                                        E[j - 1].parent, E[j - 1].child);
-                tables.swap(tables_);
+            }
+
+            void
+            defragment(std::vector<segment>& ancestry_segment) noexcept
+            {
+                assert(std::is_sorted(ancestry_segment.begin(),
+                                      ancestry_segment.end(),
+                                      [](const segment& a, const segment& b) {
+                                          return std::tie(a.left, a.right)
+                                                 < std::tie(b.left, b.right);
+                                      }));
+                auto prev = ancestry_segment.begin();
+                auto next_seg = prev + 1;
+                //for(;next_seg<ancestry_segment.end();++next_seg)
+                while (next_seg < ancestry_segment.end())
+                    {
+                        if (prev->node == next_seg->node
+                            && prev->right == next_seg->left)
+                            {
+                                prev->right = next_seg->right;
+                                next_seg->node = -1;
+                                next_seg += 2;
+                                prev += 2;
+                            }
+                        else
+                            {
+                                ++prev;
+                                ++next_seg;
+                            }
+                    }
+                ancestry_segment.erase(
+                    std::remove_if(
+                        ancestry_segment.begin(), ancestry_segment.end(),
+                        [](const segment& seg) { return seg.node == -1; }),
+                    ancestry_segment.end());
             }
 
           public:
@@ -256,9 +278,8 @@ namespace fwdpp
                             tables_.node_table.size() - 1);
                     }
 
-                std::int32_t anode;
-                double aleft, aright;
-                bool added2Q = false;
+                std::int32_t anode, znode = -1;
+                double aleft, aright, zleft = 0, zright = 0;
 
                 // At this point, our edges are sorted by birth
                 // order of parents, from present to past.
@@ -272,13 +293,16 @@ namespace fwdpp
                         auto u = edge_ptr->parent;
                         edge_ptr = step_S3(edge_ptr, u);
                         std::int32_t v = -1;
+						//This is "stolen" straigh out of Jerome's
+						//code.  GPL ftw. 
+                        bool defrag_required = false;
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
                                 X.clear();
-                                auto l = Q.back().left;
+                                auto l = Q.top().left;
                                 double r = L;
-                                while (!Q.empty() && Q.back().left == l)
+                                while (!Q.empty() && Q.top().left == l)
                                     // This while loop is Step S4. This step
                                     // adds to X all segments with left == l
                                     // and also finds the minimum right for
@@ -289,26 +313,25 @@ namespace fwdpp
                                     // to
                                     // make it worthwhile.
                                     {
-                                        r = std::min(r, Q.back().right);
-                                        X.emplace_back(std::move(Q.back()));
-                                        Q.pop_back();
+                                        r = std::min(r, Q.top().right);
+                                        X.emplace_back(std::move(Q.top()));
+                                        Q.pop();
                                     }
                                 if (!Q.empty())
                                     {
-                                        r = std::min(r, Q.back().left);
+                                        r = std::min(r, Q.top().left);
                                     }
                                 if (X.size() == 1)
                                     {
                                         if (!Q.empty()
-                                            && Q.back().left < X[0].right)
+                                            && Q.top().left < X[0].right)
                                             {
                                                 aleft = X[0].left;
-                                                aright = Q.back().left;
+                                                aright = Q.top().left;
                                                 anode = X[0].node;
-                                                Q.emplace_back(Q.back().left,
-                                                               X[0].right,
-                                                               X[0].node);
-                                                added2Q = true;
+                                                Q.emplace(Q.top().left,
+                                                          X[0].right,
+                                                          X[0].node);
                                             }
                                         else
                                             {
@@ -347,15 +370,22 @@ namespace fwdpp
                                                 if (x.right > r)
                                                     {
                                                         x.left = r;
-                                                        Q.emplace_back(x.left,
-                                                                       x.right,
-                                                                       x.node);
-                                                        added2Q = true;
+                                                        Q.emplace(x.left,
+                                                                  x.right,
+                                                                  x.node);
                                                     }
                                             }
                                     }
-                                added2Q = sort_queue(added2Q);
                                 Ancestry[u].emplace_back(aleft, aright, anode);
+                                defrag_required
+                                    |= zright == aleft && znode == anode;
+                                zleft = aleft;
+                                zright = aright;
+                                znode = anode;
+                            }
+                        if (defrag_required)
+                            {
+                                defragment(Ancestry[u]);
                             }
                     }
 
@@ -368,9 +398,13 @@ namespace fwdpp
                 // which means removing redundant
                 // info due to different edges
                 // representing the same ancestry.
+				// This is the same as ancestry chain
+				// defragmenting, but applied to the final edge
+				// collection.
                 compact_tables();
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
+                tables.swap(tables_);
                 cleanup();
                 return idmap;
             }
@@ -411,7 +445,7 @@ namespace fwdpp
 
             table_collection
             dump_tables()
-            /// Returns the tables via a move-constructed object.
+            /// Returns the tables via a move-constructed objec.
             /// The ancestry_tracker instance is now in an inconsistent state.
             {
                 table_collection rv(std::move(tables));
