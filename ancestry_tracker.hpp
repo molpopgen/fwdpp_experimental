@@ -199,22 +199,22 @@ namespace fwdpp
                                           return std::tie(a.left, a.right)
                                                  < std::tie(b.left, b.right);
                                       }));
-                auto prev = ancestry_segment.begin();
-                auto next_seg = prev + 1;
+                auto prev_seg = ancestry_segment.begin();
+                auto next_seg = prev_seg + 1;
                 //for(;next_seg<ancestry_segment.end();++next_seg)
                 while (next_seg < ancestry_segment.end())
                     {
-                        if (prev->node == next_seg->node
-                            && prev->right == next_seg->left)
+                        if (prev_seg->node == next_seg->node
+                            && prev_seg->right == next_seg->left)
                             {
-                                prev->right = next_seg->right;
+                                prev_seg->right = next_seg->right;
                                 next_seg->node = -1;
                                 next_seg += 2;
-                                prev += 2;
+                                prev_seg += 2;
                             }
                         else
                             {
-                                ++prev;
+                                ++prev_seg;
                                 ++next_seg;
                             }
                     }
