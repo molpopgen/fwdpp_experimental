@@ -317,19 +317,22 @@ namespace fwdpp
                                         X.emplace_back(std::move(Q.top()));
                                         Q.pop();
                                     }
+								double next_left = 0.0;
                                 if (!Q.empty())
                                     {
-                                        r = std::min(r, Q.top().left);
+										next_left=Q.top().left;
+                                        r = std::min(r, next_left);
                                     }
                                 if (X.size() == 1)
                                     {
                                         if (!Q.empty()
-                                            && Q.top().left < X[0].right)
+                                            && next_left < X[0].right)
                                             {
                                                 aleft = X[0].left;
-                                                aright = Q.top().left;
+                                                aright = next_left;
                                                 anode = X[0].node;
-                                                Q.emplace(Q.top().left,
+                                                X[0].left = next_left;
+                                                Q.emplace(next_left,
                                                           X[0].right,
                                                           X[0].node);
                                             }
