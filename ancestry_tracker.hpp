@@ -4,7 +4,6 @@
 #include <vector>
 #include <algorithm>
 #include <cstddef>
-#include <queue>
 #include <stdexcept>
 #include "node.hpp"
 #include "edge.hpp"
@@ -27,23 +26,21 @@ namespace fwdpp
                       node{ n }
                 {
                 }
-                inline bool
-                operator>(const segment& rhs) const noexcept
-                {
-                    return left > rhs.left;
-                }
+                //inline bool
+                //operator>(const segment& rhs) const noexcept
+                //{
+                //    return left > rhs.left;
+                //}
             };
 
             // tables is the current data set.
             // tables_ is used as temp
             // space during simplification.
             table_collection tables, tables_;
-            // Q is a min queue according to segment::left
-            std::priority_queue<segment, std::vector<segment>,
-                                std::greater<segment>>
-                Q;
-            // temp container for segments while processing Q
-            std::vector<segment> X;
+			// Q mimics a min queue of segments w.r.to
+			// segment::left. X is a temporary container
+			// for storing segments during ancestry merging.
+            std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             edge_vector E;
@@ -109,6 +106,32 @@ namespace fwdpp
                 return; // std::make_pair(std::move(r1), std::move(r2));
             }
 
+            bool
+            add_to_queue(const double left, const double right,
+                         const std::int32_t node, const bool added)
+            {
+                bool rv = added;
+                if (!Q.empty() && left > Q.back().left)
+                    {
+                        return false;
+                    }
+                Q.emplace_back(left, right, node);
+                return rv;
+            }
+
+            void
+            sort_queue(std::size_t beg) noexcept
+            {
+                std::sort(Q.begin() + beg, Q.end(),
+                          [](const segment& a, const segment& b) {
+                              return a.left > b.left;
+                          });
+                assert(std::is_sorted(Q.begin(), Q.end(),
+                                      [](const segment& a, const segment& b) {
+                                          return a.left > b.left;
+                                      }));
+            }
+
             void
             cleanup() noexcept
             // Clears out data from
@@ -148,13 +171,17 @@ namespace fwdpp
                                 if (seg.right > edge_ptr->left
                                     && edge_ptr->right > seg.left)
                                     {
-                                        Q.emplace(
+                                        Q.emplace_back(
                                             std::max(seg.left, edge_ptr->left),
                                             std::min(seg.right,
                                                      edge_ptr->right),
                                             seg.node);
                                     }
                             }
+                    }
+                if (!Q.empty())
+                    {
+                        sort_queue(0);
                     }
                 return edge_ptr;
             }
@@ -293,16 +320,18 @@ namespace fwdpp
                         auto u = edge_ptr->parent;
                         edge_ptr = step_S3(edge_ptr, u);
                         std::int32_t v = -1;
-						//This is "stolen" straigh out of Jerome's
-						//code.  GPL ftw. 
+                        //This is "stolen" straigh out of Jerome's
+                        //code.  GPL ftw.
                         bool defrag_required = false;
+                        std::size_t initial_Q_size = Q.size();
+                        bool added_to_queue = false;
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
                                 X.clear();
-                                auto l = Q.top().left;
+                                auto l = Q.back().left;
                                 double r = L;
-                                while (!Q.empty() && Q.top().left == l)
+                                while (!Q.empty() && Q.back().left == l)
                                     // This while loop is Step S4. This step
                                     // adds to X all segments with left == l
                                     // and also finds the minimum right for
@@ -313,14 +342,16 @@ namespace fwdpp
                                     // to
                                     // make it worthwhile.
                                     {
-                                        r = std::min(r, Q.top().right);
-                                        X.emplace_back(std::move(Q.top()));
-                                        Q.pop();
+                                        r = std::min(r, Q.back().right);
+                                        X.emplace_back(std::move(Q.back()));
+                                        assert(initial_Q_size > 0);
+                                        Q.pop_back();
+                                        --initial_Q_size;
                                     }
-								double next_left = 0.0;
+                                double next_left = 0.0;
                                 if (!Q.empty())
                                     {
-										next_left=Q.top().left;
+                                        next_left = Q.back().left;
                                         r = std::min(r, next_left);
                                     }
                                 if (X.size() == 1)
@@ -332,9 +363,10 @@ namespace fwdpp
                                                 aright = next_left;
                                                 anode = X[0].node;
                                                 X[0].left = next_left;
-                                                Q.emplace(next_left,
-                                                          X[0].right,
-                                                          X[0].node);
+                                                added_to_queue = add_to_queue(
+                                                    next_left, X[0].right,
+                                                    X[0].node, added_to_queue);
+                                                ++initial_Q_size;
                                             }
                                         else
                                             {
@@ -373,11 +405,20 @@ namespace fwdpp
                                                 if (x.right > r)
                                                     {
                                                         x.left = r;
-                                                        Q.emplace(x.left,
-                                                                  x.right,
-                                                                  x.node);
+                                                        added_to_queue
+                                                            = add_to_queue(
+                                                                x.left,
+                                                                x.right,
+                                                                x.node,
+                                                                added_to_queue);
+                                                        ++initial_Q_size;
                                                     }
                                             }
+                                    }
+                                if (added_to_queue)
+                                    {
+                                        sort_queue(initial_Q_size);
+                                        added_to_queue = false;
                                     }
                                 Ancestry[u].emplace_back(aleft, aright, anode);
                                 defrag_required
@@ -386,6 +427,7 @@ namespace fwdpp
                                 zright = aright;
                                 znode = anode;
                             }
+                        assert(initial_Q_size == 0);
                         if (defrag_required)
                             {
                                 defragment(Ancestry[u]);
@@ -401,9 +443,9 @@ namespace fwdpp
                 // which means removing redundant
                 // info due to different edges
                 // representing the same ancestry.
-				// This is the same as ancestry chain
-				// defragmenting, but applied to the final edge
-				// collection.
+                // This is the same as ancestry chain
+                // defragmenting, but applied to the final edge
+                // collection.
                 compact_tables();
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
