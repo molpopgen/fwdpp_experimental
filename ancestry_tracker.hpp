@@ -37,9 +37,9 @@ namespace fwdpp
             // tables_ is used as temp
             // space during simplification.
             table_collection tables, tables_;
-			// Q mimics a min queue of segments w.r.to
-			// segment::left. X is a temporary container
-			// for storing segments during ancestry merging.
+            // Q mimics a min queue of segments w.r.to
+            // segment::left. X is a temporary container
+            // for storing segments during ancestry merging.
             std::vector<segment> Q, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
@@ -148,10 +148,10 @@ namespace fwdpp
             }
 
             edge_vector::const_iterator
-            step_S3(edge_vector::const_iterator edge_ptr, std::int32_t u)
+            step_S3(edge_vector::const_iterator edge_ptr,
+                    const edge_vector::const_iterator edge_end, std::int32_t u)
             {
-                for (; edge_ptr < tables.edge_table.end()
-                       && edge_ptr->parent == u;
+                for (; edge_ptr < edge_end && edge_ptr->parent == u;
                      ++edge_ptr)
                     {
                         // For each edge corresponding to this parent,
@@ -315,10 +315,11 @@ namespace fwdpp
                 // paper, but the strict sorting of edges means that this
                 // equivalent.
                 auto edge_ptr = tables.edge_table.cbegin();
-                while (edge_ptr < tables.edge_table.cend())
+				const auto edge_end = tables.edge_table.cend();
+                while (edge_ptr < edge_end )
                     {
                         auto u = edge_ptr->parent;
-                        edge_ptr = step_S3(edge_ptr, u);
+                        edge_ptr = step_S3(edge_ptr, edge_end, u);
                         std::int32_t v = -1;
                         //This is "stolen" straigh out of Jerome's
                         //code.  GPL ftw.

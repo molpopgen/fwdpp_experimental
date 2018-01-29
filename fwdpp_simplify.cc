@@ -463,7 +463,7 @@ main(int argc, char** argv)
     unsigned seed = atoi(argv[argn++]);
 
     singlepop_t pop(N);
-    std::vector<fwdpp::uint_t> popsizes(10 * N, N);
+    std::vector<fwdpp::uint_t> popsizes(N, N);
     GSLrng_t rng(seed);
     double mu = theta / (4. * static_cast<double>(N));
     double recrate = rho / (4. * static_cast<double>(N));
