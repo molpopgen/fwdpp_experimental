@@ -21,6 +21,7 @@ namespace fwdpp
             = std::vector<std::pair<std::int32_t, std::size_t>>;
         struct table_collection
         {
+          public:
             node_vector node_table;
             edge_vector edge_table;
             mutation_key_vector mutation_table;
@@ -40,14 +41,25 @@ namespace fwdpp
             }
 
             void
-            sort_edges() noexcept
+            sort_edges(const std::size_t offset)
+            {
+                edge_vector temp_edges;
+                if (offset > 0)
+                    {
+                        temp_edges.reserve(edge_table.size());
+                    }
+                sort_edges(offset, temp_edges);
+            }
+            void
+            sort_edges(const std::size_t offset,
+                       edge_vector& temp_edges) noexcept
             /// Sort the edge table.  On PARENT birth times.
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
             /// TODO: need offset
             {
-                std::sort(edge_table.begin(), edge_table.end(),
+                std::sort(edge_table.begin() + offset, edge_table.end(),
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
@@ -57,6 +69,28 @@ namespace fwdpp
                                                 < std::tie(b.parent, b.child,
                                                            b.left));
                           });
+                if (offset > 0)
+                    {
+                        auto size = edge_table.size();
+                        temp_edges.clear();
+                        temp_edges.insert(
+                            temp_edges.end(), std::make_move_iterator(
+                                                  edge_table.begin() + offset),
+                            std::make_move_iterator(edge_table.end()));
+                        temp_edges.insert(
+                            temp_edges.end(),
+                            std::make_move_iterator(edge_table.begin()),
+                            std::make_move_iterator(edge_table.begin()
+                                                    + offset));
+                        //std::move(edge_table.begin() + offset,
+                        //          edge_table.end(),
+                        //          std::back_inserter(temp_edges));
+                        //std::move(edge_table.begin(), edge_table.begin()+offset,
+                        //          std::back_inserter(temp_edges));
+                        assert(temp_edges.size() == size);
+                        temp_edges.swap(edge_table);
+						temp_edges.clear();
+                    }
                 // TODO: allow for exceptions
                 // rather than assertions.
                 assert(edges_are_sorted());

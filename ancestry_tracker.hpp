@@ -486,7 +486,7 @@ namespace fwdpp
             void
             sort_tables() noexcept
             {
-                tables.sort_edges();
+                tables.sort_edges(edge_offset, E);
             }
 
             table_collection
