@@ -26,11 +26,6 @@ namespace fwdpp
                       node{ n }
                 {
                 }
-                //inline bool
-                //operator>(const segment& rhs) const noexcept
-                //{
-                //    return left > rhs.left;
-                //}
             };
 
             // tables is the current data set.
@@ -65,11 +60,8 @@ namespace fwdpp
                 std::vector<std::pair<double, double>> r1, r2;
                 if (breakpoints.empty())
                     {
-                        // r1.emplace_back(start, stop);
                         tables.push_back_edge(0., L, std::get<0>(parents),
                                               next_index);
-                        // tables.emplace_back_edge(
-                        //    start, stop, std::get<0>(parents), next_index);
                         goto out;
                     }
                 if (breakpoints.front() != 0.0)
@@ -77,11 +69,6 @@ namespace fwdpp
                         tables.push_back_edge(0., breakpoints.front(),
                                               std::get<0>(parents),
                                               next_index);
-                        // tables.emplace_back_edge(start, breakpoints.front(),
-                        //                         std::get<0>(parents),
-                        //                         next_index);
-                        // r1.emplace_back(
-                        //    std::make_pair(start, breakpoints.front()));
                     }
                 for (unsigned j = 1; j < breakpoints.size(); ++j)
                     {
@@ -93,17 +80,15 @@ namespace fwdpp
                             {
                                 tables.push_back_edge(
                                     a, b, std::get<0>(parents), next_index);
-                                // r1.emplace_back(a, b);
                             }
                         else
                             {
                                 tables.push_back_edge(
                                     a, b, std::get<1>(parents), next_index);
-                                // r2.emplace_back(a, b);
                             }
                     }
             out:
-                return; // std::make_pair(std::move(r1), std::move(r2));
+                return;
             }
 
             bool
@@ -188,9 +173,9 @@ namespace fwdpp
 
             void
             compact_tables()
-			// Implementation copied from msprime.
-			// Squashes identical edges on a per-parent
-			// basis and adds them to the output list of edges.
+            // Implementation copied from msprime.
+            // Squashes identical edges on a per-parent
+            // basis and adds them to the output list of edges.
             {
                 if (!E.empty())
                     {
@@ -221,35 +206,6 @@ namespace fwdpp
                             std::make_move_iterator(E.begin()),
                             std::make_move_iterator(E.begin() + l + 1));
                         E.clear();
-                        //   std::size_t start = 0;
-                        //   //E.swap(tables_.edge_table);
-                        //   //assert(tables_.edge_table.empty());
-
-                        //   std::sort(E.begin(), E.end(), [](const edge& a,
-                        //                                    const edge& b) {
-                        //       return std::tie(a.parent, a.child, a.left, a.right)
-                        //              < std::tie(b.parent, b.child, b.left,
-                        //                         b.right);
-                        //   });
-
-                        //   for (std::size_t j = 1; j < E.size(); ++j)
-                        //       {
-                        //           bool condition
-                        //               = E[j - 1].right != E[j].left
-                        //                 || E[j - 1].parent != E[j].parent
-                        //                 || E[j - 1].child != E[j].child;
-                        //           if (condition)
-                        //               {
-                        //                   tables_.push_back_edge(
-                        //                       E[start].left, E[j - 1].right,
-                        //                       E[j - 1].parent, E[j - 1].child);
-                        //                   start = j;
-                        //               }
-                        //       }
-                        //   auto j = E.size();
-                        //   tables_.push_back_edge(E[start].left, E[j - 1].right,
-                        //                          E[j - 1].parent,
-                        //                          E[j - 1].child);
                     }
             }
 
@@ -264,7 +220,6 @@ namespace fwdpp
                                       }));
                 auto prev_seg = ancestry_segment.begin();
                 auto next_seg = prev_seg + 1;
-                //for(;next_seg<ancestry_segment.end();++next_seg)
                 while (next_seg < ancestry_segment.end())
                     {
                         if (prev_seg->node == next_seg->node
@@ -357,7 +312,7 @@ namespace fwdpp
                         auto u = edge_ptr->parent;
                         edge_ptr = step_S3(edge_ptr, edge_end, u);
                         std::int32_t v = -1;
-                        //This is "stolen" straigh out of Jerome's
+                        //This is "stolen" straight out of Jerome's
                         //code.  GPL ftw.
                         bool defrag_required = false;
                         std::size_t initial_Q_size = Q.size();
@@ -440,8 +395,6 @@ namespace fwdpp
                                             {
                                                 E.emplace_back(l, r, v,
                                                                x.node);
-                                                //tables_.push_back_edge(l, r, v,
-                                                //                       x.node);
                                                 if (x.right > r)
                                                     {
                                                         x.left = r;
@@ -506,19 +459,6 @@ namespace fwdpp
                 tables.emplace_back_node(next_index, generation + 1, 0);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
-                // Add the edges
-                // for (auto&& brk : split.first)
-                //    {
-                //        tables.emplace_back_edge(brk.first, brk.second,
-                //                                 std::get<0>(parents),
-                //                                 next_index);
-                //    }
-                // for (auto&& brk : split.second)
-                //    {
-                //        tables.emplace_back_edge(brk.first, brk.second,
-                //                                 std::get<1>(parents),
-                //                                 next_index);
-                //    }
                 // TODO: add mutation to tables
             }
 
