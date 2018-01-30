@@ -174,6 +174,9 @@ namespace fwdpp
             // Implementation copied from msprime.
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
+			// Based on implementation found in msprime/lib/msprime.c
+			// by Jerome Kelleher.  
+            // http://github.com/jeromekelleher/msprime.
             {
                 if (!E.empty())
                     {
@@ -209,6 +212,9 @@ namespace fwdpp
 
             void
             defragment(std::vector<segment>& ancestry_segment) noexcept
+            /// This implementation is based on Jerome Kelleher's
+            /// implementation in msprime/lib/table.c, which is found at
+            /// http://github.com/jeromekelleher/msprime.
             {
                 assert(std::is_sorted(ancestry_segment.begin(),
                                       ancestry_segment.end(),
@@ -423,8 +429,8 @@ namespace fwdpp
                             {
                                 defragment(Ancestry[u]);
                             }
-						//remove redundant info from 
-						//edge data for this parent
+                        //remove redundant info from
+                        //edge data for this parent
                         squash_and_flush_edges();
                     }
 
