@@ -174,8 +174,8 @@ namespace fwdpp
             // Implementation copied from msprime.
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
-			// Based on implementation found in msprime/lib/msprime.c
-			// by Jerome Kelleher.  
+            // Based on implementation found in msprime/lib/msprime.c
+            // by Jerome Kelleher.
             // http://github.com/jeromekelleher/msprime.
             {
                 if (!E.empty())
@@ -189,8 +189,8 @@ namespace fwdpp
                         for (k = 1; k < E.size(); ++k)
                             {
                                 assert(E[k - 1].parent == E[k].parent);
-                                if (E[k - 1].right != E[k].left
-                                    || E[j].child != E[k].child)
+                                if (E[j].child != E[k].child
+                                    || E[k - 1].right != E[k].left)
                                     {
                                         auto e = E[j];
                                         e.right = E[k - 1].right;
