@@ -188,33 +188,69 @@ namespace fwdpp
 
             void
             compact_tables()
+			// Implementation copied from msprime.
+			// Squashes identical edges on a per-parent
+			// basis and adds them to the output list of edges.
             {
-                std::size_t start = 0;
-                E.swap(tables_.edge_table);
-                assert(tables_.edge_table.empty());
-
-                std::sort(
-                    E.begin(), E.end(), [](const edge& a, const edge& b) {
-                        return std::tie(a.parent, a.child, a.left, a.right)
-                               < std::tie(b.parent, b.child, b.left, b.right);
-                    });
-
-                for (std::size_t j = 1; j < E.size(); ++j)
+                if (!E.empty())
                     {
-                        bool condition = E[j - 1].right != E[j].left
-                                         || E[j - 1].parent != E[j].parent
-                                         || E[j - 1].child != E[j].child;
-                        if (condition)
+                        std::sort(E.begin(), E.end(),
+                                  [](const edge& a, const edge& b) {
+                                      return std::tie(a.child, a.left)
+                                             < std::tie(b.child, b.left);
+                                  });
+                        std::size_t j = 0, k, l = 0;
+                        for (k = 1; k < E.size(); ++k)
                             {
-                                tables_.push_back_edge(
-                                    E[start].left, E[j - 1].right,
-                                    E[j - 1].parent, E[j - 1].child);
-                                start = j;
+                                assert(E[k - 1].parent == E[k].parent);
+                                if (E[k - 1].right != E[k].left
+                                    || E[j].child != E[k].child)
+                                    {
+                                        auto e = E[j];
+                                        e.right = E[k - 1].right;
+                                        E[l] = e;
+                                        j = k;
+                                        ++l;
+                                    }
                             }
+                        auto e = E[j];
+                        e.right = E[k - 1].right;
+                        E[l] = e;
+                        tables_.edge_table.insert(
+                            tables_.edge_table.end(),
+                            std::make_move_iterator(E.begin()),
+                            std::make_move_iterator(E.begin() + l + 1));
+                        E.clear();
+                        //   std::size_t start = 0;
+                        //   //E.swap(tables_.edge_table);
+                        //   //assert(tables_.edge_table.empty());
+
+                        //   std::sort(E.begin(), E.end(), [](const edge& a,
+                        //                                    const edge& b) {
+                        //       return std::tie(a.parent, a.child, a.left, a.right)
+                        //              < std::tie(b.parent, b.child, b.left,
+                        //                         b.right);
+                        //   });
+
+                        //   for (std::size_t j = 1; j < E.size(); ++j)
+                        //       {
+                        //           bool condition
+                        //               = E[j - 1].right != E[j].left
+                        //                 || E[j - 1].parent != E[j].parent
+                        //                 || E[j - 1].child != E[j].child;
+                        //           if (condition)
+                        //               {
+                        //                   tables_.push_back_edge(
+                        //                       E[start].left, E[j - 1].right,
+                        //                       E[j - 1].parent, E[j - 1].child);
+                        //                   start = j;
+                        //               }
+                        //       }
+                        //   auto j = E.size();
+                        //   tables_.push_back_edge(E[start].left, E[j - 1].right,
+                        //                          E[j - 1].parent,
+                        //                          E[j - 1].child);
                     }
-                auto j = E.size();
-                tables_.push_back_edge(E[start].left, E[j - 1].right,
-                                       E[j - 1].parent, E[j - 1].child);
             }
 
             void
@@ -315,8 +351,8 @@ namespace fwdpp
                 // paper, but the strict sorting of edges means that this
                 // equivalent.
                 auto edge_ptr = tables.edge_table.cbegin();
-				const auto edge_end = tables.edge_table.cend();
-                while (edge_ptr < edge_end )
+                const auto edge_end = tables.edge_table.cend();
+                while (edge_ptr < edge_end)
                     {
                         auto u = edge_ptr->parent;
                         edge_ptr = step_S3(edge_ptr, edge_end, u);
@@ -326,6 +362,7 @@ namespace fwdpp
                         bool defrag_required = false;
                         std::size_t initial_Q_size = Q.size();
                         bool added_to_queue = false;
+                        E.clear();
                         while (!Q.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
@@ -401,8 +438,10 @@ namespace fwdpp
                                         anode = v;
                                         for (auto& x : X)
                                             {
-                                                tables_.push_back_edge(l, r, v,
-                                                                       x.node);
+                                                E.emplace_back(l, r, v,
+                                                               x.node);
+                                                //tables_.push_back_edge(l, r, v,
+                                                //                       x.node);
                                                 if (x.right > r)
                                                     {
                                                         x.left = r;
@@ -433,6 +472,7 @@ namespace fwdpp
                             {
                                 defragment(Ancestry[u]);
                             }
+                        compact_tables();
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
@@ -447,7 +487,6 @@ namespace fwdpp
                 // This is the same as ancestry chain
                 // defragmenting, but applied to the final edge
                 // collection.
-                compact_tables();
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.swap(tables_);
