@@ -170,7 +170,7 @@ namespace fwdpp
             }
 
             void
-            compact_tables()
+            squash_and_flush_edges()
             // Implementation copied from msprime.
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
@@ -423,7 +423,9 @@ namespace fwdpp
                             {
                                 defragment(Ancestry[u]);
                             }
-                        compact_tables();
+						//remove redundant info from 
+						//edge data for this parent
+                        squash_and_flush_edges();
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
@@ -431,13 +433,6 @@ namespace fwdpp
                            [](const std::int32_t i) { return i != -1; }))
                        == tables_.node_table.size());
 
-                // Now, we compact the edges,
-                // which means removing redundant
-                // info due to different edges
-                // representing the same ancestry.
-                // This is the same as ancestry chain
-                // defragmenting, but applied to the final edge
-                // collection.
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.swap(tables_);
