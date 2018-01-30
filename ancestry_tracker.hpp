@@ -47,8 +47,6 @@ namespace fwdpp
             // region length
             const double L;
 
-            // std::pair<std::vector<std::pair<double, double>>,
-            //          std::vector<std::pair<double, double>>>
             void
             split_breakpoints(
                 const std::vector<double>& breakpoints,
