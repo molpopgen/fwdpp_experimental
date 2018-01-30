@@ -89,8 +89,8 @@ namespace fwdpp
                         //          std::back_inserter(temp_edges));
                         assert(temp_edges.size() == size);
                         temp_edges.swap(edge_table);
-						temp_edges.clear();
                     }
+                temp_edges.clear();
                 // TODO: allow for exceptions
                 // rather than assertions.
                 assert(edges_are_sorted());
