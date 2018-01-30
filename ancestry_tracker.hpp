@@ -463,7 +463,7 @@ namespace fwdpp
 
             table_collection
             dump_tables()
-            /// Returns the tables via a move-constructed objec.
+            /// Returns the tables via a move-constructed object.
             /// The ancestry_tracker instance is now in an inconsistent state.
             {
                 table_collection rv(std::move(tables));
