@@ -226,18 +226,17 @@ namespace fwdpp
                 auto next_seg = prev_seg + 1;
                 while (next_seg < ancestry_segment.end())
                     {
+						assert(prev_seg->node!=-1);
                         if (prev_seg->node == next_seg->node
                             && prev_seg->right == next_seg->left)
                             {
                                 prev_seg->right = next_seg->right;
                                 next_seg->node = -1;
-                                next_seg += 2;
-                                prev_seg += 2;
+								++next_seg;
                             }
                         else
                             {
-                                ++prev_seg;
-                                ++next_seg;
+								prev_seg=next_seg++;
                             }
                     }
                 ancestry_segment.erase(
