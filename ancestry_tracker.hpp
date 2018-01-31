@@ -32,10 +32,10 @@ namespace fwdpp
             // tables_ is used as temp
             // space during simplification.
             table_collection tables, tables_;
-            // Q mimics a min queue of segments w.r.to
+            // segment_queue mimics a min queue of segments w.r.to
             // segment::left. X is a temporary container
             // for storing segments during ancestry merging.
-            std::vector<segment> Q, X;
+            std::vector<segment> segment_queue, X;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             edge_vector E;
@@ -94,22 +94,22 @@ namespace fwdpp
                          const std::int32_t node, const bool added)
             {
                 bool rv = added;
-                if (!Q.empty() && left > Q.back().left)
+                if (!segment_queue.empty() && left > segment_queue.back().left)
                     {
                         return false;
                     }
-                Q.emplace_back(left, right, node);
+                segment_queue.emplace_back(left, right, node);
                 return rv;
             }
 
             void
             sort_queue(std::size_t beg) noexcept
             {
-                std::sort(Q.begin() + beg, Q.end(),
+                std::sort(segment_queue.begin() + beg, segment_queue.end(),
                           [](const segment& a, const segment& b) {
                               return a.left > b.left;
                           });
-                assert(std::is_sorted(Q.begin(), Q.end(),
+                assert(std::is_sorted(segment_queue.begin(), segment_queue.end(),
                                       [](const segment& a, const segment& b) {
                                           return a.left > b.left;
                                       }));
@@ -154,7 +154,7 @@ namespace fwdpp
                                 if (seg.right > edge_ptr->left
                                     && edge_ptr->right > seg.left)
                                     {
-                                        Q.emplace_back(
+                                        segment_queue.emplace_back(
                                             std::max(seg.left, edge_ptr->left),
                                             std::min(seg.right,
                                                      edge_ptr->right),
@@ -162,7 +162,7 @@ namespace fwdpp
                                     }
                             }
                     }
-                if (!Q.empty())
+                if (!segment_queue.empty())
                     {
                         sort_queue(0);
                     }
@@ -251,7 +251,7 @@ namespace fwdpp
                              const double initial_time, std::int32_t pop,
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  Q{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
+                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
                   L{ region_length }
             {
             }
@@ -260,7 +260,7 @@ namespace fwdpp
             ancestry_tracker(TC&& initial_table_collection,
                              const double region_length)
                 : tables{ std::forward<TC>(initial_table_collection) },
-                  tables_{}, Q{}, X{}, Ancestry{},
+                  tables_{}, segment_queue{}, X{}, Ancestry{},
                   edge_offset{ static_cast<std::ptrdiff_t>(
                       tables.edge_table.size()) },
                   L{ region_length }
@@ -318,16 +318,16 @@ namespace fwdpp
                         //This is "stolen" straight out of Jerome's
                         //code.  GPL ftw.
                         bool defrag_required = false;
-                        std::size_t initial_Q_size = Q.size();
+                        std::size_t current_queue_size = segment_queue.size();
                         bool added_to_queue = false;
                         E.clear();
-                        while (!Q.empty())
+                        while (!segment_queue.empty())
                             // Steps S4 through S8 of the algorithm.
                             {
                                 X.clear();
-                                auto l = Q.back().left;
+                                auto l = segment_queue.back().left;
                                 double r = L;
-                                while (!Q.empty() && Q.back().left == l)
+                                while (!segment_queue.empty() && segment_queue.back().left == l)
                                     // This while loop is Step S4. This step
                                     // adds to X all segments with left == l
                                     // and also finds the minimum right for
@@ -338,21 +338,21 @@ namespace fwdpp
                                     // to
                                     // make it worthwhile.
                                     {
-                                        r = std::min(r, Q.back().right);
-                                        X.emplace_back(std::move(Q.back()));
-                                        assert(initial_Q_size > 0);
-                                        Q.pop_back();
-                                        --initial_Q_size;
+                                        r = std::min(r, segment_queue.back().right);
+                                        X.emplace_back(std::move(segment_queue.back()));
+                                        assert(current_queue_size > 0);
+                                        segment_queue.pop_back();
+                                        --current_queue_size;
                                     }
                                 double next_left = 0.0;
-                                if (!Q.empty())
+                                if (!segment_queue.empty())
                                     {
-                                        next_left = Q.back().left;
+                                        next_left = segment_queue.back().left;
                                         r = std::min(r, next_left);
                                     }
                                 if (X.size() == 1)
                                     {
-                                        if (!Q.empty()
+                                        if (!segment_queue.empty()
                                             && next_left < X[0].right)
                                             {
                                                 aleft = X[0].left;
@@ -362,7 +362,7 @@ namespace fwdpp
                                                 added_to_queue = add_to_queue(
                                                     next_left, X[0].right,
                                                     X[0].node, added_to_queue);
-                                                ++initial_Q_size;
+                                                ++current_queue_size;
                                             }
                                         else
                                             {
@@ -407,13 +407,13 @@ namespace fwdpp
                                                                 x.right,
                                                                 x.node,
                                                                 added_to_queue);
-                                                        ++initial_Q_size;
+                                                        ++current_queue_size;
                                                     }
                                             }
                                     }
                                 if (added_to_queue)
                                     {
-                                        sort_queue(initial_Q_size);
+                                        sort_queue(current_queue_size);
                                         added_to_queue = false;
                                     }
                                 Ancestry[u].emplace_back(aleft, aright, anode);
@@ -423,7 +423,7 @@ namespace fwdpp
                                 zright = aright;
                                 znode = anode;
                             }
-                        assert(initial_Q_size == 0);
+                        assert(current_queue_size == 0);
                         if (defrag_required)
                             {
                                 defragment(Ancestry[u]);
