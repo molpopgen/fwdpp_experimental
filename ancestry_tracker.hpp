@@ -300,7 +300,7 @@ namespace fwdpp
                     }
 
                 std::int32_t anode, znode = -1;
-                double aleft, aright, zleft = 0, zright = 0;
+                double aleft, aright,  zright = 0;
 
                 // At this point, our edges are sorted by birth
                 // order of parents, from present to past.
@@ -419,7 +419,6 @@ namespace fwdpp
                                 Ancestry[u].emplace_back(aleft, aright, anode);
                                 defrag_required
                                     |= zright == aleft && znode == anode;
-                                zleft = aleft;
                                 zright = aright;
                                 znode = anode;
                             }
