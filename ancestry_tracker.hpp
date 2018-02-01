@@ -225,7 +225,6 @@ namespace fwdpp
                                         added_to_queue = add_to_queue(
                                             next_left, X[0].right, X[0].node,
                                             added_to_queue);
-                                        ++current_queue_size;
                                     }
                                 else
                                     {
@@ -264,7 +263,6 @@ namespace fwdpp
                                                 added_to_queue = add_to_queue(
                                                     x.left, x.right, x.node,
                                                     added_to_queue);
-                                                ++current_queue_size;
                                             }
                                     }
                             }
@@ -273,6 +271,8 @@ namespace fwdpp
                                 sort_queue(current_queue_size);
                                 added_to_queue = false;
                             }
+						//need to make sure this variable is up to date
+						current_queue_size=segment_queue.size();
                         Ancestry[parent_input_id].emplace_back(aleft, aright,
                                                                anode);
                         defrag_required |= zright == aleft && znode == anode;
