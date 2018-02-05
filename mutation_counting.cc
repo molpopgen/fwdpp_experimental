@@ -9,30 +9,50 @@
 using namespace std;
 using namespace fwdpp::ancestry;
 
+pair<vector<edge>::const_reverse_iterator,
+     vector<edge>::const_reverse_iterator>
+get_parent_range(const int32_t parent, const double left,
+                 const vector<edge>& edges)
+{
+    auto start
+        = lower_bound(edges.rbegin(), edges.rend(), make_tuple(parent, left),
+                      [](const edge& e, const tuple<int32_t, double>& value) {
+                          return tie(e.parent, e.left) > value;
+                      });
+    auto end
+        = upper_bound(start, edges.rend(), make_tuple(parent, left),
+                      [](const tuple<int32_t, double>& value, const edge& e) {
+                          return value > tie(e.parent, e.right);
+                      });
+    return make_pair(start, end);
+}
+
 int
-count_tips(int32_t parent, const vector<edge>& edges)
+count_tips(int32_t parent, const double pos, const vector<edge>& edges)
 {
     int c = 0;
-    auto start = lower_bound(
-        edges.rbegin(), edges.rend(), parent,
-        [](const edge& e, const int32_t& value) { return e.parent > value; });
-    auto end = upper_bound(
-        start, edges.rend(), parent,
-        [](const int32_t& value, const edge& e) { return value > e.parent; });
-	auto d = distance(start,end);
-	if(d==0)
-	{
-		++c;
-	}
-	else
-	{
-		assert(d>0);
-		for(;start<end;++start)
-		{
-			c += count_tips(start->child,edges);
-		}
-	}
-	return c;
+    //auto start = lower_bound(
+    //    edges.rbegin(), edges.rend(), parent,
+    //    [](const edge& e, const int32_t& value) { return e.parent > value; });
+    //auto end = upper_bound(
+    //    start, edges.rend(), parent,
+    //    [](const int32_t& value, const edge& e) { return value > e.parent; });
+    //auto d = distance(start, end);
+    auto range = get_parent_range(parent, pos, edges);
+    auto d = distance(range.first, range.second);
+    if (d == 0)
+        {
+            ++c;
+        }
+    else
+        {
+            assert(d > 0);
+            for (; range.first < range.second; ++range.first)
+                {
+                    c += count_tips(range.first->child, pos, edges);
+                }
+        }
+    return c;
 }
 
 vector<pair<double, int>>
@@ -43,28 +63,41 @@ count_mutations(const table_collection& tables,
 
     for (auto& m : tables.mutation_table)
         {
-            auto start = lower_bound(tables.edge_table.rbegin(),
-                                     tables.edge_table.rend(), m.first,
-                                     [](const edge& e, const int32_t& value) {
-                                         return e.parent > value;
-                                     });
-            auto end = upper_bound(start, tables.edge_table.rend(), m.first,
-                                   [](const int32_t& value, const edge& e) {
-                                       return value > e.parent;
-                                   });
-            auto d = distance(start, end);
+            //auto start = lower_bound(
+            //    tables.edge_table.rbegin(), tables.edge_table.rend(),
+            //    make_tuple(m.first, positions[m.second]),
+            //    [](const edge& e, const tuple<int32_t, double>& value) {
+            //        return tie(e.parent, e.left) > value;
+            //    });
+            //auto end = upper_bound(
+            //    start, tables.edge_table.rend(),
+            //    make_tuple(m.first, positions[m.second]),
+            //    [](const tuple<int32_t, double>& value, const edge& e) {
+            //        return value > tie(e.parent, e.right);
+            //    });
+            auto range = get_parent_range(m.first, positions[m.second],
+                                          tables.edge_table);
+            auto d = distance(range.first, range.second);
             if (d == 0)
                 {
+                    //cout << distance(tables.edge_table.rbegin(), range.first)
+                    //    << ' ' << distance(range.first, range.second) << '\n';
                     rv.emplace_back(positions[m.second], 1);
                 }
             else
                 {
                     int c = 0;
-                    for (; start < end; ++start)
+                    //cout << m.first << ":\n";
+                    for (; range.first < range.second; ++range.first)
                         {
-							c+=count_tips(start->child,tables.edge_table);
+                            //cout << range.first->parent << ' '
+                            //    << range.first->child << '\n';
+                            c += count_tips(range.first->child,
+                                            positions[m.second],
+                                            tables.edge_table);
                         }
-					rv.emplace_back(positions[m.second],c);
+                    //cout << "//\n";
+                    rv.emplace_back(positions[m.second], c);
                 }
         }
     sort(rv.begin(), rv.end(),
