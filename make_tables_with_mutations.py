@@ -2,7 +2,7 @@ import msprime
 import struct
 import numpy as np
 
-ts = msprime.simulate(10, mutation_rate=1., recombination_rate=0.,random_seed=42)
+ts = msprime.simulate(20, mutation_rate=10., recombination_rate=20.,random_seed=42)
 
 print(len(ts.tables.nodes),len(ts.tables.edges),len(ts.tables.sites),len(ts.tables.mutations))
 print(ts.tables.edges)
