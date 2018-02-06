@@ -9,30 +9,32 @@
 using namespace std;
 using namespace fwdpp::ancestry;
 
-vector<edge>::const_reverse_iterator
-get_parent_range(const int32_t parent, const vector<edge>& edges)
-{
-    auto start = lower_bound(
-        edges.rbegin(), edges.rend(), parent,
-        [](const edge& e, int32_t value) { return e.parent > value; });
-    return start;
-}
+//vector<edge>::const_reverse_iterator
+//get_parent_range(const int32_t parent, const vector<edge>& edges)
+//{
+//    auto start = lower_bound(
+//        edges.rbegin(), edges.rend(), parent,
+//        [](const edge& e, int32_t value) { return e.parent > value; });
+//    return start;
+//}
 
 int
 count_tips(int32_t parent, const double pos, const vector<edge>& edges)
 {
     int c = 0;
-    auto range = get_parent_range(parent, edges);
-    if (range == edges.rend())
+    auto start = lower_bound(
+        edges.rbegin(), edges.rend(), parent,
+        [](const edge& e, int32_t value) { return e.parent > value; });
+    if (start == edges.rend())
         {
             ++c;
         }
     else
         {
-            for (; range < edges.rend() && range->parent == parent; ++range)
+            for (; start < edges.rend() && start->parent == parent; ++start)
                 {
-                    if (pos >= range->left && pos < range->right)
-                        c += count_tips(range->child, pos, edges);
+                    if (pos >= start->left && pos < start->right)
+                        c += count_tips(start->child, pos, edges);
                 }
         }
     return c;
@@ -58,7 +60,8 @@ count_mutations(const table_collection& tables,
 //TODO: we can end the inner loop earlier.  The simplify
 //   algorithm ensures that edges for a parent cannot overlap,
 //   meaning that once we find what edge a mutation is in, we can
-//   break.
+//   break. THIS IS NOT TRUE.  A PARENT CAN PASS ON THE SAME SEG MORE
+//   THAN ONCE.
 //TODO: more code re-use.  The inner loop below is copied in count_tips
 //   above
 //TODO: make this work for back mutation
@@ -67,28 +70,9 @@ count_mutations(const table_collection& tables,
 
     for (auto& m : tables.mutation_table)
         {
-            auto range = get_parent_range(m.first, tables.edge_table);
-            if (range == tables.edge_table.rend())
-                {
-                    rv.emplace_back(positions[m.second], 1);
-                }
-            else
-                {
-                    int c = 0;
-                    for (; range < tables.edge_table.rend()
-                           && range->parent == m.first;
-                         ++range)
-                        {
-                            if (positions[m.second] >= range->left
-                                && positions[m.second] < range->right)
-                                {
-                                    c += count_tips(range->child,
-                                                    positions[m.second],
-                                                    tables.edge_table);
-                                }
-                        }
-                    rv.emplace_back(positions[m.second], c);
-                }
+            auto c
+                = count_tips(m.first, positions[m.second], tables.edge_table);
+            rv.emplace_back(positions[m.second], c);
         }
     sort(rv.begin(), rv.end(),
          [](const pair<double, int>& a, const pair<double, int>& b) {
