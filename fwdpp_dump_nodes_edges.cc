@@ -61,7 +61,7 @@ struct table_collection
                 nodes.write(reinterpret_cast<char*>(&i), sizeof(decltype(i)));
                 nodes.write(reinterpret_cast<const char*>(&initial_time),
                             sizeof(decltype(initial_time)));
-                node_table.push_back(node(i, initial_time, 0));
+                node_table.push_back(node{ i, 0, initial_time });
             }
     }
 
@@ -151,7 +151,7 @@ struct table_collection
 
         for (auto& s : samples)
             {
-                No.push_back(node(s, node_table[s].generation, 0));
+                No.push_back(node{ s, 0, node_table[s].generation });
                 Ancestry[s].push_back(
                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
             }
@@ -213,16 +213,16 @@ struct table_collection
                             {
                                 if (v == -1)
                                     {
-                                        No.push_back(node(
+                                        No.push_back(node{
                                             static_cast<std::int32_t>(
                                                 No.size()),
-                                            node_table[u].generation, 0));
+                                            0, node_table[u].generation });
                                         v = No.size() - 1;
                                     }
                                 alpha = segment(l, r, v);
                                 for (auto& x : X)
                                     {
-                                        Eo.push_back(edge(l, r, v, x.node));
+                                        Eo.push_back(edge{ l, r, v, x.node });
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -244,8 +244,8 @@ struct table_collection
                 if (condition)
                     {
                         compacted_edges.push_back(
-                            edge(Eo[j - 1].left, Eo[j - 1].right,
-                                 Eo[j - 1].parent, Eo[j - 1].child));
+                            edge{ Eo[j - 1].left, Eo[j - 1].right,
+                                  Eo[j - 1].parent, Eo[j - 1].child });
                         start = j;
                     }
             }
@@ -404,8 +404,8 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
     fwdpp::infsites inf;
     const auto mmodel
         = [&pop, &rng, &inf, &generation, mu_neutral, mu_selected](
-            fwdpp::traits::recycling_bin_t<singlepop_t::mcont_t>& recbin,
-            singlepop_t::mcont_t& mutations) {
+              fwdpp::traits::recycling_bin_t<singlepop_t::mcont_t>& recbin,
+              singlepop_t::mcont_t& mutations) {
               return inf(recbin, mutations, rng.get(), pop.mut_lookup,
                          generation, mu_neutral, mu_selected,
                          [&rng]() { return gsl_rng_uniform(rng.get()); },

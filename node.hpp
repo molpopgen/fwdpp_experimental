@@ -1,6 +1,6 @@
-//Copied from fwdpy11_arg_example.
-//Author: KRT
-//License: GPL3+
+// Copied from fwdpy11_arg_example.
+// Author: KRT
+// License: GPL3+
 #ifndef FWDPP_ANCESTRY_NODE_HPP__
 #define FWDPP_ANCESTRY_NODE_HPP__
 
@@ -15,13 +15,6 @@ namespace fwdpp
             std::int32_t id;
             std::int32_t population;
             double generation;
-
-            node(std::int32_t id_, double generation_,
-                 std::int32_t pop_) noexcept : id{ id_ },
-                                               population{ pop_ },
-                                               generation{ generation_ }
-            {
-            }
         };
     }
 }
