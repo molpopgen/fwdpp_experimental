@@ -96,7 +96,7 @@ main(int argc, char** argv)
                 break;
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
-			tables.emplace_back_node(a,x,0);
+			tables.emplace_back_node(a,0,x);
         }
     // for(auto & n : nodes)
     //{

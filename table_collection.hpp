@@ -36,7 +36,7 @@ namespace fwdpp
             {
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
-                        node_table.push_back(node(i, initial_time, pop));
+                        node_table.push_back(node{ i, pop, initial_time });
                     }
             }
 
@@ -74,18 +74,20 @@ namespace fwdpp
                         auto size = edge_table.size();
                         temp_edges.clear();
                         temp_edges.insert(
-                            temp_edges.end(), std::make_move_iterator(
-                                                  edge_table.begin() + offset),
+                            temp_edges.end(),
+                            std::make_move_iterator(edge_table.begin()
+                                                    + offset),
                             std::make_move_iterator(edge_table.end()));
                         temp_edges.insert(
                             temp_edges.end(),
                             std::make_move_iterator(edge_table.begin()),
                             std::make_move_iterator(edge_table.begin()
                                                     + offset));
-                        //std::move(edge_table.begin() + offset,
+                        // std::move(edge_table.begin() + offset,
                         //          edge_table.end(),
                         //          std::back_inserter(temp_edges));
-                        //std::move(edge_table.begin(), edge_table.begin()+offset,
+                        // std::move(edge_table.begin(),
+                        // edge_table.begin()+offset,
                         //          std::back_inserter(temp_edges));
                         assert(temp_edges.size() == size);
                         temp_edges.swap(edge_table);
@@ -140,28 +142,28 @@ namespace fwdpp
             push_back_node(std::int32_t id, double generation,
                            std::int32_t pop)
             {
-                node_table.push_back(node(id, generation, pop));
+                node_table.push_back(node{ id, pop, generation });
             }
 
             template <typename... args>
             void
             emplace_back_node(args&&... Args)
             {
-                node_table.emplace_back(std::forward<args>(Args)...);
+                node_table.emplace_back(node{ std::forward<args>(Args)... });
             }
 
             void
             push_back_edge(double l, double r, std::int32_t parent,
                            std::int32_t child)
             {
-                edge_table.push_back(edge(l, r, parent, child));
+                edge_table.push_back(edge{ l, r, parent, child });
             }
 
             template <typename... args>
             void
             emplace_back_edge(args&&... Args)
             {
-                edge_table.emplace_back(std::forward<args>(Args)...);
+                edge_table.emplace_back(edge{ std::forward<args>(Args)... });
             }
         };
     }

@@ -256,7 +256,7 @@ namespace fwdpp
                                 anode = v;
                                 for (auto& x : X)
                                     {
-                                        E.emplace_back(l, r, v, x.node);
+                                        E.emplace_back(edge{l, r, v, x.node});
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -455,7 +455,7 @@ namespace fwdpp
                 const double generation)
             {
                 // TODO document why this is generation + 1
-                tables.emplace_back_node(next_index, generation + 1, 0);
+                tables.emplace_back_node(next_index, 0, generation + 1);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
                 // TODO: add mutation to tables
