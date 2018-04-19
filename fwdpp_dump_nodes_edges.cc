@@ -9,12 +9,12 @@
 #include <gsl/gsl_randist.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
+#include <fwdpp/recbinder.hpp>
 #include <fwdpp/poisson_xover.hpp>
 #include <fwdpp/internal/sample_diploid_helpers.hpp>
 #include <fwdpp/mutate_recombine.hpp>
 #include <fwdpp/sugar/popgenmut.hpp>
-#include <fwdpp/sugar/infsites.hpp>
-#include <fwdpp/sugar/singlepop.hpp>
+#include <fwdpp/sugar/slocuspop.hpp>
 #include <fwdpp/sugar/GSLrng_t.hpp>
 #include <fwdpp/fwd_functional.hpp>
 #include <fwdpp/internal/gsl_discrete.hpp>
@@ -61,7 +61,7 @@ struct table_collection
                 nodes.write(reinterpret_cast<char*>(&i), sizeof(decltype(i)));
                 nodes.write(reinterpret_cast<const char*>(&initial_time),
                             sizeof(decltype(initial_time)));
-                node_table.push_back(node(i, initial_time, 0));
+                node_table.push_back(node{ i, 0, initial_time });
             }
     }
 
@@ -151,7 +151,7 @@ struct table_collection
 
         for (auto& s : samples)
             {
-                No.push_back(node(s, node_table[s].generation, 0));
+                No.push_back(node{ s, 0, node_table[s].generation });
                 Ancestry[s].push_back(
                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
             }
@@ -213,16 +213,16 @@ struct table_collection
                             {
                                 if (v == -1)
                                     {
-                                        No.push_back(node(
+                                        No.push_back(node{
                                             static_cast<std::int32_t>(
                                                 No.size()),
-                                            node_table[u].generation, 0));
+                                            0, node_table[u].generation });
                                         v = No.size() - 1;
                                     }
                                 alpha = segment(l, r, v);
                                 for (auto& x : X)
                                     {
-                                        Eo.push_back(edge(l, r, v, x.node));
+                                        Eo.push_back(edge{ l, r, v, x.node });
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -244,8 +244,8 @@ struct table_collection
                 if (condition)
                     {
                         compacted_edges.push_back(
-                            edge(Eo[j - 1].left, Eo[j - 1].right,
-                                 Eo[j - 1].parent, Eo[j - 1].child));
+                            edge{ Eo[j - 1].left, Eo[j - 1].right,
+                                  Eo[j - 1].parent, Eo[j - 1].child });
                         start = j;
                     }
             }
@@ -262,12 +262,12 @@ struct table_collection
     }
 };
 
-using singlepop_t = fwdpp::singlepop<fwdpp::popgenmut>;
+using slocuspop_t = fwdpp::slocuspop<fwdpp::popgenmut>;
 using GSLrng_t = fwdpp::GSLrng_t<fwdpp::GSL_RNG_MT19937>;
 
 template <typename fitness_function>
 inline fwdpp::fwdpp_internal::gsl_ran_discrete_t_ptr
-w(singlepop_t& pop, const fitness_function& ff)
+w(slocuspop_t& pop, const fitness_function& ff)
 {
     auto N_curr = pop.diploids.size();
     std::vector<double> fitnesses(N_curr);
@@ -299,7 +299,7 @@ get_parent_ids(const std::int32_t first_parental_index,
 
 template <typename breakpoint_function, typename mutation_model>
 void
-evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
+evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
@@ -377,7 +377,7 @@ evolve_generation(const GSLrng_t& rng, singlepop_t& pop,
 }
 
 table_collection
-evolve(const GSLrng_t& rng, singlepop_t& pop,
+evolve(const GSLrng_t& rng, slocuspop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
        const double mu_selected, const double recrate)
 {
@@ -398,19 +398,17 @@ evolve(const GSLrng_t& rng, singlepop_t& pop,
         std::log(2 * pop.diploids.size())
         * (4. * double(pop.diploids.size()) * (mu_selected)
            + 0.667 * (4. * double(pop.diploids.size()) * (mu_selected)))));
+    const auto recmap
+        = fwdpp::recbinder(fwdpp::poisson_xover(recrate, 0., 1.), rng.get());
 
-    fwdpp::poisson_xover recmap(rng.get(), recrate, 0., 1.);
     unsigned generation = 0;
-    fwdpp::infsites inf;
-    const auto mmodel
-        = [&pop, &rng, &inf, &generation, mu_neutral, mu_selected](
-            fwdpp::traits::recycling_bin_t<singlepop_t::mcont_t>& recbin,
-            singlepop_t::mcont_t& mutations) {
-              return inf(recbin, mutations, rng.get(), pop.mut_lookup,
-                         generation, mu_neutral, mu_selected,
-                         [&rng]() { return gsl_rng_uniform(rng.get()); },
-                         []() { return 0.; }, []() { return 0.; });
-          };
+    const auto mmodel = [&pop, &rng, &generation](
+        std::queue<std::size_t>& recbin, slocuspop_t::mcont_t& mutations) {
+        return fwdpp::infsites_popgenmut(
+            recbin, mutations, rng.get(), pop.mut_lookup, generation, 0.0,
+            [&rng]() { return gsl_rng_uniform(rng.get()); }, []() { return 0.0; },
+            []() { return 0.0; });
+    };
 
     table_collection tables(2 * pop.diploids.size(), 0.0);
     std::int32_t first_parental_index = 0,
@@ -452,7 +450,7 @@ main(int argc, char** argv)
     std::string edgefilename = argv[argn++];
     nodes.open(nodefilename.c_str());
     edges.open(edgefilename.c_str());
-    singlepop_t pop(N);
+    slocuspop_t pop(N);
     std::vector<fwdpp::uint_t> popsizes(10 * N, N);
     GSLrng_t rng(seed);
     double mu = theta / (4. * static_cast<double>(N));
