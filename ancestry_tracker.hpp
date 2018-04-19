@@ -21,9 +21,7 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l },
-                      right{ r },
-                      node{ n }
+                    : left{ l }, right{ r }, node{ n }
                 {
                 }
             };
@@ -173,7 +171,7 @@ namespace fwdpp
             void
             merge_ancestors(const std::int32_t parent_input_id,
                             std::vector<std::int32_t>& idmap)
-			// TODO: will have to be made aware of sample labels.
+            // TODO: will have to be made aware of sample labels.
             {
                 std::int32_t anode, znode = -1;
                 double aleft, aright, zright = 0;
@@ -256,7 +254,8 @@ namespace fwdpp
                                 anode = v;
                                 for (auto& x : X)
                                     {
-                                        E.emplace_back(edge{l, r, v, x.node});
+                                        E.emplace_back(
+                                            edge{ l, r, v, x.node });
                                         if (x.right > r)
                                             {
                                                 x.left = r;
@@ -271,8 +270,8 @@ namespace fwdpp
                                 sort_queue(current_queue_size);
                                 added_to_queue = false;
                             }
-						//need to make sure this variable is up to date
-						current_queue_size=segment_queue.size();
+                        // need to make sure this variable is up to date
+                        current_queue_size = segment_queue.size();
                         Ancestry[parent_input_id].emplace_back(aleft, aright,
                                                                anode);
                         defrag_required |= zright == aleft && znode == anode;
@@ -284,8 +283,8 @@ namespace fwdpp
                     {
                         defragment(Ancestry[parent_input_id]);
                     }
-                //remove redundant info from
-                //edge data for this parent
+                // remove redundant info from
+                // edge data for this parent
                 squash_and_flush_edges();
             }
 
@@ -297,6 +296,49 @@ namespace fwdpp
             // Based on implementation found in msprime/lib/msprime.c
             // by Jerome Kelleher.
             // http://github.com/jeromekelleher/msprime.
+            //
+            // Text of a rambling email sent to David Lawrie
+            // on 19 April 2018:
+            // Your comments yesterday prompted me to look at the code again.
+            // I don't have time to actually do anything until June, but I
+            // realized the following:
+            //
+            // The number of nodes that (immediately) descend from a node is
+            // related to the final value of 'l' in squash_and_flush_edges.
+            //
+            // In other words, if you have a part of an edge table looking
+            // like:
+            //
+            // 200 9 0 1
+            // 200 119 0 1
+            //
+            // The final value of 'l' for all squashed edges with parent 200 is
+            // 1, meaning that 200 leaves two records in the edge table.
+            //
+            // It is better than that, actually.  Below is a squashed record
+            // for node 389 in a test sim.  These are edges (p/c/l/r), and
+            // squashing reduces them to non-overlapping intervals.  Thus, the
+            // data below can be processed to a lookup table of the form parent
+            // -> left -> # immediate descendants, or parent -> (left,right) ->
+            // # immediate descendants.  Building that info must help
+            // simultaneously simplify and count mutations.
+            //
+            // 389 53 0.900531 0.990035
+            // 389 375 0.517643 0.609341
+            // 389 375 0.823912 1
+            // 389 380 0.990035 1
+            // 389 382 0 0.0121917
+            // 389 382 0.823912 0.900531
+            // 389 384 0 0.609341
+            // 389 388 0.0121917 0.517643
+            // 389 384 0 0.0121917
+            // 389 384 0.0121917 0.517643
+            // 389 384 0.517643 0.609341
+            // 389 388 0.0121917 0.517643
+            //
+            //
+            // That information means that you can skip a LOT of counting,
+            // etc., which must simplify mutation counting tremendously.
             {
                 if (!E.empty())
                     {
@@ -371,8 +413,9 @@ namespace fwdpp
                              const double initial_time, std::int32_t pop,
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
-                  L{ region_length }
+                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 }, L{
+                      region_length
+                  }
             {
             }
 
@@ -413,8 +456,9 @@ namespace fwdpp
                             tables.node_table[s].generation,
                             tables.node_table[s].population);
                         Ancestry[s].emplace_back(
-                            0, L, static_cast<std::int32_t>(
-                                      tables_.node_table.size() - 1));
+                            0, L,
+                            static_cast<std::int32_t>(tables_.node_table.size()
+                                                      - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             tables_.node_table.size() - 1);
                     }
