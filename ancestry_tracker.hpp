@@ -339,6 +339,20 @@ namespace fwdpp
             //
             // That information means that you can skip a LOT of counting,
             // etc., which must simplify mutation counting tremendously.
+            //
+            // There are multiple approaches possible.
+            //
+            // 1. Convert the data here into (double,(parent,[children])),
+            // where double is the left.  These entries can be placed
+            // in vectors and sorted.  Essentially, this builds the
+            // trees for all marginals as we go along, and it can be searched 
+            // quickly in the usual ways.
+            //
+            // 2. Implement algorithms L (and T?) from the msprime paper.
+            // Jerome pointed out that they work perfectly well with
+            // incompletely-coalesced trees.  I have to reread his
+            // paper to see if that should be done here, or after
+            // all of simplify is done with.
             {
                 if (!E.empty())
                     {
