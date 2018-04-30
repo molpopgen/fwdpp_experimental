@@ -8,6 +8,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
+#include "msprime_algo.hpp"
 
 namespace fwdpp
 {
@@ -500,6 +501,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.swap(tables_);
+                algorithmT(tables);
                 cleanup();
                 return idmap;
             }

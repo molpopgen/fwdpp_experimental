@@ -54,6 +54,7 @@ namespace fwdpp
                            < std::tie(j->left,
                                       tables.node_table[j->parent].generation);
                 });
+
             for (std::size_t i = 0; i < I.size(); ++i)
                 {
                     I[i] = static_cast<std::size_t>(std::distance(
@@ -61,17 +62,16 @@ namespace fwdpp
                 }
 
             // To fill O, sort by right and decreasing parent time, again
-            // moving into the past.  Our one trick is to sort on the 
+            // moving into the past.  Our one trick is to sort on the
             // reversed node times.
-            std::sort(
-                std::begin(edge_pointers), std::end(edge_pointers),
-                [&tables](const edge_iterator i, const edge_iterator j) {
-                    return std::tie(i->right,
-                                    -tables.node_table[i->parent].generation)
-                           < std::tie(
-                                 j->right,
-                                 -tables.node_table[j->parent].generation);
-                });
+            std::sort(std::begin(edge_pointers), std::end(edge_pointers),
+                      [&tables](const edge_iterator i, const edge_iterator j) {
+                          auto ig = -tables.node_table[i->parent].generation;
+                          auto jg = -tables.node_table[j->parent].generation;
+
+                          return std::tie(i->right, ig)
+                                 < std::tie(j->right, jg);
+                      });
             for (std::size_t i = 0; i < O.size(); ++i)
                 {
                     O[i] = static_cast<std::size_t>(std::distance(
@@ -87,16 +87,17 @@ namespace fwdpp
             std::vector<std::size_t> pi(tables.edge_table.back().parent, 0);
             auto p = fill_I_O(tables);
 
-            //Move data for variable name convenience
+            // Move data for variable name convenience
             auto I = std::move(p.first);
             auto O = std::move(p.second);
-            
-            std::size_t j=0,k=1,M=I.size();
+
+            std::size_t j = 0, k = 1, M = I.size();
             double x = 0.0;
-            for( ; j < M ; ++j)
-            {
-                auto h = I[j];
-            }
+            for (; j < M; ++j)
+                {
+                    auto h = I[j];
+                }
         }
     }
+}
 #endif
