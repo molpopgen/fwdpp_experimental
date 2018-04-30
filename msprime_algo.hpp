@@ -91,11 +91,30 @@ namespace fwdpp
             auto I = std::move(p.first);
             auto O = std::move(p.second);
 
-            std::size_t j = 0, k = 1, M = I.size();
+            std::size_t j = 0, k = 0, M = I.size();
             double x = 0.0;
-            for (; j < M; ++j)
+            // TODO: replace .at with []
+            while (j < M)
                 {
-                    auto h = I[j];
+                    auto p = tables.edge_table[I[j]].parent;
+                    while (j < M && tables.edge_table[I[j]].parent == p
+                           && tables.edge_table[I[j]].left == x) // Step T2
+                        {
+                            auto h = I[j];
+                            pi.at(tables.edge_table.at(h).child) = h;
+                            ++j;
+                        }
+                    if (j >= M)
+                        break;
+                    x = tables.edge_table.at(I.at(j)).left; // T3
+                    p = tables.edge_table.at(O[k]).parent;
+                    while (k < M && tables.edge_table.at(O[k]).parent == p
+                           && tables.edge_table.at(O[k]).right == x) // T4
+                        {
+                            auto h = O.at(k);
+                            pi.at(tables.edge_table.at(h).child) = 0;
+                            ++k;
+                        }
                 }
         }
     }
