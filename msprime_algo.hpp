@@ -31,7 +31,7 @@ namespace fwdpp
         std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
         fill_I_O(const table_collection& tables)
         // Fill I and O.  This is not described in Algorithm T,
-        // but can be sleuthed from msprime/lib/tables.c
+        // but can be sleuthed from msprime/tests/tsutil.py
         {
             std::vector<std::size_t> I(tables.edge_table.size(), 0),
                 O(tables.edge_table.size(), 0);
@@ -51,9 +51,11 @@ namespace fwdpp
                 std::begin(edge_pointers), std::end(edge_pointers),
                 [&tables](const edge_iterator i, const edge_iterator j) {
                     return std::tie(i->left,
-                                    tables.node_table[i->parent].generation)
+                                    tables.node_table[i->parent].generation,
+                                    i->parent, i->child)
                            < std::tie(j->left,
-                                      tables.node_table[j->parent].generation);
+                                      tables.node_table[j->parent].generation,
+                                      j->parent, j->child);
                 });
 
             for (std::size_t i = 0; i < I.size(); ++i)
@@ -68,10 +70,14 @@ namespace fwdpp
             std::sort(std::begin(edge_pointers), std::end(edge_pointers),
                       [&tables](const edge_iterator i, const edge_iterator j) {
                           auto ig = -tables.node_table[i->parent].generation;
+                          auto ip = -i->parent;
+                          auto ic = -i->child;
                           auto jg = -tables.node_table[j->parent].generation;
+                          auto jp = -j->parent;
+                          auto jc = -j->child;
 
-                          return std::tie(i->right, ig)
-                                 < std::tie(j->right, jg);
+                          return std::tie(i->right, ig, ip, ic)
+                                 < std::tie(j->right, jg, jp, jc);
                       });
             for (std::size_t i = 0; i < O.size(); ++i)
                 {
@@ -107,9 +113,9 @@ namespace fwdpp
                             ++j;
                         }
                     // At this point, pi refers to the marginal tree
-                    // beginning at x for all pi[i] != 
+                    // beginning at x for all pi[i] !=
                     // std::numeric_limits<std::size_t>::max()
-                    // The useful thing to do here would 
+                    // The useful thing to do here would
                     // be to define a "visitor function",
                     // taking pi and x as arguments.
                     //if (x != 0.0)
