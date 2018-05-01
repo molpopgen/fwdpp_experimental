@@ -108,33 +108,32 @@ namespace fwdpp
             // TODO: replace .at with []
             while (j < M || x < maxpos)
                 {
-                    while (k < M
-                           && tables.edge_table.at(O[k]).right == x) // T4
+                    while (k < M && tables.edge_table[O[k]].right == x) // T4
                         {
-                            auto& edge_ = tables.edge_table.at(O[k]);
-                            pi.at(edge_.child)
+                            auto& edge_ = tables.edge_table[O[k]];
+                            pi[edge_.child]
                                 = std::numeric_limits<std::size_t>::max();
                             ++k;
                         }
                     while (j < M
                            && tables.edge_table[I[j]].left == x) // Step T2
                         {
-                            auto& edge_ = tables.edge_table.at(I[j]);
-							// The entry for the child refers to
-							// the parent's location in the node table.
-                            pi.at(edge_.child) = edge_.parent;
+                            auto& edge_ = tables.edge_table[I[j]];
+                            // The entry for the child refers to
+                            // the parent's location in the node table.
+                            pi[edge_.child] = edge_.parent;
                             ++j;
                         }
                     double right = maxpos;
                     if (j < M)
                         {
                             right = std::min(right,
-                                             tables.edge_table.at(I[j]).left);
+                                             tables.edge_table[I[j]].left);
                         }
                     if (k < M)
                         {
                             right = std::min(right,
-                                             tables.edge_table.at(O[k]).right);
+                                             tables.edge_table[O[k]].right);
                         }
                     // At this point, pi refers to the marginal tree
                     // beginning at x for all pi[i] !=
@@ -142,8 +141,8 @@ namespace fwdpp
                     // The useful thing to do here would
                     // be to define a "visitor function",
                     // taking pi, x, and right as arguments.
-					// The i-th element in pi indexes its 
-					// parent in the node table.
+                    // The i-th element in pi indexes its
+                    // parent in the node table.
 
                     //if (x != 0.0)
                     //    {
@@ -153,13 +152,13 @@ namespace fwdpp
                     //                          << ' ' << e.left << ' '
                     //                          << e.right << '\n';
                     //            }
-					//		for(std::size_t x=0;x<pi.size();++x)
-					//		{
-					//			if(pi[x]!=std::numeric_limits<std::size_t>::max())
-					//			{
-					//				std::cout<<x <<' '<<pi[x]<<' '<<tables.node_table[x].generation<<' '<<tables.node_table[pi[x]].generation<<'\n';
-					//			}
-					//		}
+                    //		for(std::size_t x=0;x<pi.size();++x)
+                    //		{
+                    //			if(pi[x]!=std::numeric_limits<std::size_t>::max())
+                    //			{
+                    //				std::cout<<x <<' '<<pi[x]<<' '<<tables.node_table[x].generation<<' '<<tables.node_table[pi[x]].generation<<'\n';
+                    //			}
+                    //		}
                     //       std::exit(0);
                     //    }
                     //if (j >= M)
