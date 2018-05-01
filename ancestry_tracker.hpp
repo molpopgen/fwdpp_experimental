@@ -439,7 +439,7 @@ namespace fwdpp
             ancestry_tracker(TC&& initial_table_collection,
                              const double region_length)
                 : tables{ std::forward<TC>(initial_table_collection) },
-                  tables_{}, segment_queue{}, X{}, Ancestry{},
+                  tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
                   edge_offset{ static_cast<std::ptrdiff_t>(
                       tables.edge_table.size()) },
                   L{ region_length }
