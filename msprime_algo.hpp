@@ -91,11 +91,11 @@ namespace fwdpp
         }
 
         void
-        algorithmT(const table_collection& tables)
+        algorithmT(const table_collection& tables, const double maxpos)
         // Assumes tables are not empty.  Probably unsafe.
         {
             std::vector<std::size_t> pi(
-                tables.edge_table.back().parent,
+                tables.node_table.size(),
                 std::numeric_limits<std::size_t>::max());
             auto p = fill_I_O(tables);
 
@@ -103,24 +103,49 @@ namespace fwdpp
             auto I = std::move(p.first);
             auto O = std::move(p.second);
 
-            std::size_t j = 0, k = 0, M = I.size();
+            std::size_t j = 0, k = 0, M = tables.edge_table.size();
             double x = 0.0;
             // TODO: replace .at with []
-            while (j < M)
+            //for(auto o:O){auto e = tables.edge_table.at(o);
+            //	std::cout<<e.left << ' ' << e.parent << ' ' << e.child << ' ' << e.right << '\n';}
+            //std::exit(0);
+            while (j < M || x < maxpos)
                 {
+                    while (k < M
+                           && tables.edge_table.at(O[k]).right == x) // T4
+                        {
+                            auto& edge_ = tables.edge_table.at(O[k]);
+                            pi.at(edge_.child)
+                                = std::numeric_limits<std::size_t>::max();
+                            ++k;
+                        }
                     while (j < M
                            && tables.edge_table[I[j]].left == x) // Step T2
                         {
-                            auto h = I[j];
-                            pi.at(tables.edge_table.at(h).child) = h;
+                            auto& edge_ = tables.edge_table.at(I[j]);
+							// This differs from JK's Python version.
+							// I've emailed him...
+                            pi.at(edge_.child) = I[j];
                             ++j;
+                        }
+                    double right = maxpos;
+                    if (j < M)
+                        {
+                            right = std::min(right,
+                                             tables.edge_table.at(I[j]).left);
+                        }
+                    if (k < M)
+                        {
+                            right = std::min(right,
+                                             tables.edge_table.at(O[k]).right);
                         }
                     // At this point, pi refers to the marginal tree
                     // beginning at x for all pi[i] !=
                     // std::numeric_limits<std::size_t>::max()
                     // The useful thing to do here would
                     // be to define a "visitor function",
-                    // taking pi and x as arguments.
+                    // taking pi, x, and right as arguments.
+
                     //if (x != 0.0)
                     //    {
                     //        for (auto& e : tables.edge_table)
@@ -132,8 +157,8 @@ namespace fwdpp
                     //        for (auto& pp : pi)
                     //            {
                     //                if (pp
-                    //                    != std::numeric_limits<
-                    //                           std::size_t>::max())
+                    //                    != std::numeric_limits<std::size_t>::
+                    //                           max())
                     //                    {
                     //                        std::cout
                     //                            << tables.edge_table.at(pp)
@@ -149,17 +174,9 @@ namespace fwdpp
                     //            }
                     //        std::exit(0);
                     //    }
-                    if (j >= M)
-                        break;
-                    x = tables.edge_table.at(I.at(j)).left; // T3
-                    while (k < M
-                           && tables.edge_table.at(O[k]).right == x) // T4
-                        {
-                            auto h = O.at(k);
-                            pi.at(tables.edge_table.at(h).child)
-                                = std::numeric_limits<std::size_t>::max();
-                            ++k;
-                        }
+                    //if (j >= M)
+                    //    break;
+                    x = right;
                 }
         }
     }

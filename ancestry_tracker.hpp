@@ -22,7 +22,9 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l }, right{ r }, node{ n }
+                    : left{ l },
+                      right{ r },
+                      node{ n }
                 {
                 }
             };
@@ -346,7 +348,7 @@ namespace fwdpp
             // 1. Convert the data here into (double,(parent,[children])),
             // where double is the left.  These entries can be placed
             // in vectors and sorted.  Essentially, this builds the
-            // trees for all marginals as we go along, and it can be searched 
+            // trees for all marginals as we go along, and it can be searched
             // quickly in the usual ways.
             //
             // 2. Implement algorithms L (and T?) from the msprime paper.
@@ -428,9 +430,8 @@ namespace fwdpp
                              const double initial_time, std::int32_t pop,
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 }, L{
-                      region_length
-                  }
+                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
+                  L{ region_length }
             {
             }
 
@@ -471,9 +472,8 @@ namespace fwdpp
                             tables.node_table[s].generation,
                             tables.node_table[s].population);
                         Ancestry[s].emplace_back(
-                            0, L,
-                            static_cast<std::int32_t>(tables_.node_table.size()
-                                                      - 1));
+                            0, L, static_cast<std::int32_t>(
+                                      tables_.node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             tables_.node_table.size() - 1);
                     }
@@ -501,7 +501,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.swap(tables_);
-                algorithmT(tables);
+                algorithmT(tables, 1.0);
                 cleanup();
                 return idmap;
             }
