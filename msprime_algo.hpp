@@ -106,9 +106,6 @@ namespace fwdpp
             std::size_t j = 0, k = 0, M = tables.edge_table.size();
             double x = 0.0;
             // TODO: replace .at with []
-            //for(auto o:O){auto e = tables.edge_table.at(o);
-            //	std::cout<<e.left << ' ' << e.parent << ' ' << e.child << ' ' << e.right << '\n';}
-            //std::exit(0);
             while (j < M || x < maxpos)
                 {
                     while (k < M
@@ -123,9 +120,9 @@ namespace fwdpp
                            && tables.edge_table[I[j]].left == x) // Step T2
                         {
                             auto& edge_ = tables.edge_table.at(I[j]);
-							// This differs from JK's Python version.
-							// I've emailed him...
-                            pi.at(edge_.child) = I[j];
+							// The entry for the child refers to
+							// the parent's location in the node table.
+                            pi.at(edge_.child) = edge_.parent;
                             ++j;
                         }
                     double right = maxpos;
@@ -145,6 +142,8 @@ namespace fwdpp
                     // The useful thing to do here would
                     // be to define a "visitor function",
                     // taking pi, x, and right as arguments.
+					// The i-th element in pi indexes its 
+					// parent in the node table.
 
                     //if (x != 0.0)
                     //    {
@@ -154,25 +153,14 @@ namespace fwdpp
                     //                          << ' ' << e.left << ' '
                     //                          << e.right << '\n';
                     //            }
-                    //        for (auto& pp : pi)
-                    //            {
-                    //                if (pp
-                    //                    != std::numeric_limits<std::size_t>::
-                    //                           max())
-                    //                    {
-                    //                        std::cout
-                    //                            << tables.edge_table.at(pp)
-                    //                                   .parent
-                    //                            << ' '
-                    //                            << tables.edge_table.at(pp)
-                    //                                   .child
-                    //                            << ' '
-                    //                            << tables.edge_table.at(pp)
-                    //                                   .left
-                    //                            << '\n';
-                    //                    }
-                    //            }
-                    //        std::exit(0);
+					//		for(std::size_t x=0;x<pi.size();++x)
+					//		{
+					//			if(pi[x]!=std::numeric_limits<std::size_t>::max())
+					//			{
+					//				std::cout<<x <<' '<<pi[x]<<' '<<tables.node_table[x].generation<<' '<<tables.node_table[pi[x]].generation<<'\n';
+					//			}
+					//		}
+                    //       std::exit(0);
                     //    }
                     //if (j >= M)
                     //    break;
