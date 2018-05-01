@@ -69,6 +69,9 @@ namespace fwdpp
             // reversed node times.
             std::sort(std::begin(edge_pointers), std::end(edge_pointers),
                       [&tables](const edge_iterator i, const edge_iterator j) {
+                          //std::tie works via references.  So, to sort on -x,
+                          //we need to make a copy, else we are trying to tie
+                          //temporaries.
                           auto ig = -tables.node_table[i->parent].generation;
                           auto ip = -i->parent;
                           auto ic = -i->child;
