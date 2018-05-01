@@ -10,9 +10,9 @@ all: fwdpp_lite.o fwdpp_lite_intrusive.o fwdpp_simplify.o split_breakpoints.o te
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test_simplify test_simplify.o -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o mutation_counting mutation_counting.o
 
-fwdpp_dump_nodes_edges.o: node.hpp edge.hpp
-test_simplify.o: node.hpp edge.hpp ancestry_tracker.hpp table_collection.hpp
-fwdpp_simplify.o: node.hpp edge.hpp ancestry_tracker.hpp table_collection.hpp
+fwdpp_dump_nodes_edges.o: node.hpp edge.hpp msprime_algo.hpp
+test_simplify.o: node.hpp edge.hpp ancestry_tracker.hpp table_collection.hpp msprime_algo.hpp
+fwdpp_simplify.o: node.hpp edge.hpp ancestry_tracker.hpp table_collection.hpp msprime_algo.hpp
 
 
 
