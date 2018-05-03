@@ -27,7 +27,6 @@ namespace fwdpp
 {
     namespace ancestry
     {
-
         std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
         fill_I_O(const table_collection& tables)
         // Fill I and O.  This is not described in Algorithm T,
@@ -50,15 +49,21 @@ namespace fwdpp
             std::sort(
                 std::begin(edge_pointers), std::end(edge_pointers),
                 [&tables](const edge_iterator i, const edge_iterator j) {
-                    return std::tie(i->left,
-                                    tables.node_table[i->parent].generation,
-                                    i->parent, i->child)
-                           < std::tie(j->left,
-                                      tables.node_table[j->parent].generation,
-                                      j->parent, j->child);
+                    if (i->left == j->left)
+                        {
+                            return tables.node_table[i->parent].generation
+                                   < tables.node_table[j->parent].generation;
+                        }
+                    return i->left < j->left;
+                    //return std::tie(i->left,
+                    //                tables.node_table[i->parent].generation,
+                    //                i->parent, i->child)
+                    //       < std::tie(j->left,
+                    //                  tables.node_table[j->parent].generation,
+                    //                  j->parent, j->child);
                 });
 
-            for (std::size_t i = 0; i < I.size(); ++i)
+            for (std::size_t i = 0, j = 1; i < I.size(); ++i, ++j)
                 {
                     I[i] = static_cast<std::size_t>(std::distance(
                         std::begin(tables.edge_table), edge_pointers[i]));
@@ -67,21 +72,28 @@ namespace fwdpp
             // To fill O, sort by right and decreasing parent time, again
             // moving into the past.  Our one trick is to sort on the
             // reversed node times.
-            std::sort(std::begin(edge_pointers), std::end(edge_pointers),
-                      [&tables](const edge_iterator i, const edge_iterator j) {
-                          //std::tie works via references.  So, to sort on -x,
-                          //we need to make a copy, else we are trying to tie
-                          //temporaries.
-                          auto ig = -tables.node_table[i->parent].generation;
-                          auto ip = -i->parent;
-                          auto ic = -i->child;
-                          auto jg = -tables.node_table[j->parent].generation;
-                          auto jp = -j->parent;
-                          auto jc = -j->child;
+            std::sort(
+                std::begin(edge_pointers), std::end(edge_pointers),
+                [&tables](const edge_iterator i, const edge_iterator j) {
+                    if (i->right == j->right)
+                        {
+                            return tables.node_table[i->parent].generation
+                                   > tables.node_table[j->parent].generation;
+                        }
+                    return i->right < j->right;
+                    //std::tie works via references.  So, to sort on -x,
+                    //we need to make a copy, else we are trying to tie
+                    //temporaries.
+                    //auto ig = -tables.node_table[i->parent].generation;
+                    //auto ip = -i->parent;
+                    //auto ic = -i->child;
+                    //auto jg = -tables.node_table[j->parent].generation;
+                    //auto jp = -j->parent;
+                    //auto jc = -j->child;
 
-                          return std::tie(i->right, ig, ip, ic)
-                                 < std::tie(j->right, jg, jp, jc);
-                      });
+                    //return std::tie(i->right, ig, ip, ic)
+                    //       < std::tie(j->right, jg, jp, jc);
+                });
             for (std::size_t i = 0; i < O.size(); ++i)
                 {
                     O[i] = static_cast<std::size_t>(std::distance(
@@ -152,14 +164,25 @@ namespace fwdpp
                     //                          << ' ' << e.left << ' '
                     //                          << e.right << '\n';
                     //            }
-                    //		for(std::size_t x=0;x<pi.size();++x)
-                    //		{
-                    //			if(pi[x]!=std::numeric_limits<std::size_t>::max())
-                    //			{
-                    //				std::cout<<x <<' '<<pi[x]<<' '<<tables.node_table[x].generation<<' '<<tables.node_table[pi[x]].generation<<'\n';
-                    //			}
-                    //		}
-                    //       std::exit(0);
+                    //        for (std::size_t pi_i = 0; pi_i < pi.size();
+                    //             ++pi_i)
+                    //            {
+                    //                if (pi[pi_i]
+                    //                    != std::numeric_limits<std::size_t>::
+                    //                           max())
+                    //                    {
+                    //                        std::cout
+                    //                            << pi_i << ' ' << pi[pi_i]
+                    //                            << ' '
+                    //                            << tables.node_table[pi_i]
+                    //                                   .generation
+                    //                            << ' '
+                    //                            << tables.node_table[pi[pi_i]]
+                    //                                   .generation
+                    //                            << ' ' << x << '\n';
+                    //                    }
+                    //            }
+                    //        std::exit(0);
                     //    }
                     //if (j >= M)
                     //    break;
