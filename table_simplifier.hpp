@@ -1,5 +1,5 @@
-#ifndef FWDPP_ANCESTRY_SIMPLIFIER_HPP__
-#define FWDPP_ANCESTRY_SIMPLIFIER_HPP__
+#ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP__
+#define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP__
 
 #include <vector>
 #include <algorithm>
@@ -14,7 +14,7 @@ namespace fwdpp
 {
     namespace ancestry
     {
-        class simplifier
+        class table_simplifier
         {
           private:
             struct segment
@@ -388,14 +388,14 @@ namespace fwdpp
             }
 
           public:
-            simplifier(const double region_length)
+            table_simplifier(const double region_length)
                 : new_edge_table{}, new_node_table{}, segment_queue{}, X{},
                   Ancestry{}, E{}, L{ region_length }
             {
             }
 
             //template <typename TC>
-            //simplifier(TC&& initial_table_collection,
+            //table_simplifier(TC&& initial_table_collection,
             //                 const double region_length)
             //    : tables{ std::forward<TC>(initial_table_collection) },
             //      tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
@@ -483,7 +483,7 @@ namespace fwdpp
             //table_collection
             //dump_tables()
             ///// Returns the tables via a move-constructed object.
-            ///// The simplifier instance is now in an inconsistent state.
+            ///// The table_simplifier instance is now in an inconsistent state.
             //{
             //    table_collection rv(std::move(tables));
             //    return rv;

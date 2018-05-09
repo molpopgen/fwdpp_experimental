@@ -18,7 +18,7 @@
 #include <chrono>
 #include "edge.hpp"
 #include "node.hpp"
-#include "simplifier.hpp"
+#include "table_simplifier.hpp"
 using namespace fwdpp::ancestry;
 
 // The following needs to be dealt with before we'd be able to move
@@ -134,7 +134,7 @@ main(int argc, char** argv)
         << "sort time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
-	simplifier ancestry(std::move(tables),1.0);
+	table_simplifier ancestry(std::move(tables),1.0);
     start = std::chrono::steady_clock::now();
     ancestry.simplify(samples);
     end = std::chrono::steady_clock::now();

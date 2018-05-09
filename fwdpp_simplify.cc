@@ -25,7 +25,7 @@
 #include <fwdpp/util.hpp>
 #include "node.hpp"
 #include "edge.hpp"
-#include "simplifier.hpp"
+#include "table_simplifier.hpp"
 //#include "split_breakpoints.hpp"
 
 using namespace fwdpp::ancestry;
@@ -72,7 +72,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
                   const fwdpp::uint_t generation, table_collection& tables,
-                  simplifier& ancestry, std::int32_t first_parental_index,
+                  table_simplifier& ancestry, std::int32_t first_parental_index,
                   std::int32_t next_index)
 {
 
@@ -203,7 +203,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             []() { return 0.0; }, []() { return 0.0; });
     };
 
-    simplifier ancestry(1.0);
+    table_simplifier ancestry(1.0);
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
