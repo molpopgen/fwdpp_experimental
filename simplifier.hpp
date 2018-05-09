@@ -50,45 +50,6 @@ namespace fwdpp
             // region length
             const double L;
 
-            void
-            split_breakpoints(
-                const std::vector<double>& breakpoints,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
-                const std::int32_t next_index)
-            {
-                std::vector<std::pair<double, double>> r1, r2;
-                if (breakpoints.empty())
-                    {
-                        tables.push_back_edge(0., L, std::get<0>(parents),
-                                              next_index);
-                        goto out;
-                    }
-                if (breakpoints.front() != 0.0)
-                    {
-                        tables.push_back_edge(0., breakpoints.front(),
-                                              std::get<0>(parents),
-                                              next_index);
-                    }
-                for (unsigned j = 1; j < breakpoints.size(); ++j)
-                    {
-                        double a = breakpoints[j - 1];
-                        double b = (j < breakpoints.size() - 1)
-                                       ? breakpoints[j]
-                                       : L;
-                        if (j % 2 == 0.)
-                            {
-                                tables.push_back_edge(
-                                    a, b, std::get<0>(parents), next_index);
-                            }
-                        else
-                            {
-                                tables.push_back_edge(
-                                    a, b, std::get<1>(parents), next_index);
-                            }
-                    }
-            out:
-                return;
-            }
 
             bool
             add_to_queue(const double left, const double right,
@@ -520,31 +481,13 @@ namespace fwdpp
                 return idmap;
             }
 
-            void
-            add_offspring_data(
-                const std::int32_t next_index,
-                const std::vector<double>& breakpoints,
-                const std::vector<std::uint32_t>& new_mutations,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
-                const double generation)
-			//TODO: this must move to table_collection
-            {
-                // TODO document why this is generation + 1
-                tables.emplace_back_node(next_index, 0, generation + 1);
-                // auto split =
-                split_breakpoints(breakpoints, parents, next_index);
-                for (auto& m : new_mutations)
-                    {
-                        tables.mutation_table.emplace_back(next_index, m);
-                    }
-            }
 
-            void
-            sort_tables() noexcept
-			//TODO: this can be removed
-            {
-                tables.sort_edges(edge_offset, E);
-            }
+            //void
+            //sort_tables() noexcept
+			////TODO: this can be removed
+            //{
+            //    tables.sort_edges(edge_offset, E);
+            //}
 
             //table_collection
             //dump_tables()

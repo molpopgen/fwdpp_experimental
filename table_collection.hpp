@@ -22,22 +22,66 @@ namespace fwdpp
             = std::vector<std::pair<std::int32_t, std::size_t>>;
         struct table_collection
         {
+          private:
+            void
+            split_breakpoints(
+                const std::vector<double>& breakpoints,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::int32_t next_index)
+            {
+                std::vector<std::pair<double, double>> r1, r2;
+                if (breakpoints.empty())
+                    {
+                        this->push_back_edge(0., L, std::get<0>(parents),
+                                              next_index);
+                        goto out;
+                    }
+                if (breakpoints.front() != 0.0)
+                    {
+                        this->push_back_edge(0., breakpoints.front(),
+                                              std::get<0>(parents),
+                                              next_index);
+                    }
+                for (unsigned j = 1; j < breakpoints.size(); ++j)
+                    {
+                        double a = breakpoints[j - 1];
+                        double b = (j < breakpoints.size() - 1)
+                                       ? breakpoints[j]
+                                       : L;
+                        if (j % 2 == 0.)
+                            {
+                                this->push_back_edge(
+                                    a, b, std::get<0>(parents), next_index);
+                            }
+                        else
+                            {
+                                this->push_back_edge(
+                                    a, b, std::get<1>(parents), next_index);
+                            }
+                    }
+            out:
+                return;
+            }
+
           public:
             node_vector node_table;
             edge_vector edge_table;
             mutation_key_vector mutation_table;
             index_vector input_left, output_right;
-            table_collection()
+			const double L;
+            table_collection(const double maxpos)
                 : node_table{}, edge_table{}, mutation_table{}, input_left{},
-                  output_right{}
+                  output_right{},L{maxpos}
             {
+				//TODO assert maxpos is > 0 and finite
             }
 
             table_collection(const std::int32_t num_initial_nodes,
-                             const double initial_time, std::int32_t pop)
+                             const double initial_time, std::int32_t pop, const double maxpos)
                 : node_table{}, edge_table{}, mutation_table{}, input_left{},
-                  output_right{}
+                  output_right{},L{maxpos}
             {
+				//TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
                         node_table.push_back(node{ i, pop, initial_time });
@@ -202,6 +246,25 @@ namespace fwdpp
                     }
                 std::sort(input_left.begin(), input_left.end());
                 std::sort(output_right.begin(), output_right.end());
+            }
+
+            void
+            add_offspring_data(
+                const std::int32_t next_index,
+                const std::vector<double>& breakpoints,
+                const std::vector<std::uint32_t>& new_mutations,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const double generation)
+            //TODO: this must move to table_collection
+            {
+                // TODO document why this is generation + 1
+                emplace_back_node(next_index, 0, generation + 1);
+                // auto split =
+                split_breakpoints(breakpoints, parents, next_index);
+                for (auto& m : new_mutations)
+                    {
+                        mutation_table.emplace_back(next_index, m);
+                    }
             }
         };
     }
