@@ -29,10 +29,11 @@ namespace fwdpp
                 }
             };
 
-            // tables is the current data set.
-            // tables_ is used as temp
-            // space during simplification.
-            table_collection tables, tables_;
+            // These are temp tables/buffer
+            // for simplification.  We keep
+            // their allocated memory persistent.
+            edge_vector new_edge_table;
+            node_vector new_node_table;
             // segment_queue mimics a min queue of segments w.r.to
             // segment::left. X is a temporary container
             // for storing segments during ancestry merging.
@@ -44,6 +45,7 @@ namespace fwdpp
             // tables.edge_table after last simplification.
             // It can be used to make sure we only sort
             // newly-added nodes.
+            // TODO: move to table_collection
             std::ptrdiff_t edge_offset;
             // region length
             const double L;
@@ -53,8 +55,6 @@ namespace fwdpp
                 const std::vector<double>& breakpoints,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const std::int32_t next_index)
-            // TODO add data directly rather than create more intermediate
-            // containers
             {
                 std::vector<std::pair<double, double>> r1, r2;
                 if (breakpoints.empty())
@@ -123,13 +123,13 @@ namespace fwdpp
             // temp containers after simplify.
             // Retains container capacity.
             {
-                tables_.clear();
+                new_edge_table.clear();
+                new_node_table.clear();
                 E.clear();
                 for (auto& ai : Ancestry)
                     {
                         ai.clear();
                     }
-                edge_offset = tables.edge_table.size();
             }
 
             edge_vector::const_iterator
@@ -172,7 +172,8 @@ namespace fwdpp
             }
 
             void
-            merge_ancestors(const std::int32_t parent_input_id,
+            merge_ancestors(const node_vector& input_node_table,
+                            const std::int32_t parent_input_id,
                             std::vector<std::int32_t>& idmap)
             // TODO: will have to be made aware of sample labels.
             {
@@ -241,14 +242,20 @@ namespace fwdpp
                                         // Overlap/coalescence, and
                                         // thus
                                         // a new node. Step S6.
-                                        tables_.push_back_node(
-                                            static_cast<std::int32_t>(
-                                                tables_.node_table.size()),
-                                            tables.node_table[parent_input_id]
+                                        new_node_table.emplace_back(
+                                            new_node_table.size(),
+                                            input_node_table[parent_input_id]
                                                 .generation,
-                                            tables.node_table[parent_input_id]
+                                            input_node_table[parent_input_id]
                                                 .population);
-                                        v = tables_.node_table.size() - 1;
+                                        //tables_.push_back_node(
+                                        //    static_cast<std::int32_t>(
+                                        //        tables_.node_table.size()),
+                                        //    tables.node_table[parent_input_id]
+                                        //        .generation,
+                                        //    tables.node_table[parent_input_id]
+                                        //        .population);
+                                        v = new_node_table.size() - 1;
                                         // update sample map
                                         idmap[parent_input_id] = v;
                                     }
@@ -381,8 +388,8 @@ namespace fwdpp
                         auto e = E[j];
                         e.right = E[k - 1].right;
                         E[l] = e;
-                        tables_.edge_table.insert(
-                            tables_.edge_table.end(),
+                        new_edge_table.insert(
+                            new_edge_table.end(),
                             std::make_move_iterator(E.begin()),
                             std::make_move_iterator(E.begin() + l + 1));
                         E.clear();
@@ -427,35 +434,38 @@ namespace fwdpp
 
           public:
             simplifier(const std::int32_t num_initial_nodes,
-                             const double initial_time, std::int32_t pop,
-                             const double region_length = 1.0)
-                : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
-                  L{ region_length }
+                       const double initial_time, std::int32_t pop,
+                       const double region_length = 1.0)
+                : new_edge_table{}, new_node_table{}, segment_queue{}, X{},
+                  Ancestry{}, E{}, edge_offset{ 0 }, L{ region_length }
             {
             }
 
-            template <typename TC>
-            simplifier(TC&& initial_table_collection,
-                             const double region_length)
-                : tables{ std::forward<TC>(initial_table_collection) },
-                  tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
-                  edge_offset{ static_cast<std::ptrdiff_t>(
-                      tables.edge_table.size()) },
-                  L{ region_length }
-            {
-                if (!tables.edges_are_sorted())
-                    {
-                        throw std::invalid_argument("edges are not sorted");
-                    }
-            }
+            //template <typename TC>
+            //simplifier(TC&& initial_table_collection,
+            //                 const double region_length)
+            //    : tables{ std::forward<TC>(initial_table_collection) },
+            //      tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
+            //      edge_offset{ static_cast<std::ptrdiff_t>(
+            //          tables.edge_table.size()) },
+            //      L{ region_length }
+            //{
+            //    if (!tables.edges_are_sorted())
+            //        {
+            //            throw std::invalid_argument("edges are not sorted");
+            //        }
+            //}
+
             std::vector<std::int32_t>
-            simplify(const std::vector<std::int32_t>& samples)
+            simplify(table_collection& tables,
+                     const std::vector<std::int32_t>& samples)
             /// Set theoretic simplify.
             /// TODO: shorten via additional function calls
             /// for readability
             /// TODO: compare against implementation more
             /// closely matching what msprime is doing.
+            /// TODO: make a template member so that mutations are
+            /// also simplified
             {
                 Ancestry.resize(tables.node_table.size());
 
@@ -467,15 +477,19 @@ namespace fwdpp
                 // a segment on [0,L).
                 for (auto& s : samples)
                     {
-                        tables_.push_back_node(
-                            tables_.node_table.size(),
+                        new_node_table.emplace_back(
+                            new_node_table.size(),
                             tables.node_table[s].generation,
                             tables.node_table[s].population);
+                        //tables_.push_back_node(
+                        //    tables_.node_table.size(),
+                        //    tables.node_table[s].generation,
+                        //    tables.node_table[s].population);
                         Ancestry[s].emplace_back(
                             0, L, static_cast<std::int32_t>(
-                                      tables_.node_table.size() - 1));
+                                      new_node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
-                            tables_.node_table.size() - 1);
+                            new_node_table.size() - 1);
                     }
 
                 // At this point, our edges are sorted by birth
@@ -490,17 +504,18 @@ namespace fwdpp
                     {
                         auto u = edge_ptr->parent;
                         edge_ptr = step_S3(edge_ptr, edge_end, u);
-                        merge_ancestors(u, idmap);
+                        merge_ancestors(tables.node_table, u, idmap);
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
                            idmap.begin(), idmap.end(),
                            [](const std::int32_t i) { return i != -1; }))
-                       == tables_.node_table.size());
+                       == new_node_table.size());
 
+                tables.edge_table.swap(new_edge_table);
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
-                tables.swap(tables_);
+                tables.node_table.swap(new_node_table);
                 cleanup();
                 return idmap;
             }
@@ -512,6 +527,7 @@ namespace fwdpp
                 const std::vector<std::uint32_t>& new_mutations,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
+			//TODO: this must move to table_collection
             {
                 // TODO document why this is generation + 1
                 tables.emplace_back_node(next_index, 0, generation + 1);
@@ -525,54 +541,55 @@ namespace fwdpp
 
             void
             sort_tables() noexcept
+			//TODO: this can be removed
             {
                 tables.sort_edges(edge_offset, E);
             }
 
-            table_collection
-            dump_tables()
-            /// Returns the tables via a move-constructed object.
-            /// The simplifier instance is now in an inconsistent state.
-            {
-                table_collection rv(std::move(tables));
-                return rv;
-            }
+            //table_collection
+            //dump_tables()
+            ///// Returns the tables via a move-constructed object.
+            ///// The simplifier instance is now in an inconsistent state.
+            //{
+            //    table_collection rv(std::move(tables));
+            //    return rv;
+            //}
 
-            const node_vector&
-            nodes() const
-            {
-                return tables.node_table;
-            }
+            //const node_vector&
+            //nodes() const
+            //{
+            //    return tables.node_table;
+            //}
 
-            std::size_t
-            num_nodes() const
-            {
-                return tables.node_table.size();
-            }
+            //std::size_t
+            //num_nodes() const
+            //{
+            //    return tables.node_table.size();
+            //}
 
-            std::size_t
-            num_edges() const
-            {
-                return tables.edge_table.size();
-            }
+            //std::size_t
+            //num_edges() const
+            //{
+            //    return tables.edge_table.size();
+            //}
 
-            template <typename visitor>
-            void
-            algorithmL(visitor v, const std::vector<std::int32_t>& samples)
-            {
-                tables.build_indexes();
-                ancestry::algorithmL(tables.input_left, tables.output_right,
-                                     samples, tables.node_table.size(), 1.0,
-                                     v);
-            }
+            //template <typename visitor>
+            //void
+            //algorithmL(visitor v, const std::vector<std::int32_t>& samples)
+            //{
+            //    tables.build_indexes();
+            //    ancestry::algorithmL(tables.input_left, tables.output_right,
+            //                         samples, tables.node_table.size(), 1.0,
+            //                         v);
+            //}
 
-            void
-            algorithmT()
-            {
-				tables.build_indexes();
-                ancestry::algorithmT(tables.input_left,tables.output_right,
-                                     tables.node_table.size(), 1.0);
-            }
+            //void
+            //algorithmT()
+            //{
+            //    tables.build_indexes();
+            //    ancestry::algorithmT(tables.input_left, tables.output_right,
+            //                         tables.node_table.size(), 1.0);
+            //}
         };
     }
 }
