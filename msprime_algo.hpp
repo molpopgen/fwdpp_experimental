@@ -71,11 +71,10 @@ namespace fwdpp
         algorithmT(const index_vector& input_left,
                    const index_vector& output_right, const std::size_t nnodes,
                    const double maxpos)
-		// TODO: needs to take a visitor as argument
+        // TODO: needs to take a visitor as argument
         // Assumes tables are not empty.  Probably unsafe.
         {
-            std::vector<std::size_t> pi(
-                nnodes, std::numeric_limits<std::size_t>::max());
+            std::vector<std::int32_t> pi(nnodes, -1);
 
             auto j = input_left.begin(), jM = input_left.end(),
                  k = output_right.begin(), kM = output_right.end();
@@ -85,8 +84,7 @@ namespace fwdpp
                 {
                     while (k != kM && k->pos == x) // T4
                         {
-                            pi[k->child]
-                                = std::numeric_limits<std::size_t>::max();
+                            pi[k->child] = -1;
                             ++k;
                         }
                     while (j != jM && j->pos == x) // Step T2
@@ -108,8 +106,7 @@ namespace fwdpp
                     //for(auto & p : pi){std::cout<<p <<' ';}
                     //std::cout<<'\n';
                     // At this point, pi refers to the marginal tree
-                    // beginning at x for all pi[i] !=
-                    // std::numeric_limits<std::size_t>::max()
+                    // beginning at x for all pi[i] != -1
                     // The useful thing to do here would
                     // be to define a "visitor function",
                     // taking pi, x, and right as arguments.
@@ -117,10 +114,10 @@ namespace fwdpp
                     // parent in the node table.
 
                     //if (x != 0.0)
-					//{
-					//	for(auto p:pi){std::cout<<p<<' ';}
-					//	std::exit(0);
-					//}
+                    //{
+                    //	for(auto p:pi){std::cout<<p<<' ';}
+                    //	std::exit(0);
+                    //}
                     //if (j >= M)
                     //    break;
                     x = right;
