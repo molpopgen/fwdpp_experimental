@@ -231,7 +231,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             ancestry.sort_tables();
             ancestry.simplify(samples);
-            ancestry.algorithmT();
+            //ancestry.algorithmT();
             next_index = ancestry.num_nodes();
             first_parental_index = 0;
             // std::cout<<next_index<<' '<<first_parental_index<<"\n";

@@ -556,13 +556,23 @@ namespace fwdpp
                 return tables.edge_table.size();
             }
 
+            template <typename visitor>
             void
-            algorithmT() const
+            algorithmL(visitor v, const std::vector<std::int32_t>& samples)
             {
-                auto IO = fill_I_O(tables);
-                ancestry::algorithmT(IO.first, IO.second,
-                                     tables.node_table.size(), 1.0);
+                tables.build_indexes();
+                ancestry::algorithmL(tables.input_left, tables.output_right,
+                                     samples, tables.node_table.size(), 1.0,
+                                     v);
             }
+
+            //void
+            //algorithmT() const
+            //{
+            //    auto IO = fill_I_O(tables);
+            //    ancestry::algorithmT(IO.first, IO.second,
+            //                         tables.node_table.size(), 1.0);
+            //}
         };
     }
 }
