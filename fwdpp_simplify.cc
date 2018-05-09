@@ -71,8 +71,9 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
-                  const fwdpp::uint_t generation, simplifier& ancestry,
-                  std::int32_t first_parental_index, std::int32_t next_index)
+                  const fwdpp::uint_t generation, table_collection& tables,
+                  simplifier& ancestry, std::int32_t first_parental_index,
+                  std::int32_t next_index)
 {
 
     auto gamete_recycling_bin
@@ -125,8 +126,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
 
-            ancestry.add_offspring_data(next_index_local, breakpoints,
-                                        new_mutations, p1id, generation);
+            tables.add_offspring_data(next_index_local, breakpoints,
+                                      new_mutations, p1id, generation);
             next_index_local++;
             breakpoints
                 = recmodel(); // fwdpp::generate_breakpoints(pop.diploids[p2],
@@ -140,8 +141,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
-            ancestry.add_offspring_data(next_index_local, breakpoints,
-                                        new_mutations, p2id, generation);
+            tables.add_offspring_data(next_index_local, breakpoints,
+                                      new_mutations, p2id, generation);
             next_index_local++;
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
@@ -155,7 +156,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     pop.diploids.swap(offspring);
 }
 
-simplifier
+table_collection
 evolve(const GSLrng_t& rng, slocuspop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
        const double mu_selected, const double recrate)
@@ -202,7 +203,8 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             []() { return 0.0; }, []() { return 0.0; });
     };
 
-    simplifier ancestry(2 * pop.diploids.size(), 0, 0);
+    simplifier ancestry(1.0);
+    table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
     double sort_time = 0.0;
@@ -210,7 +212,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
-                              mmodel, recmap, generation, ancestry,
+                              mmodel, recmap, generation, tables, ancestry,
                               first_parental_index, next_index);
             // if (first_parental_index == ROOTNODE)
             //    {
@@ -223,16 +225,15 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             // std::cout<<next_index<<' '<<first_parental_index<<"->";
 
             std::vector<std::int32_t> samples;
-            for (auto i = ancestry.num_nodes() - 2 * pop.diploids.size();
-                 i < ancestry.num_nodes(); ++i)
+            for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
+                 i < tables.num_nodes(); ++i)
                 {
-                    assert(ancestry.nodes()[i].generation == generation + 1);
+                    assert(tables.node_table[i].generation == generation + 1);
                     samples.push_back(i);
                 }
-            ancestry.sort_tables();
-            ancestry.simplify(samples);
-            ancestry.algorithmT();
-            next_index = ancestry.num_nodes();
+            tables.sort_tables();
+            ancestry.simplify(tables, samples);
+            next_index = tables.num_nodes();
             first_parental_index = 0;
             // std::cout<<next_index<<' '<<first_parental_index<<"\n";
             fwdpp::update_mutations(pop.mutations, pop.fixations,
@@ -248,7 +249,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
     //    }
     // ancestry.sort_tables();
     // ancestry.simplify(samples);
-    return ancestry;
+	return tables;
 }
 
 int
@@ -268,8 +269,7 @@ main(int argc, char** argv)
     double recrate = rho / (4. * static_cast<double>(N));
     double mudel = mu * pdel;
 
-    auto ancestry = evolve(rng, pop, popsizes, mu, mudel, recrate);
-    auto tables = ancestry.dump_tables();
+    auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
     std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
               << tables.edge_table.size() << ' '
               << tables.mutation_table.size() << '\n';

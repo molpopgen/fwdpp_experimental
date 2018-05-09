@@ -139,7 +139,7 @@ namespace fwdpp
                           });
                 if (edge_offset > 0)
                     {
-						temp_edges.reserve(edge_table.size());
+                        temp_edges.reserve(edge_table.size());
                         auto size = edge_table.size();
                         temp_edges.clear();
                         temp_edges.insert(
@@ -165,6 +165,13 @@ namespace fwdpp
                 // TODO: allow for exceptions
                 // rather than assertions.
                 assert(edges_are_sorted());
+            }
+
+            void
+            sort_tables()
+            //TODO: make template to sort mutations
+            {
+                sort_edges();
             }
 
             //void
@@ -274,6 +281,12 @@ namespace fwdpp
                     {
                         mutation_table.emplace_back(next_index, m);
                     }
+            }
+
+            std::size_t
+            num_nodes() const
+            {
+                return node_table.size();
             }
         };
     }

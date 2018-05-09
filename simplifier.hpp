@@ -196,12 +196,13 @@ namespace fwdpp
                                         // Overlap/coalescence, and
                                         // thus
                                         // a new node. Step S6.
-                                        new_node_table.emplace_back(
-                                            new_node_table.size(),
+                                        new_node_table.emplace_back(node{
+                                            static_cast<std::int32_t>(
+                                                new_node_table.size()),
                                             input_node_table[parent_input_id]
-                                                .generation,
+                                                .population,
                                             input_node_table[parent_input_id]
-                                                .population);
+                                                .generation });
                                         //tables_.push_back_node(
                                         //    static_cast<std::int32_t>(
                                         //        tables_.node_table.size()),
@@ -387,11 +388,9 @@ namespace fwdpp
             }
 
           public:
-            simplifier(const std::int32_t num_initial_nodes,
-                       const double initial_time, std::int32_t pop,
-                       const double region_length = 1.0)
+            simplifier(const double region_length)
                 : new_edge_table{}, new_node_table{}, segment_queue{}, X{},
-                  Ancestry{}, E{},  L{ region_length }
+                  Ancestry{}, E{}, L{ region_length }
             {
             }
 
@@ -431,10 +430,10 @@ namespace fwdpp
                 // a segment on [0,L).
                 for (auto& s : samples)
                     {
-                        new_node_table.emplace_back(
-                            new_node_table.size(),
-                            tables.node_table[s].generation,
-                            tables.node_table[s].population);
+                        new_node_table.emplace_back(node{
+                            static_cast<std::int32_t>(new_node_table.size()),
+                            tables.node_table[s].population,
+                            tables.node_table[s].generation });
                         //tables_.push_back_node(
                         //    tables_.node_table.size(),
                         //    tables.node_table[s].generation,
