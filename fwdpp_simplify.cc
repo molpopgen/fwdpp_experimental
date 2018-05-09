@@ -179,7 +179,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
            + 0.667 * (4. * double(pop.diploids.size()) * (mu_selected)))));
 
     //fwdpp::poisson_xover recmap(recrate, 0., 1.);
-	//const auto bound_recmodel =[&rng,&recmap](){return recmap(rng.get());};
+    //const auto bound_recmodel =[&rng,&recmap](){return recmap(rng.get());};
     const auto recmap
         = fwdpp::recbinder(fwdpp::poisson_xover(recrate, 0., 1.), rng.get());
     unsigned generation = 0;
@@ -198,8 +198,8 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         std::queue<std::size_t>& recbin, slocuspop_t::mcont_t& mutations) {
         return fwdpp::infsites_popgenmut(
             recbin, mutations, rng.get(), pop.mut_lookup, generation, 0.0,
-            [&rng]() { return gsl_rng_uniform(rng.get()); }, []() { return 0.0; },
-            []() { return 0.0; });
+            [&rng]() { return gsl_rng_uniform(rng.get()); },
+            []() { return 0.0; }, []() { return 0.0; });
     };
 
     ancestry_tracker ancestry(2 * pop.diploids.size(), 0, 0);
@@ -231,6 +231,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             ancestry.sort_tables();
             ancestry.simplify(samples);
+            //ancestry.algorithmT();
             next_index = ancestry.num_nodes();
             first_parental_index = 0;
             // std::cout<<next_index<<' '<<first_parental_index<<"\n";

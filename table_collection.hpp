@@ -10,6 +10,7 @@
 #include <cstddef>
 #include "node.hpp"
 #include "edge.hpp"
+#include "msprime_algo.hpp" //TODO: create fewer header dependencies
 
 namespace fwdpp
 {
@@ -25,14 +26,17 @@ namespace fwdpp
             node_vector node_table;
             edge_vector edge_table;
             mutation_key_vector mutation_table;
-
-            table_collection() : node_table{}, edge_table{}, mutation_table{}
+            index_vector input_left, output_right;
+            table_collection()
+                : node_table{}, edge_table{}, mutation_table{}, input_left{},
+                  output_right{}
             {
             }
 
             table_collection(const std::int32_t num_initial_nodes,
                              const double initial_time, std::int32_t pop)
-                : node_table{}, edge_table{}, mutation_table{}
+                : node_table{}, edge_table{}, mutation_table{}, input_left{},
+                  output_right{}
             {
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
@@ -74,9 +78,8 @@ namespace fwdpp
                         auto size = edge_table.size();
                         temp_edges.clear();
                         temp_edges.insert(
-                            temp_edges.end(),
-                            std::make_move_iterator(edge_table.begin()
-                                                    + offset),
+                            temp_edges.end(), std::make_move_iterator(
+                                                  edge_table.begin() + offset),
                             std::make_move_iterator(edge_table.end()));
                         temp_edges.insert(
                             temp_edges.end(),
@@ -164,6 +167,28 @@ namespace fwdpp
             emplace_back_edge(args&&... Args)
             {
                 edge_table.emplace_back(edge{ std::forward<args>(Args)... });
+            }
+
+            void
+            build_indexes()
+			/// Generates the index vectors referred to 
+			/// as I and O in Kelleher et al. (2016)
+            {
+                input_left.reserve(edge_table.size());
+                output_right.reserve(edge_table.size());
+				input_left.clear();
+				output_right.clear();
+                for (auto& e : edge_table)
+                    {
+                        input_left.emplace_back(
+                            e.left, -node_table[e.parent].generation, e.parent,
+                            e.child);
+                        output_right.emplace_back(
+                            e.right, node_table[e.parent].generation, e.parent,
+                            e.child);
+                    }
+                std::sort(input_left.begin(), input_left.end());
+                std::sort(output_right.begin(), output_right.end());
             }
         };
     }

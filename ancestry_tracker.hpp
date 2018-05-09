@@ -8,6 +8,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
+#include "msprime_algo.hpp"
 
 namespace fwdpp
 {
@@ -21,7 +22,9 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l }, right{ r }, node{ n }
+                    : left{ l },
+                      right{ r },
+                      node{ n }
                 {
                 }
             };
@@ -345,7 +348,7 @@ namespace fwdpp
             // 1. Convert the data here into (double,(parent,[children])),
             // where double is the left.  These entries can be placed
             // in vectors and sorted.  Essentially, this builds the
-            // trees for all marginals as we go along, and it can be searched 
+            // trees for all marginals as we go along, and it can be searched
             // quickly in the usual ways.
             //
             // 2. Implement algorithms L (and T?) from the msprime paper.
@@ -427,9 +430,8 @@ namespace fwdpp
                              const double initial_time, std::int32_t pop,
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 }, L{
-                      region_length
-                  }
+                  segment_queue{}, X{}, Ancestry{}, E{}, edge_offset{ 0 },
+                  L{ region_length }
             {
             }
 
@@ -437,7 +439,7 @@ namespace fwdpp
             ancestry_tracker(TC&& initial_table_collection,
                              const double region_length)
                 : tables{ std::forward<TC>(initial_table_collection) },
-                  tables_{}, segment_queue{}, X{}, Ancestry{},
+                  tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
                   edge_offset{ static_cast<std::ptrdiff_t>(
                       tables.edge_table.size()) },
                   L{ region_length }
@@ -470,9 +472,8 @@ namespace fwdpp
                             tables.node_table[s].generation,
                             tables.node_table[s].population);
                         Ancestry[s].emplace_back(
-                            0, L,
-                            static_cast<std::int32_t>(tables_.node_table.size()
-                                                      - 1));
+                            0, L, static_cast<std::int32_t>(
+                                      tables_.node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             tables_.node_table.size() - 1);
                     }
@@ -516,7 +517,10 @@ namespace fwdpp
                 tables.emplace_back_node(next_index, 0, generation + 1);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
-                // TODO: add mutation to tables
+                for (auto& m : new_mutations)
+                    {
+                        tables.mutation_table.emplace_back(next_index, m);
+                    }
             }
 
             void
@@ -551,6 +555,24 @@ namespace fwdpp
             {
                 return tables.edge_table.size();
             }
+
+            template <typename visitor>
+            void
+            algorithmL(visitor v, const std::vector<std::int32_t>& samples)
+            {
+                tables.build_indexes();
+                ancestry::algorithmL(tables.input_left, tables.output_right,
+                                     samples, tables.node_table.size(), 1.0,
+                                     v);
+            }
+
+            //void
+            //algorithmT() const
+            //{
+            //    auto IO = fill_I_O(tables);
+            //    ancestry::algorithmT(IO.first, IO.second,
+            //                         tables.node_table.size(), 1.0);
+            //}
         };
     }
 }
