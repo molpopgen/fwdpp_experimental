@@ -44,28 +44,29 @@ namespace fwdpp
         };
 
         using index_vector = std::vector<index_key>;
-        std::pair<index_vector, index_vector>
-        fill_I_O(const table_collection& tables)
-        // TODO: better function name
-        // Fill I and O.  This is not described in Algorithm T,
-        // but can be sleuthed from msprime/tests/tsutil.py
-        {
-            index_vector I, O;
-            I.reserve(tables.edge_table.size());
-            O.reserve(tables.edge_table.size());
-            for (auto& e : tables.edge_table)
-                {
-                    I.emplace_back(e.left,
-                                   -tables.node_table[e.parent].generation,
-                                   e.parent, e.child);
-                    O.emplace_back(e.right,
-                                   tables.node_table[e.parent].generation,
-                                   e.parent, e.child);
-                }
-            std::sort(I.begin(), I.end());
-            std::sort(O.begin(), O.end());
-            return std::make_pair(std::move(I), std::move(O));
-        }
+		
+        //std::pair<index_vector, index_vector>
+        //fill_I_O(const table_collection& tables)
+        //// TODO: better function name
+        //// Fill I and O.  This is not described in Algorithm T,
+        //// but can be sleuthed from msprime/tests/tsutil.py
+        //{
+        //    index_vector I, O;
+        //    I.reserve(tables.edge_table.size());
+        //    O.reserve(tables.edge_table.size());
+        //    for (auto& e : tables.edge_table)
+        //        {
+        //            I.emplace_back(e.left,
+        //                           -tables.node_table[e.parent].generation,
+        //                           e.parent, e.child);
+        //            O.emplace_back(e.right,
+        //                           tables.node_table[e.parent].generation,
+        //                           e.parent, e.child);
+        //        }
+        //    std::sort(I.begin(), I.end());
+        //    std::sort(O.begin(), O.end());
+        //    return std::make_pair(std::move(I), std::move(O));
+        //}
 
         void
         algorithmT(const index_vector& input_left,
