@@ -67,11 +67,24 @@ namespace fwdpp
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
-                              return ga > gb
-                                     || (ga == gb
-                                         && std::tie(a.parent, a.child, a.left)
-                                                < std::tie(b.parent, b.child,
-                                                           b.left));
+                              //return ga > gb
+                              //       || (ga == gb
+                              //           && std::tie(a.parent, a.child, a.left)
+                              //                  < std::tie(b.parent, b.child,
+                              //                             b.left));
+                              if (ga == gb)
+                                  {
+                                      if (a.parent == b.parent)
+                                          {
+                                              if (a.child == b.child)
+                                                  {
+                                                      return a.left < b.left;
+                                                  }
+                                              return a.child < b.child;
+                                          }
+                                      return a.parent < b.parent;
+                                  }
+                              return ga > gb;
                           });
                 if (offset > 0)
                     {
@@ -171,13 +184,13 @@ namespace fwdpp
 
             void
             build_indexes()
-			/// Generates the index vectors referred to 
-			/// as I and O in Kelleher et al. (2016)
+            /// Generates the index vectors referred to
+            /// as I and O in Kelleher et al. (2016)
             {
                 input_left.reserve(edge_table.size());
                 output_right.reserve(edge_table.size());
-				input_left.clear();
-				output_right.clear();
+                input_left.clear();
+                output_right.clear();
                 for (auto& e : edge_table)
                     {
                         input_left.emplace_back(
