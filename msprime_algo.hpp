@@ -71,6 +71,7 @@ namespace fwdpp
         algorithmT(const index_vector& input_left,
                    const index_vector& output_right, const std::size_t nnodes,
                    const double maxpos)
+		// TODO: needs to take a visitor as argument
         // Assumes tables are not empty.  Probably unsafe.
         {
             std::vector<std::size_t> pi(
