@@ -87,7 +87,7 @@ main(int argc, char** argv)
     std::ifstream in(nodefilename.c_str());
     std::int32_t a, b;
     double x, y;
-	table_collection tables;
+	table_collection tables(1.0);
     auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
@@ -127,16 +127,16 @@ main(int argc, char** argv)
             samples.push_back(i);
         }
     start = std::chrono::steady_clock::now();
-	tables.sort_edges(0);
+	tables.sort_edges();
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
         << "sort time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
-	table_simplifier ancestry(std::move(tables),1.0);
+	table_simplifier ancestry(1.0);
     start = std::chrono::steady_clock::now();
-    ancestry.simplify(samples);
+    ancestry.simplify(tables,samples);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
@@ -144,7 +144,6 @@ main(int argc, char** argv)
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
 
-	tables = ancestry.dump_tables();
     std::ofstream out(nodeoutfile.c_str());
     for (auto& n : tables.node_table)
         {
