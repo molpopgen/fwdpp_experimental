@@ -39,12 +39,14 @@ namespace fwdpp
             inline bool
             operator<(const index_key& rhs) const
             {
-                return std::tie(pos, time) < std::tie(rhs.pos, rhs.time);
+                if (pos == rhs.pos)
+                    return time < rhs.time;
+                return pos < rhs.pos;
             }
         };
 
         using index_vector = std::vector<index_key>;
-		
+
         //std::pair<index_vector, index_vector>
         //fill_I_O(const table_collection& tables)
         //// TODO: better function name
@@ -115,10 +117,13 @@ namespace fwdpp
                     // parent in the node table.
 
                     //if (x != 0.0)
-                    //{
-                    //	for(auto p:pi){std::cout<<p<<' ';}
-                    //	std::exit(0);
-                    //}
+                    //    {
+                    //        for (auto p : pi)
+                    //            {
+                    //                std::cout << p << ' ';
+                    //            }
+                    //        std::exit(0);
+                    //    }
                     //if (j >= M)
                     //    break;
                     x = right;
