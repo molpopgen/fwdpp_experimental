@@ -27,126 +27,85 @@ namespace fwdpp
 {
     namespace ancestry
     {
-        std::pair<std::vector<std::size_t>, std::vector<std::size_t>>
+        struct index_key
+        {
+            double pos, time;
+            std::int32_t parent, child;
+            explicit index_key(double pos_, double t, std::int32_t p,
+                               std::int32_t c)
+                : pos{ pos_ }, time{ t }, parent{ p }, child{ c }
+            {
+            }
+            inline bool
+            operator<(const index_key& rhs) const
+            {
+                return std::tie(pos, time) < std::tie(rhs.pos, rhs.time);
+            }
+        };
+
+        using index_vector = std::vector<index_key>;
+        std::pair<index_vector, index_vector>
         fill_I_O(const table_collection& tables)
+        // TODO: better function name
         // Fill I and O.  This is not described in Algorithm T,
         // but can be sleuthed from msprime/tests/tsutil.py
         {
-            std::vector<std::size_t> I(tables.edge_table.size(), 0),
-                O(tables.edge_table.size(), 0);
-            using edge_iterator = std::vector<edge>::const_iterator;
-            std::vector<edge_iterator> edge_pointers;
-            edge_pointers.reserve(tables.edge_table.size());
-            for (auto i = std::begin(tables.edge_table);
-                 i < std::end(tables.edge_table); ++i)
+            index_vector I, O;
+            I.reserve(tables.edge_table.size());
+            O.reserve(tables.edge_table.size());
+            for (auto& e : tables.edge_table)
                 {
-                    edge_pointers.push_back(i);
+                    I.emplace_back(e.left,
+                                   -tables.node_table[e.parent].generation,
+                                   e.parent, e.child);
+                    O.emplace_back(e.right,
+                                   tables.node_table[e.parent].generation,
+                                   e.parent, e.child);
                 }
-            // To fill I, sort the pointers by increasing left
-            // and increasing parent time (moving from present back into past).
-            // Because, unlike msprime, we are not recording node times
-            // backwards into the past, our sort is simple.
-            std::sort(
-                std::begin(edge_pointers), std::end(edge_pointers),
-                [&tables](const edge_iterator i, const edge_iterator j) {
-                    if (i->left == j->left)
-                        {
-                            return tables.node_table[i->parent].generation
-                                   < tables.node_table[j->parent].generation;
-                        }
-                    return i->left < j->left;
-                    //return std::tie(i->left,
-                    //                tables.node_table[i->parent].generation,
-                    //                i->parent, i->child)
-                    //       < std::tie(j->left,
-                    //                  tables.node_table[j->parent].generation,
-                    //                  j->parent, j->child);
-                });
-
-            for (std::size_t i = 0, j = 1; i < I.size(); ++i, ++j)
-                {
-                    I[i] = static_cast<std::size_t>(std::distance(
-                        std::begin(tables.edge_table), edge_pointers[i]));
-                }
-
-            // To fill O, sort by right and decreasing parent time, again
-            // moving into the past.  Our one trick is to sort on the
-            // reversed node times.
-            std::sort(
-                std::begin(edge_pointers), std::end(edge_pointers),
-                [&tables](const edge_iterator i, const edge_iterator j) {
-                    if (i->right == j->right)
-                        {
-                            return tables.node_table[i->parent].generation
-                                   > tables.node_table[j->parent].generation;
-                        }
-                    return i->right < j->right;
-                    //std::tie works via references.  So, to sort on -x,
-                    //we need to make a copy, else we are trying to tie
-                    //temporaries.
-                    //auto ig = -tables.node_table[i->parent].generation;
-                    //auto ip = -i->parent;
-                    //auto ic = -i->child;
-                    //auto jg = -tables.node_table[j->parent].generation;
-                    //auto jp = -j->parent;
-                    //auto jc = -j->child;
-
-                    //return std::tie(i->right, ig, ip, ic)
-                    //       < std::tie(j->right, jg, jp, jc);
-                });
-            for (std::size_t i = 0; i < O.size(); ++i)
-                {
-                    O[i] = static_cast<std::size_t>(std::distance(
-                        std::begin(tables.edge_table), edge_pointers[i]));
-                }
+            std::sort(I.begin(), I.end());
+            std::sort(O.begin(), O.end());
             return std::make_pair(std::move(I), std::move(O));
         }
 
         void
-        algorithmT(const table_collection& tables, const double maxpos)
+        algorithmT(const index_vector& input_left,
+                   const index_vector& output_right, const std::size_t nnodes,
+                   const double maxpos)
         // Assumes tables are not empty.  Probably unsafe.
         {
             std::vector<std::size_t> pi(
-                tables.node_table.size(),
-                std::numeric_limits<std::size_t>::max());
-            auto p = fill_I_O(tables);
+                nnodes, std::numeric_limits<std::size_t>::max());
 
-            // Move data for variable name convenience
-            auto I = std::move(p.first);
-            auto O = std::move(p.second);
-
-            std::size_t j = 0, k = 0, M = tables.edge_table.size();
+            auto j = input_left.begin(), jM = input_left.end(),
+                 k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
             // TODO: replace .at with []
-            while (j < M || x < maxpos)
+            while (j != jM || x < maxpos)
                 {
-                    while (k < M && tables.edge_table[O[k]].right == x) // T4
+                    while (k != kM && k->pos == x) // T4
                         {
-                            auto& edge_ = tables.edge_table[O[k]];
-                            pi[edge_.child]
+                            pi[k->child]
                                 = std::numeric_limits<std::size_t>::max();
                             ++k;
                         }
-                    while (j < M
-                           && tables.edge_table[I[j]].left == x) // Step T2
+                    while (j != jM && j->pos == x) // Step T2
                         {
-                            auto& edge_ = tables.edge_table[I[j]];
                             // The entry for the child refers to
                             // the parent's location in the node table.
-                            pi[edge_.child] = edge_.parent;
+                            pi[j->child] = j->parent;
                             ++j;
                         }
                     double right = maxpos;
-                    if (j < M)
+                    if (j != jM)
                         {
-                            right = std::min(right,
-                                             tables.edge_table[I[j]].left);
+                            right = std::min(right, j->pos);
                         }
-                    if (k < M)
+                    if (k != kM)
                         {
-                            right = std::min(right,
-                                             tables.edge_table[O[k]].right);
+                            right = std::min(right, k->pos);
                         }
+                    //for(auto & p : pi){std::cout<<p <<' ';}
+                    //std::cout<<'\n';
                     // At this point, pi refers to the marginal tree
                     // beginning at x for all pi[i] !=
                     // std::numeric_limits<std::size_t>::max()
@@ -157,33 +116,10 @@ namespace fwdpp
                     // parent in the node table.
 
                     //if (x != 0.0)
-                    //    {
-                    //        for (auto& e : tables.edge_table)
-                    //            {
-                    //                std::cerr << e.parent << ' ' << e.child
-                    //                          << ' ' << e.left << ' '
-                    //                          << e.right << '\n';
-                    //            }
-                    //        for (std::size_t pi_i = 0; pi_i < pi.size();
-                    //             ++pi_i)
-                    //            {
-                    //                if (pi[pi_i]
-                    //                    != std::numeric_limits<std::size_t>::
-                    //                           max())
-                    //                    {
-                    //                        std::cout
-                    //                            << pi_i << ' ' << pi[pi_i]
-                    //                            << ' '
-                    //                            << tables.node_table[pi_i]
-                    //                                   .generation
-                    //                            << ' '
-                    //                            << tables.node_table[pi[pi_i]]
-                    //                                   .generation
-                    //                            << ' ' << x << '\n';
-                    //                    }
-                    //            }
-                    //        std::exit(0);
-                    //    }
+					//{
+					//	for(auto p:pi){std::cout<<p<<' ';}
+					//	std::exit(0);
+					//}
                     //if (j >= M)
                     //    break;
                     x = right;

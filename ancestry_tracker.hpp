@@ -501,7 +501,6 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.swap(tables_);
-                algorithmT(tables, 1.0);
                 cleanup();
                 return idmap;
             }
@@ -552,6 +551,14 @@ namespace fwdpp
             num_edges() const
             {
                 return tables.edge_table.size();
+            }
+
+            void
+            algorithmT() const
+            {
+                auto IO = fill_I_O(tables);
+                ancestry::algorithmT(IO.first, IO.second,
+                                     tables.node_table.size(), 1.0);
             }
         };
     }
