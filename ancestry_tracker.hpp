@@ -517,7 +517,10 @@ namespace fwdpp
                 tables.emplace_back_node(next_index, 0, generation + 1);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
-                // TODO: add mutation to tables
+                for (auto& m : new_mutations)
+                    {
+                        tables.mutation_table.emplace_back(next_index, m);
+                    }
             }
 
             void
