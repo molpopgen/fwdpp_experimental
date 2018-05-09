@@ -23,6 +23,7 @@ namespace fwdpp
         struct table_collection
         {
           private:
+            edge_vector temp_edges; //used for sorting
             void
             split_breakpoints(
                 const std::vector<double>& breakpoints,
@@ -33,14 +34,13 @@ namespace fwdpp
                 if (breakpoints.empty())
                     {
                         this->push_back_edge(0., L, std::get<0>(parents),
-                                              next_index);
+                                             next_index);
                         goto out;
                     }
                 if (breakpoints.front() != 0.0)
                     {
                         this->push_back_edge(0., breakpoints.front(),
-                                              std::get<0>(parents),
-                                              next_index);
+                                             std::get<0>(parents), next_index);
                     }
                 for (unsigned j = 1; j < breakpoints.size(); ++j)
                     {
@@ -68,46 +68,53 @@ namespace fwdpp
             edge_vector edge_table;
             mutation_key_vector mutation_table;
             index_vector input_left, output_right;
-			const double L;
+            // This reflects the length of
+            // tables.edge_table after last simplification.
+            // It can be used to make sure we only sort
+            // newly-added nodes.
+            // TODO: move to table_collection
+            std::ptrdiff_t edge_offset;
+            const double L;
             table_collection(const double maxpos)
-                : node_table{}, edge_table{}, mutation_table{}, input_left{},
-                  output_right{},L{maxpos}
+                : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
+                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
-				//TODO assert maxpos is > 0 and finite
+                //TODO assert maxpos is > 0 and finite
             }
 
             table_collection(const std::int32_t num_initial_nodes,
-                             const double initial_time, std::int32_t pop, const double maxpos)
-                : node_table{}, edge_table{}, mutation_table{}, input_left{},
-                  output_right{},L{maxpos}
+                             const double initial_time, std::int32_t pop,
+                             const double maxpos)
+                : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
+                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
-				//TODO assert maxpos is > 0 and finite
+                //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
                         node_table.push_back(node{ i, pop, initial_time });
                     }
             }
 
+            //void
+            //sort_edges()
+            //{
+            //    edge_vector temp_edges;
+            //    if (edge_offset > 0)
+            //        {
+            //            temp_edges.reserve(edge_table.size());
+            //        }
+            //    sort_edges(edge_offset, temp_edges);
+            //}
+
             void
-            sort_edges(const std::size_t offset)
-            {
-                edge_vector temp_edges;
-                if (offset > 0)
-                    {
-                        temp_edges.reserve(edge_table.size());
-                    }
-                sort_edges(offset, temp_edges);
-            }
-            void
-            sort_edges(const std::size_t offset,
-                       edge_vector& temp_edges) noexcept
+            sort_edges() noexcept
             /// Sort the edge table.  On PARENT birth times.
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
             /// TODO: need offset
             {
-                std::sort(edge_table.begin() + offset, edge_table.end(),
+                std::sort(edge_table.begin() + edge_offset, edge_table.end(),
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
@@ -130,19 +137,21 @@ namespace fwdpp
                                   }
                               return ga > gb;
                           });
-                if (offset > 0)
+                if (edge_offset > 0)
                     {
+						temp_edges.reserve(edge_table.size());
                         auto size = edge_table.size();
                         temp_edges.clear();
                         temp_edges.insert(
-                            temp_edges.end(), std::make_move_iterator(
-                                                  edge_table.begin() + offset),
+                            temp_edges.end(),
+                            std::make_move_iterator(edge_table.begin()
+                                                    + edge_offset),
                             std::make_move_iterator(edge_table.end()));
                         temp_edges.insert(
                             temp_edges.end(),
                             std::make_move_iterator(edge_table.begin()),
                             std::make_move_iterator(edge_table.begin()
-                                                    + offset));
+                                                    + edge_offset));
                         // std::move(edge_table.begin() + offset,
                         //          edge_table.end(),
                         //          std::back_inserter(temp_edges));
@@ -158,17 +167,17 @@ namespace fwdpp
                 assert(edges_are_sorted());
             }
 
-            void
-            swap(table_collection& t) noexcept
-            /// Swaps out data members.
-            /// Primary use is after simplification,
-            /// where a table_collection is used
-            /// as a temp object.
-            {
-                edge_table.swap(t.edge_table);
-                node_table.swap(t.node_table);
-                mutation_table.swap(t.mutation_table);
-            }
+            //void
+            //swap(table_collection& t) noexcept
+            ///// Swaps out data members.
+            ///// Primary use is after simplification,
+            ///// where a table_collection is used
+            ///// as a temp object.
+            //{
+            //    edge_table.swap(t.edge_table);
+            //    node_table.swap(t.node_table);
+            //    mutation_table.swap(t.mutation_table);
+            //}
 
             bool
             edges_are_sorted() const noexcept

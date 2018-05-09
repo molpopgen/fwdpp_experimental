@@ -41,15 +41,8 @@ namespace fwdpp
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             edge_vector E;
-            // This reflects the length of
-            // tables.edge_table after last simplification.
-            // It can be used to make sure we only sort
-            // newly-added nodes.
-            // TODO: move to table_collection
-            std::ptrdiff_t edge_offset;
             // region length
             const double L;
-
 
             bool
             add_to_queue(const double left, const double right,
@@ -398,7 +391,7 @@ namespace fwdpp
                        const double initial_time, std::int32_t pop,
                        const double region_length = 1.0)
                 : new_edge_table{}, new_node_table{}, segment_queue{}, X{},
-                  Ancestry{}, E{}, edge_offset{ 0 }, L{ region_length }
+                  Ancestry{}, E{},  L{ region_length }
             {
             }
 
@@ -481,10 +474,9 @@ namespace fwdpp
                 return idmap;
             }
 
-
             //void
             //sort_tables() noexcept
-			////TODO: this can be removed
+            ////TODO: this can be removed
             //{
             //    tables.sort_edges(edge_offset, E);
             //}
