@@ -25,7 +25,7 @@
 #include <fwdpp/util.hpp>
 #include "node.hpp"
 #include "edge.hpp"
-#include "ancestry_tracker.hpp"
+#include "simplifier.hpp"
 //#include "split_breakpoints.hpp"
 
 using namespace fwdpp::ancestry;
@@ -71,7 +71,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
-                  const fwdpp::uint_t generation, ancestry_tracker& ancestry,
+                  const fwdpp::uint_t generation, simplifier& ancestry,
                   std::int32_t first_parental_index, std::int32_t next_index)
 {
 
@@ -155,7 +155,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     pop.diploids.swap(offspring);
 }
 
-ancestry_tracker
+simplifier
 evolve(const GSLrng_t& rng, slocuspop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
        const double mu_selected, const double recrate)
@@ -202,7 +202,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             []() { return 0.0; }, []() { return 0.0; });
     };
 
-    ancestry_tracker ancestry(2 * pop.diploids.size(), 0, 0);
+    simplifier ancestry(2 * pop.diploids.size(), 0, 0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
     double sort_time = 0.0;

@@ -9,7 +9,7 @@
 /// release of fwdpp.
 /// The most likely fate is that this code
 /// end up as member functions of table_collection
-/// and/or ancestry_tracker, so that we can
+/// and/or simplifier, so that we can
 /// re-use memory allocated for I, O, and pi,
 /// as we will be calling these functions a LOT.
 /// LICENSE: GPL3

@@ -1,5 +1,5 @@
-#ifndef FWDPP_ANCESTRY_ANCESTRY_TRACKER_HPP__
-#define FWDPP_ANCESTRY_ANCESTRY_TRACKER_HPP__
+#ifndef FWDPP_ANCESTRY_SIMPLIFIER_HPP__
+#define FWDPP_ANCESTRY_SIMPLIFIER_HPP__
 
 #include <vector>
 #include <algorithm>
@@ -14,7 +14,7 @@ namespace fwdpp
 {
     namespace ancestry
     {
-        class ancestry_tracker
+        class simplifier
         {
           private:
             struct segment
@@ -426,7 +426,7 @@ namespace fwdpp
             }
 
           public:
-            ancestry_tracker(const std::int32_t num_initial_nodes,
+            simplifier(const std::int32_t num_initial_nodes,
                              const double initial_time, std::int32_t pop,
                              const double region_length = 1.0)
                 : tables{ num_initial_nodes, initial_time, pop }, tables_{},
@@ -436,7 +436,7 @@ namespace fwdpp
             }
 
             template <typename TC>
-            ancestry_tracker(TC&& initial_table_collection,
+            simplifier(TC&& initial_table_collection,
                              const double region_length)
                 : tables{ std::forward<TC>(initial_table_collection) },
                   tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
@@ -532,7 +532,7 @@ namespace fwdpp
             table_collection
             dump_tables()
             /// Returns the tables via a move-constructed object.
-            /// The ancestry_tracker instance is now in an inconsistent state.
+            /// The simplifier instance is now in an inconsistent state.
             {
                 table_collection rv(std::move(tables));
                 return rv;
