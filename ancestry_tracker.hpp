@@ -566,13 +566,13 @@ namespace fwdpp
                                      v);
             }
 
-            //void
-            //algorithmT() const
-            //{
-            //    auto IO = fill_I_O(tables);
-            //    ancestry::algorithmT(IO.first, IO.second,
-            //                         tables.node_table.size(), 1.0);
-            //}
+            void
+            algorithmT()
+            {
+				tables.build_indexes();
+                ancestry::algorithmT(tables.input_left,tables.output_right,
+                                     tables.node_table.size(), 1.0);
+            }
         };
     }
 }
