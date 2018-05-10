@@ -290,6 +290,8 @@ namespace fwdpp
                     {
                         mutation_table.emplace_back(
                             mutation_record{ next_index, m });
+						assert(mutation_table.back().node==next_index);
+						assert(mutation_table.back().key==m);
                     }
             }
 
