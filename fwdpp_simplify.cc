@@ -232,6 +232,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     samples.push_back(i);
                 }
             tables.sort_tables(pop.mutations);
+			auto mt=tables.mutation_table;
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
             unsigned n = 0;
             for (std::size_t i = 0; i < pop.mutations.size(); ++i)
@@ -264,6 +265,9 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                               << pop.mutations[i].pos << ' '
                                               << pop.mutations[i].g << '\n';
                         }
+					for(unsigned i=0;i<mt.size();++i){
+						std::cout<< mt[i].node << ' ' << xx.first[mt[i].node] << ' ' << pop.mutations[mt[i].key].pos <<'\n';
+					}
                     std::exit(0);
                 }
             std::cerr << (pop.mcounts == xx.second) << '\n';
