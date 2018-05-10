@@ -168,11 +168,19 @@ namespace fwdpp
                 assert(edges_are_sorted());
             }
 
+            template <typename mutation_container>
             void
-            sort_tables()
-            //TODO: make template to sort mutations
+            sort_tables(const mutation_container& mutations)
+            //TODO: static_assert that mutations contains the right stuff
             {
                 sort_edges();
+                //mutations are sorted by increasing position
+                std::sort(mutation_table.begin(), mutation_table.end(),
+                          [&mutations](const mutation_record& a,
+                                       const mutation_record& b) {
+                              return mutations[a.key].pos
+                                     < mutations[b.key].pos;
+                          });
             }
 
             //void

@@ -231,7 +231,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     assert(tables.node_table[i].generation == generation + 1);
                     samples.push_back(i);
                 }
-            tables.sort_tables();
+            tables.sort_tables(pop.mutations);
             ancestry.simplify(tables, samples);
             next_index = tables.num_nodes();
             first_parental_index = 0;
