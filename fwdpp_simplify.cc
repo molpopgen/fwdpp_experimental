@@ -72,8 +72,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
                   const fwdpp::uint_t generation, table_collection& tables,
-                  table_simplifier& ancestry, std::int32_t first_parental_index,
-                  std::int32_t next_index)
+                  table_simplifier& ancestry,
+                  std::int32_t first_parental_index, std::int32_t next_index)
 {
 
     auto gamete_recycling_bin
@@ -232,7 +232,30 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     samples.push_back(i);
                 }
             tables.sort_tables(pop.mutations);
-            ancestry.simplify(tables, samples);
+            auto xx = ancestry.simplify(tables, samples, pop.mutations);
+			std::cerr<<"result "
+				<<int(std::accumulate(pop.mcounts.begin(),pop.mcounts.end(),0)) <<' '
+				<<int(std::accumulate(xx.second.begin(),xx.second.end(),0)) <<'\n';
+			unsigned n=0;
+			for(std::size_t i=0;i<pop.mutations.size();++i)
+			{
+				if(pop.mcounts[i]&&pop.mutations[i].pos < 0.00121428)
+				{
+					++n;
+				}
+			}
+			std::cerr<<"num in that tree = "<<n<<'\n';
+            assert(pop.mcounts.size() == xx.second.size());
+            if (pop.mcounts != xx.second)
+                {
+                    for (std::size_t i = 0; i < pop.mcounts.size();++i)
+                        {
+                            std::cout << pop.mcounts[i] << ' ' << xx.second[i]
+                                      << '\n';
+                        }
+					std::exit(0);
+                }
+            std::cerr << (pop.mcounts == xx.second) << '\n';
             next_index = tables.num_nodes();
             first_parental_index = 0;
             // std::cout<<next_index<<' '<<first_parental_index<<"\n";
@@ -249,7 +272,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
     //    }
     // ancestry.sort_tables();
     // ancestry.simplify(samples);
-	return tables;
+    return tables;
 }
 
 int

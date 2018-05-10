@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <fwdpp/sugar/popgenmut.hpp>
 #include "edge.hpp"
 #include "node.hpp"
 #include "table_simplifier.hpp"
@@ -136,7 +137,8 @@ main(int argc, char** argv)
         << " ms" << std::endl;
 	table_simplifier ancestry(1.0);
     start = std::chrono::steady_clock::now();
-    ancestry.simplify(tables,samples);
+	std::vector<fwdpp::popgenmut> dummy;
+    ancestry.simplify(tables,samples,dummy);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr

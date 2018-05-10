@@ -149,6 +149,9 @@ namespace fwdpp
                             }
                         leaf_counts[s] = 1;
                     }
+                std::cerr << "init " << std::accumulate(leaf_counts.begin(),
+                                                        leaf_counts.end(), 0)
+                          << '\n';
             }
         };
 

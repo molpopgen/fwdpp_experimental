@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <cstddef>
 #include <stdexcept>
 #include "node.hpp"
@@ -410,7 +411,8 @@ namespace fwdpp
             //}
 
             template <typename mutation_container>
-            std::vector<std::int32_t>
+            //std::vector<std::int32_t>
+            std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
             simplify(table_collection& tables,
                      const std::vector<std::int32_t>& samples,
                      const mutation_container& mutations)
@@ -496,7 +498,58 @@ namespace fwdpp
                         mr.node = idmap[mr.node];
                     }
 
-                return idmap;
+                // 3. Now, we use Kelleher et al. (2016)'s Algorithm L
+                // to march through each marginal tree and its leaf
+                // counts. At the same time, we march through our mutation
+                // table, which is sorted by position.
+                std::vector<std::uint32_t> mcounts(
+                    mutations.size(), 0); //TODO: update the real mcounts!!!
+
+                auto mtable_itr = tables.mutation_table.begin();
+                auto mtable_end = tables.mutation_table.end();
+                auto mutation_simplifier = [&mutations, &mtable_itr,
+                                            mtable_end, &mcounts](
+                    const marginal_tree& marginal) {
+                    std::cerr << std::accumulate(marginal.leaf_counts.begin(),
+                                                 marginal.leaf_counts.end(), 0)
+                              << ' ' << marginal.left << ' ' << marginal.right
+                              << ' '
+                              << std::distance(mtable_itr, mtable_end) << ' ';
+                    //TODO: do we need to check left here?
+                    while (mutations[mtable_itr->key].pos < marginal.left)
+                        {
+                            ++mtable_itr;
+                        }
+                    while (mtable_itr < mtable_end
+                           && mutations[mtable_itr->key].pos < marginal.right)
+                        {
+                            mcounts[mtable_itr->key]
+                                += marginal.leaf_counts[mtable_itr->node];
+                            ++mtable_itr;
+                        }
+                    std::cerr << std::distance(mtable_itr, mtable_end) << '\n';
+                };
+
+                tables.build_indexes();
+                auto remapped_samples(samples);
+                for (std::size_t i = 0; i < samples.size(); ++i)
+                    {
+                        remapped_samples[i] = idmap[samples[i]];
+                    }
+                algorithmL(tables.input_left, tables.output_right,
+                           remapped_samples, tables.node_table.size(),
+                           tables.L, mutation_simplifier);
+
+                // 4. Remove any elements from table with count == 0
+                tables.mutation_table.erase(
+                    std::remove_if(tables.mutation_table.begin(),
+                                   tables.mutation_table.end(),
+                                   [&mcounts](const mutation_record& mr) {
+                                       return mcounts[mr.key] == 0;
+                                   }),
+                    tables.mutation_table.end());
+
+                return std::make_pair(std::move(idmap), std::move(mcounts));
             }
 
             //void
