@@ -166,6 +166,7 @@ namespace fwdpp
                  k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
             marginal_tree marginal(nnodes, sample_indexes);
+			while(j!=jM||x<maxpos){
             while (k != kM && k->pos == x) // T4
                 {
                     marginal.parents[k->child] = -1;
@@ -210,6 +211,7 @@ namespace fwdpp
             //to the visitor
             v(marginal);
             x = right;
+			}
         }
     }
 }
