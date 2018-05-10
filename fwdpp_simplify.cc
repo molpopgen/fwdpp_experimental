@@ -258,14 +258,11 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
                         {
-                            if (pop.mcounts[i] != xx.second[i])
-                                {
                                     std::cout << generation << ' '
                                               << pop.mcounts[i] << ' '
                                               << xx.second[i] << ' '
                                               << pop.mutations[i].pos << ' '
                                               << pop.mutations[i].g << '\n';
-                                }
                         }
                     std::exit(0);
                 }
