@@ -23,9 +23,7 @@ namespace fwdpp
                 double left, right;
                 std::int32_t node;
                 segment(double l, double r, std::int32_t n) noexcept
-                    : left{ l },
-                      right{ r },
-                      node{ n }
+                    : left{ l }, right{ r }, node{ n }
                 {
                 }
             };
@@ -390,8 +388,8 @@ namespace fwdpp
 
           public:
             table_simplifier(const double region_length)
-                : new_edge_table{}, new_node_table{}, segment_queue{}, X{},
-                  Ancestry{}, E{}, L{ region_length }
+                : new_edge_table{}, new_node_table{},
+                  segment_queue{}, X{}, Ancestry{}, E{}, L{ region_length }
             {
             }
 
@@ -425,6 +423,34 @@ namespace fwdpp
             /// also simplified
             {
                 Ancestry.resize(tables.node_table.size());
+
+                // Set some things up for later mutation simplification
+                //std::unordered_multimap<std::int32_t, std::size_t>
+                std::vector<std::pair<std::int32_t, std::vector<std::size_t>>>
+                    mutation_map(
+                        tables.node_table
+                            .size()); //maps input nodes to locations in input mut table
+                std::vector<std::int32_t> mutation_node_map(
+                    tables.mutation_table.size(), -1);
+                for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                    {
+                        mutation_map[tables.mutation_table[i].node]
+                            .second.push_back(i);
+                    }
+                // Sort the mut map by increasingincreasing  position
+                for (auto& i : mutation_map)
+                    {
+                        std::sort(i.second.begin(), i.second.end(),
+                                  [&tables, &mutations](const std::size_t j,
+                                                        const std::size_t k) {
+                                      auto mindex_j
+                                          = tables.mutation_table[j].key;
+                                      auto mindex_k
+                                          = tables.mutation_table[k].key;
+                                      return mutations[mindex_j].pos
+                                             < mutations[mindex_k].pos;
+                                  });
+                    }
 
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
@@ -469,14 +495,54 @@ namespace fwdpp
                            [](const std::int32_t i) { return i != -1; }))
                        == new_node_table.size());
 
-                tables.edge_table.swap(new_edge_table);
-                // TODO: allow for exception instead of assert
-                tables.node_table.swap(new_node_table);
-                assert(tables.edges_are_sorted());
-                tables.update_offset();
-                cleanup();
-
                 // Simplify mutations
+
+                // 0. Remap mutation input node ids.  To do this, we use
+                // the data stored in Ancestry, which allows us to "push"
+                // mutation nodes down the tree.
+
+                for (std::size_t i = 0; i < tables.node_table.size(); ++i)
+                    {
+                        auto seg = Ancestry[i].cbegin();
+                        auto mut = mutation_map[i].second.cbegin(),
+                             mute = mutation_map[i].second.cend();
+                        while (seg < Ancestry[i].cend() && mut < mute)
+                            {
+                                //TODO: indirect access alert!
+                                auto pos
+                                    = mutations[tables.mutation_table[*mut]
+                                                    .key]
+                                          .pos;
+                                if (seg->left <= pos && pos < seg->right)
+                                    {
+                                        assert(mut < mute);
+                                        assert(*mut
+                                               < mutation_node_map.size());
+                                        assert(seg->node < tables.node_table.size());
+                                        mutation_node_map[*mut] = seg->node;
+                                        //tables.mutation_table[*mut].node
+                                        //        = seg->node;
+                                        ++mut;
+                                    }
+                                else if (pos >= seg->right)
+                                    {
+                                        ++seg;
+                                    }
+                                else
+                                    {
+                                        ++mut;
+                                    }
+                            }
+                    }
+
+
+                // 2. Map input mutation node IDs to output IDs
+                // This is fast O(n).
+                for(auto & mr : tables.mutation_table){std::cout << mr.node << '\n';}
+                for(std::size_t i=0;i<tables.mutation_table.size();++i)
+                    {
+                        tables.mutation_table[i].node = mutation_node_map[i];
+                    }
 
                 // 1. Remove all mutations whose output nodes are simply gone.
                 // Note this does not remove mutations where the node still exists
@@ -490,14 +556,7 @@ namespace fwdpp
                                        return idmap[mr.node] == -1;
                                    }),
                     tables.mutation_table.end());
-
-                // 2. Map input mutation node IDs to output IDs
-                // This is fast O(n).
-                for (auto& mr : tables.mutation_table)
-                    {
-                        mr.node = idmap[mr.node];
-                    }
-
+                for(auto & mr : tables.mutation_table){std::cout << mr.node << ' ' <<mutations[mr.key].pos<< '\n';}
                 assert(std::is_sorted(
                     tables.mutation_table.begin(), tables.mutation_table.end(),
                     [&mutations](const mutation_record& a,
@@ -530,8 +589,10 @@ namespace fwdpp
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
-							assert(mutations[mtable_itr->key].pos >= marginal.left);
-							assert(mutations[mtable_itr->key].pos < marginal.right);
+                            assert(mutations[mtable_itr->key].pos
+                                   >= marginal.left);
+                            assert(mutations[mtable_itr->key].pos
+                                   < marginal.right);
                             mcounts[mtable_itr->key]
                                 = marginal.leaf_counts[mtable_itr->node];
                             ++mtable_itr;
@@ -561,6 +622,12 @@ namespace fwdpp
                                    }),
                     tables.mutation_table.end());
 
+                tables.edge_table.swap(new_edge_table);
+                tables.node_table.swap(new_node_table);
+                // TODO: allow for exception instead of assert
+                assert(tables.edges_are_sorted());
+                tables.update_offset();
+                cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));
             }
 
