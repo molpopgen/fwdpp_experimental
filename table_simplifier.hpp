@@ -530,6 +530,8 @@ namespace fwdpp
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
+							assert(mutations[mtable_itr->key].pos >= marginal.left);
+							assert(mutations[mtable_itr->key].pos < marginal.right);
                             mcounts[mtable_itr->key]
                                 = marginal.leaf_counts[mtable_itr->node];
                             ++mtable_itr;

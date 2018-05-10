@@ -246,15 +246,26 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                              pop.mcounts.end(), 0))
                       << ' ' << int(std::accumulate(xx.second.begin(),
                                                     xx.second.end(), 0))
-                      << ' ' << n << ' ' << tables.mutation_table.size()
-                      << ' ' << pop.fixations.size() << '\n';
+                      << ' ' << n << ' ' << tables.mutation_table.size() << ' '
+                      << pop.fixations.size() << '\n';
             assert(pop.mcounts.size() == xx.second.size());
+            for (auto& mr : tables.mutation_table)
+                {
+                    assert(tables.node_table.at(mr.node).generation
+                           == 1. + pop.mutations[mr.key].g);
+                }
             if (pop.mcounts != xx.second)
                 {
                     for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
                         {
-                            std::cout << pop.mcounts[i] << ' ' << xx.second[i]
-                                      << '\n';
+                            if (pop.mcounts[i] != xx.second[i])
+                                {
+                                    std::cout << generation << ' '
+                                              << pop.mcounts[i] << ' '
+                                              << xx.second[i] << ' '
+                                              << pop.mutations[i].pos << ' '
+                                              << pop.mutations[i].g << '\n';
+                                }
                         }
                     std::exit(0);
                 }
