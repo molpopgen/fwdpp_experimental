@@ -10,6 +10,7 @@
 #include <cstddef>
 #include "node.hpp"
 #include "edge.hpp"
+#include "mutation_record.hpp"
 #include "msprime_algo.hpp" //TODO: create fewer header dependencies
 
 namespace fwdpp
@@ -18,8 +19,7 @@ namespace fwdpp
     {
         using edge_vector = std::vector<edge>;
         using node_vector = std::vector<node>;
-        using mutation_key_vector
-            = std::vector<std::pair<std::int32_t, std::size_t>>;
+        using mutation_key_vector = std::vector<mutation_record>;
         struct table_collection
         {
           private:
@@ -280,7 +280,8 @@ namespace fwdpp
                 split_breakpoints(breakpoints, parents, next_index);
                 for (auto& m : new_mutations)
                     {
-                        mutation_table.emplace_back(next_index, m);
+                        mutation_table.emplace_back(
+                            mutation_record{ next_index, m });
                     }
             }
 
