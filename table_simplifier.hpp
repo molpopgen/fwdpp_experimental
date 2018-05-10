@@ -542,6 +542,9 @@ namespace fwdpp
                 for (std::size_t i = 0; i < samples.size(); ++i)
                     {
                         remapped_samples[i] = idmap[samples[i]];
+                        assert(
+                            tables.node_table[remapped_samples[i]].generation
+                            == tables.node_table[0].generation);
                     }
                 algorithmL(tables.input_left, tables.output_right,
                            remapped_samples, tables.node_table.size(),
