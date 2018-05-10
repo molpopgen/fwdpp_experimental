@@ -409,9 +409,11 @@ namespace fwdpp
             //        }
             //}
 
+            template <typename mutation_container>
             std::vector<std::int32_t>
             simplify(table_collection& tables,
-                     const std::vector<std::int32_t>& samples)
+                     const std::vector<std::int32_t>& samples,
+                     const mutation_container& mutations)
             /// Set theoretic simplify.
             /// TODO: shorten via additional function calls
             /// for readability
@@ -471,6 +473,29 @@ namespace fwdpp
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
                 cleanup();
+
+                // Simplify mutations
+
+                // 1. Remove all mutations whose output nodes are simply gone.
+                // Note this does not remove mutations where the node still exists
+                // somewhere in the pedigree, but the mutation is on a marginal tree
+                // where the node is not an ancestor.
+                // This is a fast O(n).
+                tables.mutation_table.erase(
+                    std::remove_if(tables.mutation_table.begin(),
+                                   tables.mutation_table.end(),
+                                   [&idmap](const mutation_record& mr) {
+                                       return idmap[mr.node] == -1;
+                                   }),
+                    tables.mutation_table.end());
+
+                // 2. Map input mutation node IDs to output IDs
+                // This is fast O(n).
+                for (auto& mr : tables.mutation_table)
+                    {
+                        mr.node = idmap[mr.node];
+                    }
+
                 return idmap;
             }
 
