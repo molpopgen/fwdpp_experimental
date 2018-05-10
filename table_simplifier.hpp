@@ -498,6 +498,13 @@ namespace fwdpp
                         mr.node = idmap[mr.node];
                     }
 
+                assert(std::is_sorted(
+                    tables.mutation_table.begin(), tables.mutation_table.end(),
+                    [&mutations](const mutation_record& a,
+                                 const mutation_record& b) {
+                        return mutations[a.key].pos < mutations[b.key].pos;
+                    }));
+
                 // 3. Now, we use Kelleher et al. (2016)'s Algorithm L
                 // to march through each marginal tree and its leaf
                 // counts. At the same time, we march through our mutation
@@ -513,8 +520,8 @@ namespace fwdpp
                     std::cerr << std::accumulate(marginal.leaf_counts.begin(),
                                                  marginal.leaf_counts.end(), 0)
                               << ' ' << marginal.left << ' ' << marginal.right
-                              << ' '
-                              << std::distance(mtable_itr, mtable_end) << ' ';
+                              << ' ' << std::distance(mtable_itr, mtable_end)
+                              << ' ';
                     //TODO: do we need to check left here?
                     while (mutations[mtable_itr->key].pos < marginal.left)
                         {
@@ -524,7 +531,7 @@ namespace fwdpp
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
                             mcounts[mtable_itr->key]
-                                += marginal.leaf_counts[mtable_itr->node];
+                                = marginal.leaf_counts[mtable_itr->node];
                             ++mtable_itr;
                         }
                     std::cerr << std::distance(mtable_itr, mtable_end) << '\n';

@@ -233,27 +233,30 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             tables.sort_tables(pop.mutations);
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
-			std::cerr<<"result "
-				<<int(std::accumulate(pop.mcounts.begin(),pop.mcounts.end(),0)) <<' '
-				<<int(std::accumulate(xx.second.begin(),xx.second.end(),0)) <<'\n';
-			unsigned n=0;
-			for(std::size_t i=0;i<pop.mutations.size();++i)
-			{
-				if(pop.mcounts[i]&&pop.mutations[i].pos < 0.00121428)
-				{
-					++n;
-				}
-			}
-			std::cerr<<"num in that tree = "<<n<<'\n';
+            unsigned n = 0;
+            for (std::size_t i = 0; i < pop.mutations.size(); ++i)
+                {
+                    if (pop.mcounts[i])
+                        {
+                            ++n;
+                        }
+                }
+            std::cerr << "result "
+                      << int(std::accumulate(pop.mcounts.begin(),
+                                             pop.mcounts.end(), 0))
+                      << ' ' << int(std::accumulate(xx.second.begin(),
+                                                    xx.second.end(), 0))
+                      << ' ' << n << ' ' << tables.mutation_table.size()
+                      << ' ' << pop.fixations.size() << '\n';
             assert(pop.mcounts.size() == xx.second.size());
             if (pop.mcounts != xx.second)
                 {
-                    for (std::size_t i = 0; i < pop.mcounts.size();++i)
+                    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
                         {
                             std::cout << pop.mcounts[i] << ' ' << xx.second[i]
                                       << '\n';
                         }
-					std::exit(0);
+                    std::exit(0);
                 }
             std::cerr << (pop.mcounts == xx.second) << '\n';
             next_index = tables.num_nodes();

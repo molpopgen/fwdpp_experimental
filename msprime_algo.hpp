@@ -166,52 +166,56 @@ namespace fwdpp
                  k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
             marginal_tree marginal(nnodes, sample_indexes);
-			while(j!=jM||x<maxpos){
-            while (k != kM && k->pos == x) // T4
+            while (j != jM || x < maxpos)
                 {
-                    marginal.parents[k->child] = -1;
-                    // Decrement leaf counts for outgoing nodes
-                    auto p = k->parent;
-                    auto lc = marginal.leaf_counts[k->child];
-                    while (p != -1)
+					assert(j<jM);
+					assert(k<kM);
+                    while (k != kM && k->pos == x) // T4
                         {
-                            marginal.leaf_counts[p] -= lc;
-                            p = marginal.parents[p];
+                            marginal.parents[k->child] = -1;
+                            // Decrement leaf counts for outgoing nodes
+                            auto p = k->parent;
+                            auto lc = marginal.leaf_counts[k->child];
+                            while (p != -1)
+                                {
+                                    marginal.leaf_counts[p] -= lc;
+                                    assert(marginal.leaf_counts[p] >= 0);
+                                    p = marginal.parents[p];
+                                }
+                            ++k;
                         }
-                    ++k;
-                }
-            while (j != jM && j->pos == x) // Step T2
-                {
-                    // The entry for the child refers to
-                    // the parent's location in the node table.
-                    marginal.parents[j->child] = j->parent;
-                    // Increment leaf counts for incoming nodes
-                    auto p = j->parent;
-                    auto lc = marginal.leaf_counts[j->child];
-                    while (p != -1)
+                    while (j != jM && j->pos == x) // Step T2
                         {
-                            marginal.leaf_counts[p] += lc;
-                            p = marginal.parents[p];
+                            // The entry for the child refers to
+                            // the parent's location in the node table.
+                            marginal.parents[j->child] = j->parent;
+                            // Increment leaf counts for incoming nodes
+                            auto p = j->parent;
+                            auto lc = marginal.leaf_counts[j->child];
+                            while (p != -1)
+                                {
+                                    marginal.leaf_counts[p] += lc;
+                                    p = marginal.parents[p];
+                                }
+                            ++j;
                         }
-                    ++j;
+                    double right = maxpos;
+                    if (j != jM)
+                        {
+                            right = std::min(right, j->pos);
+                        }
+                    if (k != kM)
+                        {
+                            right = std::min(right, k->pos);
+                        }
+                    marginal.left = x;
+                    marginal.right = right;
+                    //This "yields"
+                    //the data for this tree
+                    //to the visitor
+                    v(marginal);
+                    x = right;
                 }
-            double right = maxpos;
-            if (j != jM)
-                {
-                    right = std::min(right, j->pos);
-                }
-            if (k != kM)
-                {
-                    right = std::min(right, k->pos);
-                }
-            marginal.left = x;
-            marginal.right = right;
-            //This "yields"
-            //the data for this tree
-            //to the visitor
-            v(marginal);
-            x = right;
-			}
         }
     }
 }
