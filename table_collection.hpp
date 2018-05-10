@@ -118,6 +118,7 @@ namespace fwdpp
                           [this](const edge& a, const edge& b) {
                               auto ga = this->node_table[a.parent].generation;
                               auto gb = this->node_table[b.parent].generation;
+                              //
                               //return ga > gb
                               //       || (ga == gb
                               //           && std::tie(a.parent, a.child, a.left)
@@ -287,6 +288,12 @@ namespace fwdpp
             num_nodes() const
             {
                 return node_table.size();
+            }
+
+            void
+            update_offset()
+            {
+                edge_offset = edge_table.size();
             }
         };
     }

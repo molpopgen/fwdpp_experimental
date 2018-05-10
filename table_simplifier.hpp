@@ -467,8 +467,9 @@ namespace fwdpp
 
                 tables.edge_table.swap(new_edge_table);
                 // TODO: allow for exception instead of assert
-                assert(tables.edges_are_sorted());
                 tables.node_table.swap(new_node_table);
+                assert(tables.edges_are_sorted());
+                tables.update_offset();
                 cleanup();
                 return idmap;
             }
