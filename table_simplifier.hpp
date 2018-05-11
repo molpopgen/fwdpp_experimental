@@ -609,6 +609,7 @@ namespace fwdpp
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
+                            std::cerr << mutations[mtable_itr->key].pos << ' ';
                             assert(mutations[mtable_itr->key].pos
                                    >= marginal.left);
                             assert(mutations[mtable_itr->key].pos
