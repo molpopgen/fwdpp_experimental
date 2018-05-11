@@ -523,9 +523,9 @@ namespace fwdpp
                                                < mutation_node_map.size());
                                         assert(seg->node
                                                < new_edge_table.size());
-                                        std::cout << "found it " << tables.mutation_table[*mut].node << ' ' << seg->node << '\n';
+                                        std::cout << "found it " << tables.mutation_table[i].node << ' ' << seg->node << '\n';
                                         mutation_node_map.at(
-                                            tables.mutation_table[*mut].node)
+                                            tables.mutation_table[i].node)
                                             = seg->node;
                                         ++mut;
                                     }
