@@ -545,10 +545,6 @@ namespace fwdpp
                                     }
                             }
                     }
-                for (std::size_t i = 1; i < samples.size(); ++i)
-                    {
-                        assert(samples[i] - 1 == samples[i - 1]);
-                    }
 
                 // 2. Map input mutation node IDs to output IDs
                 // This is fast O(n).
