@@ -234,6 +234,8 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             tables.sort_tables(pop.mutations);
             auto mt = tables.mutation_table;
+            auto nt = tables.node_table;
+            auto et = tables.edge_table;
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
             unsigned n = 0;
             for (std::size_t i = 0; i < pop.mutations.size(); ++i)
@@ -325,6 +327,26 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     for(auto e : tables.edge_table)
                     {
                         out << e.parent << ' ' << e.child << ' ' << e.left << ' ' << e.right << '\n';
+                    }
+                    out.close();
+                    out.open("nodes.txt");
+                    for(auto n : tables.node_table){out<<n.id<<' '<<n.generation<<'\n';}
+                    out.close();
+                    //output last set of nodes/edges
+                    out.open("last_edges.bin");
+                    for(auto & e : et)
+                    {
+                        out.write(reinterpret_cast<char*>(&e.parent),sizeof(decltype(e.parent)));
+                        out.write(reinterpret_cast<char*>(&e.child),sizeof(decltype(e.child)));
+                        out.write(reinterpret_cast<char*>(&e.left),sizeof(decltype(e.left)));
+                        out.write(reinterpret_cast<char*>(&e.right),sizeof(decltype(e.right)));
+                    }
+                    out.close();
+                    out.open("last_nodes.bin");
+                    for(auto n : nt)
+                    {
+                        out.write(reinterpret_cast<char*>(&n.id),4);
+                        out.write(reinterpret_cast<char*>(&n.generation),sizeof(double));
                     }
                     out.close();
                     std::exit(0);

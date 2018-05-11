@@ -12,6 +12,7 @@ edges = msprime.EdgeTable()
 
 g = []
 with open(sys.argv[1],"rb") as f:
+    print(sys.argv[1])
     while True:
         a=struct.unpack('i',f.read(4))
         if a[0]==-1:
