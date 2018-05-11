@@ -250,11 +250,11 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                       << ' ' << n << ' ' << tables.mutation_table.size() << ' '
                       << pop.fixations.size() << '\n';
             assert(pop.mcounts.size() == xx.second.size());
-            for (auto& mr : tables.mutation_table)
-                {
-                    assert(tables.node_table.at(mr.node).generation
-                           == 1. + pop.mutations[mr.key].g);
-                }
+            //for (auto& mr : tables.mutation_table)
+            //    {
+            //        assert(tables.node_table.at(mr.node).generation
+            //               == 1. + pop.mutations[mr.key].g);
+            //    }
             if (pop.mcounts != xx.second)
                 {
                     for (std::size_t i = 0; i < pop.mcounts.size(); ++i)

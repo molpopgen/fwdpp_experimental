@@ -90,6 +90,7 @@ def simplify(S, Ni, Ei, L):
                         x.left = r
                         heapq.heappush(Q, x)
 
+            print("check:",u,e.parent)
             A[u].append(alpha)
 
     # Sort the output edges and compact them as much as possible into
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     #verify()
 
     # Generate initial TreeSequence
-    ts = msprime.simulate(5000, recombination_rate=10, random_seed=1)
+    ts = msprime.simulate(50, recombination_rate=10, random_seed=1)
     nodes = ts.tables.nodes
     edges = ts.tables.edges
 
@@ -161,5 +162,5 @@ if __name__ == "__main__":
     # Simplify nodes and edges with respect to the following samples:
     sample = [0, 1, 2,19,33,11,12]
     ts1 = simplify(sample, nodes,edges, ts.sequence_length)
-    print(ts1.tables.nodes)
-    print(ts1.tables.edges)
+    # print(ts1.tables.nodes)
+    # print(ts1.tables.edges)
