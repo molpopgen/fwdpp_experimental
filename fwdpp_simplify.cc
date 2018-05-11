@@ -232,7 +232,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     samples.push_back(i);
                 }
             tables.sort_tables(pop.mutations);
-			auto mt=tables.mutation_table;
+            auto mt = tables.mutation_table;
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
             unsigned n = 0;
             for (std::size_t i = 0; i < pop.mutations.size(); ++i)
@@ -257,17 +257,69 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //    }
             if (pop.mcounts != xx.second)
                 {
+                    std::vector<std::size_t> failures;
                     for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
                         {
-                                    std::cout << generation << ' '
-                                              << pop.mcounts[i] << ' '
-                                              << xx.second[i] << ' '
-                                              << pop.mutations[i].pos << ' '
-                                              << pop.mutations[i].g << '\n';
+                            std::cout << generation << ' ' << pop.mcounts[i]
+                                      << ' ' << xx.second[i] << ' '
+                                      << pop.mutations[i].pos << ' '
+                                      << pop.mutations[i].g << '\n';
+                            if (pop.mcounts[i] != xx.second[i])
+                                {
+                                    failures.push_back(i);
+                                }
                         }
-					for(unsigned i=0;i<mt.size();++i){
-						std::cout<< mt[i].node << ' ' << xx.first[mt[i].node] << ' ' << pop.mutations[mt[i].key].pos <<'\n';
-					}
+                    //Find diploids with failures
+                    std::vector<std::size_t> gfails;
+                    for (std::size_t g = 0; g < pop.gametes.size(); ++g)
+                        {
+                            auto& gam = pop.gametes[g];
+                            if (gam.n)
+                                {
+                                    for (auto f : failures)
+                                        {
+                                            auto itr = std::find(
+                                                gam.mutations.begin(),
+                                                gam.mutations.end(), f);
+                                            auto itr2 = std::find(
+                                                gam.smutations.begin(),
+                                                gam.smutations.end(), f);
+                                            if (itr != gam.mutations.end()
+                                                || itr2
+                                                       != gam.smutations.end())
+                                                {
+                                                    gfails.push_back(g);
+                                                }
+                                        }
+                                }
+                        }
+                    std::sort(gfails.begin(), gfails.end());
+                    gfails.erase(std::unique(gfails.begin(), gfails.end()),
+                                 gfails.end());
+                    for (std::size_t dip = 0; dip < pop.diploids.size(); ++dip)
+                        {
+                            if (std::find(gfails.begin(), gfails.end(),
+                                          pop.diploids[dip].first)
+                                != gfails.end())
+                                {
+                                    std::cout << "Node with mut: " << 2 * dip
+                                              << '\n';
+                                }
+                            if (std::find(gfails.begin(), gfails.end(),
+                                          pop.diploids[dip].second)
+                                != gfails.end())
+                                {
+                                    std::cout
+                                        << "Node with mut: " << 2 * dip + 1
+                                        << '\n';
+                                }
+                        }
+                    for (unsigned i = 0; i < mt.size(); ++i)
+                        {
+                            std::cout << mt[i].node << ' '
+                                      << xx.first[mt[i].node] << ' '
+                                      << pop.mutations[mt[i].key].pos << '\n';
+                        }
                     std::exit(0);
                 }
             std::cerr << (pop.mcounts == xx.second) << '\n';
