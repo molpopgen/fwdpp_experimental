@@ -602,7 +602,7 @@ namespace fwdpp
                               << ' ' << std::distance(mtable_itr, mtable_end)
                               << ' ';
                     //TODO: do we need to check left here?
-                    while (mutations[mtable_itr->key].pos < marginal.left)
+                    while (mtable_itr < mtable_end && mutations[mtable_itr->key].pos < marginal.left)
                         {
                             ++mtable_itr;
                         }
@@ -617,7 +617,7 @@ namespace fwdpp
                                 = marginal.leaf_counts[mtable_itr->node];
                             ++mtable_itr;
                         }
-                    std::cerr << std::distance(mtable_itr, mtable_end) << '\n';
+                    std::cerr << std::distance(mtable_itr, mtable_end) << std::endl;
                 };
 
                 tables.build_indexes();
