@@ -612,8 +612,8 @@ namespace fwdpp
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
-                            std::cerr << mutations[mtable_itr->key].pos << " (" << mtable_itr->key << ','
-                                << marginal.leaf_counts[mtable_itr->node] << ") ";
+                            std::cerr << mutations[mtable_itr->key].pos << " (" << mtable_itr->node << ','
+                                << marginal.leaf_counts[mtable_itr->node] <<','<<marginal.parents[mtable_itr->node]<< ") ";
                             assert(mutations[mtable_itr->key].pos
                                    >= marginal.left);
                             assert(mutations[mtable_itr->key].pos

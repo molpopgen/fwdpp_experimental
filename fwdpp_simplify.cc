@@ -6,6 +6,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include <fstream>
 #include <iostream>
 #include <algorithm>
 #include <queue>
@@ -320,6 +321,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                       << xx.first[mt[i].node] << ' '
                                       << pop.mutations[mt[i].key].pos << '\n';
                         }
+                    std::ofstream out("edges.txt");
+                    for(auto e : tables.edge_table)
+                    {
+                        out << e.parent << ' ' << e.child << ' ' << e.left << ' ' << e.right << '\n';
+                    }
+                    out.close();
                     std::exit(0);
                 }
             std::cerr << (pop.mcounts == xx.second) << '\n';
