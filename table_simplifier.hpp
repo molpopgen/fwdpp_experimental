@@ -494,6 +494,13 @@ namespace fwdpp
                            idmap.begin(), idmap.end(),
                            [](const std::int32_t i) { return i != -1; }))
                        == new_node_table.size());
+                // After swapping, new_node_table
+                // contains the input nodes
+                tables.edge_table.swap(new_edge_table);
+                tables.node_table.swap(new_node_table);
+                // TODO: allow for exception instead of assert
+                assert(tables.edges_are_sorted());
+                tables.update_offset();
 
                 // Simplify mutations
 
@@ -501,7 +508,7 @@ namespace fwdpp
                 // the data stored in Ancestry, which allows us to "push"
                 // mutation nodes down the tree.
 
-                for (std::size_t i = 0; i < tables.node_table.size(); ++i)
+                for (std::size_t i = 0; i < new_node_table.size(); ++i)
                     {
                         auto seg = Ancestry[i].cbegin();
                         auto mut = mutation_map[i].second.cbegin(),
@@ -518,7 +525,7 @@ namespace fwdpp
                                         assert(mut < mute);
                                         assert(*mut
                                                < mutation_node_map.size());
-                                        assert(seg->node < tables.node_table.size());
+                                        assert(seg->node < new_edge_table.size());
                                         mutation_node_map[*mut] = seg->node;
                                         //tables.mutation_table[*mut].node
                                         //        = seg->node;
@@ -622,11 +629,6 @@ namespace fwdpp
                                    }),
                     tables.mutation_table.end());
 
-                tables.edge_table.swap(new_edge_table);
-                tables.node_table.swap(new_node_table);
-                // TODO: allow for exception instead of assert
-                assert(tables.edges_are_sorted());
-                tables.update_offset();
                 cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));
             }
