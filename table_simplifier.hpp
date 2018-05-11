@@ -6,6 +6,7 @@
 #include <numeric>
 #include <cstddef>
 #include <stdexcept>
+#include <unordered_map>
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_collection.hpp"
@@ -425,9 +426,8 @@ namespace fwdpp
                 Ancestry.resize(tables.node_table.size());
 
                 // Set some things up for later mutation simplification
-                std::vector<std::vector<std::size_t>> mutation_map(
-                    tables.node_table
-                        .size()); //maps input nodes to locations in input mut table
+                std::unordered_map<std::int32_t, std::vector<std::size_t>>
+                    mutation_map; //maps input nodes to locations in input mut table
                 std::vector<std::int32_t> mutation_node_map(
                     tables.node_table.size(), -1);
                 for (auto& mr : tables.mutation_table)
@@ -436,13 +436,16 @@ namespace fwdpp
                     }
                 for (auto& mm : mutation_map)
                     {
-                        std::sort(mm.begin(), mm.end(), [&mutations, &tables](
-                                                            std::size_t a,
-                                                            std::size_t b) {
-                            return mutations[tables.mutation_table[a].key].pos
-                                   < mutations[tables.mutation_table[b].key]
-                                         .pos;
-                        });
+                        std::sort(
+                            mm.second.begin(), mm.second.end(),
+                            [&mutations, &tables](std::size_t a,
+                                                  std::size_t b) {
+                                return mutations[tables.mutation_table[a].key]
+                                           .pos
+                                       < mutations[tables.mutation_table[b]
+                                                       .key]
+                                             .pos;
+                            });
                     }
 
                 // Relates input node ids to output node ids
@@ -497,18 +500,19 @@ namespace fwdpp
                 // the data stored in Ancestry, which allows us to "push"
                 // mutation nodes down the tree.
 
-                for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                for (auto& mm : mutation_map)
                     {
-                        for (auto& e : Ancestry[tables.mutation_table[i].node])
+                        for (auto& e : Ancestry[mm.first])
                             {
-                                std::cout << "Ancestry of " << tables.mutation_table[i].node << ' '
+                                std::cout << "Ancestry of " << mm.first << ' '
                                           << e.node << ' ' << e.left << ' '
                                           << e.right << '\n';
                             }
-                        auto seg = Ancestry[tables.mutation_table[i].node].cbegin();
-                        const auto seg_e = Ancestry[tables.mutation_table[i].node].cend();
-                        auto mut = mutation_map[tables.mutation_table[i].node].cbegin();
-                        const auto mute = mutation_map[tables.mutation_table[i].node].cend();
+                        auto seg = Ancestry[mm.first].cbegin();
+                        const auto seg_e = Ancestry[mm.first].cend();
+                        auto mut = mm.second.cbegin();
+                        const auto mute = mm.second.cend();
                         while (seg < seg_e && mut < mute)
                             {
                                 //TODO: indirect access alert!
@@ -523,9 +527,11 @@ namespace fwdpp
                                                < mutation_node_map.size());
                                         assert(seg->node
                                                < new_edge_table.size());
-                                        std::cout << "found it " << tables.mutation_table[i].node << ' ' << seg->node << '\n';
-                                        mutation_node_map.at(
-                                            tables.mutation_table[i].node)
+                                        std::cout
+                                            << "found it "
+                                            <<mm.first 
+                                            << ' ' << seg->node << '\n';
+                                        mutation_node_map.at(mm.first)
                                             = seg->node;
                                         ++mut;
                                     }
@@ -602,7 +608,8 @@ namespace fwdpp
                               << ' ' << std::distance(mtable_itr, mtable_end)
                               << ' ';
                     //TODO: do we need to check left here?
-                    while (mtable_itr < mtable_end && mutations[mtable_itr->key].pos < marginal.left)
+                    while (mtable_itr < mtable_end
+                           && mutations[mtable_itr->key].pos < marginal.left)
                         {
                             ++mtable_itr;
                         }
@@ -618,7 +625,8 @@ namespace fwdpp
                                 = marginal.leaf_counts[mtable_itr->node];
                             ++mtable_itr;
                         }
-                    std::cerr << std::distance(mtable_itr, mtable_end) << std::endl;
+                    std::cerr << std::distance(mtable_itr, mtable_end)
+                              << std::endl;
                 };
 
                 tables.build_indexes();
