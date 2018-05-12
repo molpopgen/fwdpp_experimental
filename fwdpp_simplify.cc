@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <algorithm>
 #include <queue>
 #include <gsl/gsl_randist.h>
@@ -196,13 +197,14 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
     //                     []() { return 0.; }, []() { return 0.; });
     //      };
 
-    const auto mmodel = [&pop, &rng, &generation](
-        std::queue<std::size_t>& recbin, slocuspop_t::mcont_t& mutations) {
-        return fwdpp::infsites_popgenmut(
-            recbin, mutations, rng.get(), pop.mut_lookup, generation, 0.0,
-            [&rng]() { return gsl_rng_uniform(rng.get()); },
-            []() { return 0.0; }, []() { return 0.0; });
-    };
+    const auto mmodel
+        = [&pop, &rng, &generation](std::queue<std::size_t>& recbin,
+                                    slocuspop_t::mcont_t& mutations) {
+              return fwdpp::infsites_popgenmut(
+                  recbin, mutations, rng.get(), pop.mut_lookup, generation,
+                  0.0, [&rng]() { return gsl_rng_uniform(rng.get()); },
+                  []() { return 0.0; }, []() { return 0.0; });
+          };
 
     table_simplifier ancestry(1.0);
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
@@ -248,8 +250,9 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             std::cerr << "result "
                       << int(std::accumulate(pop.mcounts.begin(),
                                              pop.mcounts.end(), 0))
-                      << ' ' << int(std::accumulate(xx.second.begin(),
-                                                    xx.second.end(), 0))
+                      << ' '
+                      << int(std::accumulate(xx.second.begin(),
+                                             xx.second.end(), 0))
                       << ' ' << n << ' ' << tables.mutation_table.size() << ' '
                       << pop.fixations.size() << '\n';
             assert(pop.mcounts.size() == xx.second.size());
@@ -258,6 +261,55 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //        assert(tables.node_table.at(mr.node).generation
             //               == 1. + pop.mutations[mr.key].g);
             //    }
+            //output last set of nodes/edges
+            //std::ostringstream ofn;
+            //ofn << "last_edges." << generation << ".bin";
+            //std::ofstream out;
+            //out.open(ofn.str().c_str());
+            //for (auto& e : et)
+            //    {
+            //        out.write(reinterpret_cast<char*>(&e.parent),
+            //                  sizeof(decltype(e.parent)));
+            //        out.write(reinterpret_cast<char*>(&e.child),
+            //                  sizeof(decltype(e.child)));
+            //        out.write(reinterpret_cast<char*>(&e.left),
+            //                  sizeof(decltype(e.left)));
+            //        out.write(reinterpret_cast<char*>(&e.right),
+            //                  sizeof(decltype(e.right)));
+            //    }
+            //std::int32_t done = -1;
+            //out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
+            //out.close();
+            //ofn.str(std::string());
+            //ofn << "last_nodes." << generation << ".bin";
+            //out.open(ofn.str().c_str());
+            //for (auto n : nt)
+            //    {
+            //        out.write(reinterpret_cast<char*>(&n.id), 4);
+            //        out.write(reinterpret_cast<char*>(&n.generation),
+            //                  sizeof(double));
+            //    }
+            //out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
+            //out.close();
+            //ofn.str(std::string());
+            //ofn << "edges."<<generation<<".txt";
+
+            //        out.open(ofn.str().c_str());
+            //        for (auto e : tables.edge_table)
+            //            {
+            //                out << e.parent << ' ' << e.child << ' ' << e.left
+            //                    << ' ' << e.right << '\n';
+            //            }
+            //        out.close();
+            //ofn.str(std::string());
+            //ofn << "nodes."<<generation<<".txt";
+            //        out.open(ofn.str().c_str());
+            //        for (auto n : tables.node_table)
+            //            {
+            //                out << n.id << ' ' << n.generation << '\n';
+            //            }
+            //        out.close();
+                    
             if (pop.mcounts != xx.second)
                 {
                     std::vector<std::size_t> failures;
@@ -323,36 +375,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                       << xx.first[mt[i].node] << ' '
                                       << pop.mutations[mt[i].key].pos << '\n';
                         }
-                    std::ofstream out("edges.txt");
-                    for(auto e : tables.edge_table)
-                    {
-                        out << e.parent << ' ' << e.child << ' ' << e.left << ' ' << e.right << '\n';
-                    }
-                    out.close();
-                    out.open("nodes.txt");
-                    for(auto n : tables.node_table){out<<n.id<<' '<<n.generation<<'\n';}
-                    out.close();
-                    //output last set of nodes/edges
-                    out.open("last_edges.bin");
-                    for(auto & e : et)
-                    {
-                        out.write(reinterpret_cast<char*>(&e.parent),sizeof(decltype(e.parent)));
-                        out.write(reinterpret_cast<char*>(&e.child),sizeof(decltype(e.child)));
-                        out.write(reinterpret_cast<char*>(&e.left),sizeof(decltype(e.left)));
-                        out.write(reinterpret_cast<char*>(&e.right),sizeof(decltype(e.right)));
-                    }
-                    std::int32_t done = -1;
-                    out.write(reinterpret_cast<char*>(&done),sizeof(std::int32_t));
-                    out.close();
-                    out.open("last_nodes.bin");
-                    for(auto n : nt)
-                    {
-                        out.write(reinterpret_cast<char*>(&n.id),4);
-                        out.write(reinterpret_cast<char*>(&n.generation),sizeof(double));
-                    }
-                    out.write(reinterpret_cast<char*>(&done),sizeof(std::int32_t));
-                    out.close();
-                    std::exit(0);
+std::exit(0);
                 }
             std::cerr << (pop.mcounts == xx.second) << '\n';
             next_index = tables.num_nodes();
