@@ -341,6 +341,8 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                         out.write(reinterpret_cast<char*>(&e.left),sizeof(decltype(e.left)));
                         out.write(reinterpret_cast<char*>(&e.right),sizeof(decltype(e.right)));
                     }
+                    std::int32_t done = -1;
+                    out.write(reinterpret_cast<char*>(&done),sizeof(std::int32_t));
                     out.close();
                     out.open("last_nodes.bin");
                     for(auto n : nt)
@@ -348,6 +350,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                         out.write(reinterpret_cast<char*>(&n.id),4);
                         out.write(reinterpret_cast<char*>(&n.generation),sizeof(double));
                     }
+                    out.write(reinterpret_cast<char*>(&done),sizeof(std::int32_t));
                     out.close();
                     std::exit(0);
                 }
