@@ -521,7 +521,6 @@ namespace fwdpp
                         const auto mute = mm.second.cend();
                         while (seg < seg_e && mut < mute)
                             {
-                                //TODO: indirect access alert!
                                 auto pos = mutations[*mut].pos;
                                 if (seg->left <= pos && pos < seg->right)
                                     {
@@ -532,6 +531,7 @@ namespace fwdpp
                                         std::cout << "found it " << mm.first
                                                   << ' ' << pos << ' '
                                                   << seg->node << '\n';
+                                        //TODO: replace at with []
                                         mutation_node_map.at(mm.first)
                                             = seg->node;
                                         ++mut;

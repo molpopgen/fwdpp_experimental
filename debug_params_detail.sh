@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./fwdpp_simplify 100 10 10 0.1 10
+./fwdpp_simplify 100 10 10 0.1 10 > detail_out 2> detail_err
 
 for i in simoutput/last_edges.*.bin
 do

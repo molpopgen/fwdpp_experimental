@@ -165,6 +165,7 @@ namespace fwdpp
             marginal_tree marginal(nnodes, sample_indexes);
             while (j != jM || x < maxpos)
                 {
+                    // TODO: this asserts may be incorrect
 					assert(j<jM);
 					assert(k<kM);
                     while (k != kM && k->pos == x) // T4
