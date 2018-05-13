@@ -596,7 +596,7 @@ namespace fwdpp
 
                 auto mtable_itr = tables.mutation_table.begin();
                 auto mtable_end = tables.mutation_table.end();
-                auto mutation_simplifier = [&mutations, &mtable_itr,
+                auto mutation_counter = [&mutations, &mtable_itr,
                                             mtable_end, &mcounts](
                                                const marginal_tree& marginal) {
                     std::cerr << std::accumulate(marginal.leaf_counts.begin(),
@@ -639,7 +639,7 @@ namespace fwdpp
                     }
                 algorithmL(tables.input_left, tables.output_right,
                            remapped_samples, tables.node_table.size(),
-                           tables.L, mutation_simplifier);
+                           tables.L, mutation_counter);
 
                 // 4. Remove any elements from table with count == 0
                 tables.mutation_table.erase(
