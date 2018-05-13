@@ -281,6 +281,19 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             out.close();
             tables.sort_tables(pop.mutations);
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
+
+            // TODO: decide how to handle fixations.
+            // Ideally, this would be done during simplification,
+            // via a policy passed into the simplifier.
+            // Until then, we do it manually
+            tables.mutation_table.erase(
+                std::remove_if(tables.mutation_table.begin(),
+                               tables.mutation_table.end(),
+                               [&xx,&pop](const fwdpp::ancestry::mutation_record& mr) {
+                               return xx.second[mr.key] == 2*pop.diploids.size();
+                               }),
+                tables.mutation_table.end());
+
             unsigned n = 0;
             for (std::size_t i = 0; i < pop.mutations.size(); ++i)
                 {
@@ -323,12 +336,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             out.close();
             ofn.str(std::string());
-            ofn<<"simoutput/idmap."<<generation<<".txt";
+            ofn << "simoutput/idmap." << generation << ".txt";
             out.open(ofn.str().c_str());
-            for(std::size_t id = 0;id<xx.first.size();++id)
-            {
-                out<<id<<' '<<xx.first[id]<<'\n';
-            }
+            for (std::size_t id = 0; id < xx.first.size(); ++id)
+                {
+                    out << id << ' ' << xx.first[id] << '\n';
+                }
             out.close();
 
             if (pop.mcounts != xx.second)
