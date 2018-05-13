@@ -426,7 +426,11 @@ namespace fwdpp
                 Ancestry.resize(tables.node_table.size());
 
                 // Set some things up for later mutation simplification
-                std::unordered_map<std::int32_t, std::vector<std::size_t>>
+
+                // This vector stores [(node,[(mutation_key, location in mutation table)])
+                std::unordered_map<
+                    std::int32_t,
+                    std::vector<std::pair<std::size_t, std::size_t>>>
                     mutation_map; //maps input nodes to locations in input mut table
                 // TODO: the mutation node map is getting built incorrectly.
                 // It allows two mutations on the same input node, but on different
@@ -436,26 +440,30 @@ namespace fwdpp
                 // to key the index of the mutation record, rather than the mutation
                 // key of the mutation record.
                 std::vector<std::int32_t> mutation_node_map(
-                    tables.node_table.size(), -1);
-                for (auto& mr : tables.mutation_table)
+                    tables.mutation_table.size(), -1);
+                for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
                     {
-                        std::cerr << "mut table record: " << mr.node << ' '
-                                  << mutations[mr.key].pos << '\n';
-                        mutation_map[mr.node].push_back(mr.key);
+                        std::cerr
+                            << "mut table record: "
+                            << tables.mutation_table[i].node << ' '
+                            << mutations[tables.mutation_table[i].key].pos
+                            << '\n';
+                        mutation_map[tables.mutation_table[i].node]
+                            .emplace_back(tables.mutation_table[i].key, i);
                     }
 
                 for (auto& mm : mutation_map)
                     {
                         std::sort(mm.second.begin(), mm.second.end(),
-                                  [&mutations, &tables](std::size_t a,
-                                                        std::size_t b) {
-                                      return mutations[a].pos
-                                             < mutations[b].pos;
+                                  [&mutations, &tables](const std::pair<std::size_t,std::size_t> & a,
+                                                        const std::pair<std::size_t,std::size_t> & b) {
+                                      return mutations[a.first].pos
+                                             < mutations[b.first].pos;
                                   });
                         std::cerr << "mut map data: " << mm.first << ' ';
                         for (auto& m : mm.second)
                             {
-                                std::cerr << mutations[m].pos << ' ';
+                                std::cerr << mutations[m.first].pos << ' ';
                             }
                         std::cerr << '\n';
                     }
@@ -528,18 +536,18 @@ namespace fwdpp
                         const auto mute = mm.second.cend();
                         while (seg < seg_e && mut < mute)
                             {
-                                auto pos = mutations[*mut].pos;
+                                auto pos = mutations[mut->first].pos;
                                 if (seg->left <= pos && pos < seg->right)
                                     {
                                         assert(mut < mute);
-                                        assert(*mut < mutations.size());
+                                        assert(mut->first < mutations.size());
                                         assert(seg->node
                                                < new_edge_table.size());
                                         std::cout << "found it " << mm.first
                                                   << ' ' << pos << ' '
                                                   << seg->node << '\n';
                                         //TODO: replace at with []
-                                        mutation_node_map.at(mm.first)
+                                        mutation_node_map.at(mut->second)
                                             = seg->node;
                                         ++mut;
                                     }
@@ -561,13 +569,12 @@ namespace fwdpp
                         std::cout
                             << "mut remapping: "
                             << tables.mutation_table[i].node << " -> "
-                            << mutation_node_map[tables.mutation_table[i].node]
+                            << mutation_node_map[i]
                             << ' '
-                            << idmap[mutation_node_map[tables.mutation_table[i]
-                                                           .node]]
+                            << idmap[mutation_node_map[i]]
                             << '\n';
                         tables.mutation_table[i].node
-                            = mutation_node_map[tables.mutation_table[i].node];
+                            = mutation_node_map[i];
                     }
 
                 // 1. Remove all mutations whose output nodes are simply gone.
@@ -603,9 +610,9 @@ namespace fwdpp
 
                 auto mtable_itr = tables.mutation_table.begin();
                 auto mtable_end = tables.mutation_table.end();
-                auto mutation_counter = [&mutations, &mtable_itr,
-                                            mtable_end, &mcounts](
-                                               const marginal_tree& marginal) {
+                auto mutation_counter = [&mutations, &mtable_itr, mtable_end,
+                                         &mcounts](
+                                            const marginal_tree& marginal) {
                     std::cerr << std::accumulate(marginal.leaf_counts.begin(),
                                                  marginal.leaf_counts.end(), 0)
                               << ' ' << marginal.left << ' ' << marginal.right
@@ -649,6 +656,8 @@ namespace fwdpp
                            tables.L, mutation_counter);
 
                 // 4. Remove any elements from table with count == 0
+                // TODO: this has to be updated to handle fixations
+                // and losses in one pass!
                 tables.mutation_table.erase(
                     std::remove_if(tables.mutation_table.begin(),
                                    tables.mutation_table.end(),
