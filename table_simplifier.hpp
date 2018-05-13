@@ -526,7 +526,7 @@ namespace fwdpp
                                 if (seg->left <= pos && pos < seg->right)
                                     {
                                         assert(mut < mute);
-                                        assert(*mut < mutations.size();
+                                        assert(*mut < mutations.size());
                                         assert(seg->node
                                                < new_edge_table.size());
                                         std::cout << "found it " << mm.first
