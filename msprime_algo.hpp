@@ -40,7 +40,9 @@ namespace fwdpp
             operator<(const index_key& rhs) const
             {
                 if (pos == rhs.pos)
-                    return time < rhs.time;
+                    {
+                        return time < rhs.time;
+                    }
                 return pos < rhs.pos;
             }
         };
@@ -137,8 +139,9 @@ namespace fwdpp
             marginal_tree(std::int32_t nnodes,
                           const std::vector<std::int32_t>& samples)
                 : parents(nnodes, -1), leaf_counts(nnodes, 0),
-                  left{ std::numeric_limits<double>::quiet_NaN() },
-                  right{ std::numeric_limits<double>::quiet_NaN() }
+                  left{ std::numeric_limits<double>::quiet_NaN() }, right{
+                      std::numeric_limits<double>::quiet_NaN()
+                  }
             {
                 for (auto s : samples)
                     {
@@ -163,12 +166,12 @@ namespace fwdpp
                  k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
             marginal_tree marginal(nnodes, sample_indexes);
-            while (j != jM || x < maxpos)
+            while (j < jM || x < maxpos)
                 {
                     // TODO: this asserts may be incorrect
-					assert(j<jM);
-					assert(k<kM);
-                    while (k != kM && k->pos == x) // T4
+                    //assert(j < jM);
+                    assert(k < kM);
+                    while (k < kM && k->pos == x) // T4
                         {
                             marginal.parents[k->child] = -1;
                             // Decrement leaf counts for outgoing nodes
@@ -182,7 +185,7 @@ namespace fwdpp
                                 }
                             ++k;
                         }
-                    while (j != jM && j->pos == x) // Step T2
+                    while (j < jM && j->pos == x) // Step T2
                         {
                             // The entry for the child refers to
                             // the parent's location in the node table.
@@ -215,6 +218,6 @@ namespace fwdpp
                     x = right;
                 }
         }
-    }
-}
+    } // namespace ancestry
+} // namespace fwdpp
 #endif
