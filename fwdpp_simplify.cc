@@ -322,6 +322,14 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     out << n.id << ' ' << n.generation << '\n';
                 }
             out.close();
+            ofn.str(std::string());
+            ofn<<"simoutput/idmap."<<generation<<".txt";
+            out.open(ofn.str().c_str());
+            for(std::size_t id = 0;id<xx.first.size();++id)
+            {
+                out<<id<<' '<<xx.first[id]<<'\n';
+            }
+            out.close();
 
             if (pop.mcounts != xx.second)
                 {
