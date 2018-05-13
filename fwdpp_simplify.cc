@@ -238,7 +238,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             auto nt = tables.node_table;
             auto et = tables.edge_table;
             std::ostringstream ofn;
-            ofn << "last_edges." << generation << ".bin";
+            ofn << "simoutput/last_edges." << generation << ".bin";
             std::ofstream out;
             out.open(ofn.str().c_str());
             for (auto& e : et)
@@ -256,7 +256,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
             out.close();
             ofn.str(std::string());
-            ofn << "last_nodes." << generation << ".bin";
+            ofn << "simoutput/last_nodes." << generation << ".bin";
             out.open(ofn.str().c_str());
             for (auto n : nt)
                 {
@@ -267,7 +267,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
             out.close();
             ofn.str(std::string());
-            ofn << "last_mutations." << generation << ".bin";
+            ofn << "simoutput/last_mutations." << generation << ".bin";
             out.open(ofn.str().c_str());
             for (auto& m : tables.mutation_table)
                 {
@@ -305,7 +305,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //    }
             //output last set of nodes/edges
             ofn.str(std::string());
-            ofn << "edges." << generation << ".txt";
+            ofn << "simoutput/edges." << generation << ".txt";
 
             out.open(ofn.str().c_str());
             for (auto e : tables.edge_table)
@@ -315,7 +315,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 }
             out.close();
             ofn.str(std::string());
-            ofn << "nodes." << generation << ".txt";
+            ofn << "simoutput/nodes." << generation << ".txt";
             out.open(ofn.str().c_str());
             for (auto n : tables.node_table)
                 {
