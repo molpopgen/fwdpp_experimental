@@ -1,0 +1,96 @@
+import msprime
+import numpy as np
+import sys
+import timeit
+import time
+import struct
+
+print(msprime.__file__,msprime.__version__)
+
+print(sys.argv)
+
+nodes = msprime.NodeTable()
+edges = msprime.EdgeTable()
+
+g = []
+with open(sys.argv[1],"rb") as f:
+    print(sys.argv[1])
+    while True:
+        a=struct.unpack('i',f.read(4))
+        if a[0]==-1:
+            break
+        t=struct.unpack('d',f.read(8))
+        g.append(t[0])
+    # for line in f:
+    #     l = line.rstrip().split(" ")
+    #     g.append(float(l[1]))
+times = np.array(g)
+times -= times.max()
+times *= -1.0
+
+nodes.append_columns(time=times,flags=[-1]*len(times))
+
+p = []
+c = []
+l = []
+r = []
+
+with open(sys.argv[2],"rb") as f:
+    while True:
+        pi=struct.unpack('i',f.read(4))
+        if pi[0] == -1:
+            break
+        ci=struct.unpack('i',f.read(4))
+        li=struct.unpack('d',f.read(8))
+        ri=struct.unpack('d',f.read(8))
+        p.append(pi[0])
+        c.append(ci[0])
+        l.append(li[0])
+        r.append(ri[0])
+
+edges.set_columns(parent=p,child=c,left=l,right=r)
+
+sites=msprime.SiteTable()
+muts=msprime.MutationTable()
+
+index=0
+with open(sys.argv[3],"rb") as f:
+    while True:
+       n=struct.unpack('i',f.read(4));
+       if n[0] == -1:
+           break
+       pos=struct.unpack('d',f.read(8))
+       sites.add_row(position=pos[0],ancestral_state='0')
+       # print(sites)
+       # print(len(sites),len(sites)-1,n[0])
+       muts.add_row(site=len(sites)-1,node=n[0],derived_state='1',parent=-1)
+
+print(len(nodes))
+
+
+N=int(sys.argv[4])
+samples=[i for i in range(len(times)-2*N,len(times))] 
+ts=None
+
+A=time.time()
+msprime.sort_tables(nodes=nodes,edges=edges,sites=sites,mutations=muts)
+B=time.time()
+ts=msprime.simplify_tables(nodes=nodes,edges=edges,samples=samples,sites=sites,mutations=muts)
+C=time.time()
+
+print("Sorting: ",B-A,"seconds")
+print("Simplifying: ",C-B,"seconds")
+
+with open(sys.argv[5],'w') as f:
+    for i in edges:
+        f.write("{} {} {} {}\n".format(i.parent,i.child,i.left,i.right,nodes[i.parent].time))
+with open(sys.argv[6],'w') as f:
+    for i in nodes:
+        f.write("{}\n".format(i.time))
+
+ts=msprime.load_tables(nodes=nodes,edges=edges,sites=sites,mutations=muts)
+g=ts.genotype_matrix()
+mcounts=np.sum(g,1)
+with open(sys.argv[7],'w') as f: # Mutations
+    for i,j,k in zip(sites.position,mcounts,muts.node):
+        f.write("{} {} {}\n".format(i,j,k))
