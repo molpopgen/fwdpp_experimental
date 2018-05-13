@@ -428,6 +428,13 @@ namespace fwdpp
                 // Set some things up for later mutation simplification
                 std::unordered_map<std::int32_t, std::vector<std::size_t>>
                     mutation_map; //maps input nodes to locations in input mut table
+                // TODO: the mutation node map is getting built incorrectly.
+                // It allows two mutations on the same input node, but on different
+                // marginal trees, to get remapped to the same output node, which is incorrect.
+                // It should be rebuild to be the same size as the input mutation table,
+                // and the mutation map's internal structure should be re-organized
+                // to key the index of the mutation record, rather than the mutation
+                // key of the mutation record.
                 std::vector<std::int32_t> mutation_node_map(
                     tables.node_table.size(), -1);
                 for (auto& mr : tables.mutation_table)
