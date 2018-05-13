@@ -432,20 +432,25 @@ namespace fwdpp
                     tables.node_table.size(), -1);
                 for (auto& mr : tables.mutation_table)
                     {
+                        std::cerr << "mut table record: " << mr.node << ' '
+                                  << mutations[mr.key].pos << '\n';
                         mutation_map[mr.node].push_back(mr.key);
                     }
+
                 for (auto& mm : mutation_map)
                     {
-                        std::sort(
-                            mm.second.begin(), mm.second.end(),
-                            [&mutations, &tables](std::size_t a,
-                                                  std::size_t b) {
-                                return mutations[tables.mutation_table[a].key]
-                                           .pos
-                                       < mutations[tables.mutation_table[b]
-                                                       .key]
-                                             .pos;
-                            });
+                        std::sort(mm.second.begin(), mm.second.end(),
+                                  [&mutations, &tables](std::size_t a,
+                                                        std::size_t b) {
+                                      return mutations[a].pos
+                                             < mutations[b].pos;
+                                  });
+                        std::cerr << "mut map data: " << mm.first << ' ';
+                        for (auto& m : mm.second)
+                            {
+                                std::cerr << mutations[m].pos << ' ';
+                            }
+                        std::cerr << '\n';
                     }
 
                 // Relates input node ids to output node ids
@@ -461,8 +466,9 @@ namespace fwdpp
                             tables.node_table[s].population,
                             tables.node_table[s].generation });
                         Ancestry[s].emplace_back(
-                            0, L, static_cast<std::int32_t>(
-                                      new_node_table.size() - 1));
+                            0, L,
+                            static_cast<std::int32_t>(new_node_table.size()
+                                                      - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             new_node_table.size() - 1);
                     }
@@ -516,21 +522,16 @@ namespace fwdpp
                         while (seg < seg_e && mut < mute)
                             {
                                 //TODO: indirect access alert!
-                                auto pos
-                                    = mutations[tables.mutation_table[*mut]
-                                                    .key]
-                                          .pos;
+                                auto pos = mutations[*mut].pos;
                                 if (seg->left <= pos && pos < seg->right)
                                     {
                                         assert(mut < mute);
-                                        assert(*mut
-                                               < mutation_node_map.size());
+                                        assert(*mut < mutations.size();
                                         assert(seg->node
                                                < new_edge_table.size());
-                                        std::cout
-                                            << "found it "
-                                            <<mm.first 
-                                            << ' ' << seg->node << '\n';
+                                        std::cout << "found it " << mm.first
+                                                  << ' ' << pos << ' '
+                                                  << seg->node << '\n';
                                         mutation_node_map.at(mm.first)
                                             = seg->node;
                                         ++mut;
@@ -597,7 +598,7 @@ namespace fwdpp
                 auto mtable_end = tables.mutation_table.end();
                 auto mutation_simplifier = [&mutations, &mtable_itr,
                                             mtable_end, &mcounts](
-                    const marginal_tree& marginal) {
+                                               const marginal_tree& marginal) {
                     std::cerr << std::accumulate(marginal.leaf_counts.begin(),
                                                  marginal.leaf_counts.end(), 0)
                               << ' ' << marginal.left << ' ' << marginal.right
@@ -612,8 +613,12 @@ namespace fwdpp
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
-                            std::cerr << mutations[mtable_itr->key].pos << " (" << mtable_itr->node << ','
-                                << marginal.leaf_counts[mtable_itr->node] <<','<<marginal.parents[mtable_itr->node]<< ") ";
+                            std::cerr << mutations[mtable_itr->key].pos << " ("
+                                      << mtable_itr->node << ','
+                                      << marginal.leaf_counts[mtable_itr->node]
+                                      << ','
+                                      << marginal.parents[mtable_itr->node]
+                                      << ") ";
                             assert(mutations[mtable_itr->key].pos
                                    >= marginal.left);
                             assert(mutations[mtable_itr->key].pos
@@ -701,7 +706,7 @@ namespace fwdpp
             //                         tables.node_table.size(), 1.0);
             //}
         };
-    }
-}
+    } // namespace ancestry
+} // namespace fwdpp
 
 #endif
