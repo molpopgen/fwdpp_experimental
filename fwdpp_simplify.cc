@@ -428,9 +428,9 @@ main(int argc, char** argv)
     double mudel = mu * pdel;
 
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
-    std::cout << pop.mutations.size() << ' ' << tables.node_table.size() << ' '
-              << tables.edge_table.size() << ' '
-              << tables.mutation_table.size() << '\n';
+    std::cout << "finished without error " << pop.mutations.size() << ' '
+              << tables.node_table.size() << ' ' << tables.edge_table.size()
+              << ' ' << tables.mutation_table.size() << '\n';
     // for (auto& a : tables.edge_table)
     //    {
     //        std::cout << tables.node_table[a.parent].generation << ' '
