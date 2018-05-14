@@ -49,34 +49,12 @@ namespace fwdpp
 
         using index_vector = std::vector<index_key>;
 
-        //std::pair<index_vector, index_vector>
-        //fill_I_O(const table_collection& tables)
-        //// TODO: better function name
-        //// Fill I and O.  This is not described in Algorithm T,
-        //// but can be sleuthed from msprime/tests/tsutil.py
-        //{
-        //    index_vector I, O;
-        //    I.reserve(tables.edge_table.size());
-        //    O.reserve(tables.edge_table.size());
-        //    for (auto& e : tables.edge_table)
-        //        {
-        //            I.emplace_back(e.left,
-        //                           -tables.node_table[e.parent].generation,
-        //                           e.parent, e.child);
-        //            O.emplace_back(e.right,
-        //                           tables.node_table[e.parent].generation,
-        //                           e.parent, e.child);
-        //        }
-        //    std::sort(I.begin(), I.end());
-        //    std::sort(O.begin(), O.end());
-        //    return std::make_pair(std::move(I), std::move(O));
-        //}
-
         void
         algorithmT(const index_vector& input_left,
                    const index_vector& output_right, const std::size_t nnodes,
                    const double maxpos)
         // TODO: needs to take a visitor as argument
+        // TODO: needs to be cleaned up a la Alg L below.
         // Assumes tables are not empty.  Probably unsafe.
         {
             std::vector<std::int32_t> pi(nnodes, -1);
@@ -108,8 +86,6 @@ namespace fwdpp
                         {
                             right = std::min(right, k->pos);
                         }
-                    //for(auto & p : pi){std::cout<<p <<' ';}
-                    //std::cout<<'\n';
                     // At this point, pi refers to the marginal tree
                     // beginning at x for all pi[i] != -1
                     // The useful thing to do here would
@@ -118,16 +94,6 @@ namespace fwdpp
                     // The i-th element in pi indexes its
                     // parent in the node table.
 
-                    //if (x != 0.0)
-                    //    {
-                    //        for (auto p : pi)
-                    //            {
-                    //                std::cout << p << ' ';
-                    //            }
-                    //        std::exit(0);
-                    //    }
-                    //if (j >= M)
-                    //    break;
                     x = right;
                 }
         }
