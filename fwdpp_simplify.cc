@@ -74,7 +74,6 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
                   const fwdpp::uint_t generation, table_collection& tables,
-                  table_simplifier& ancestry,
                   std::int32_t first_parental_index, std::int32_t next_index)
 {
 
@@ -149,7 +148,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
         }
-    assert(next_index_local == next_index + 2 * N_next);
+    assert(next_index_local
+           == next_index + 2 * static_cast<std::int32_t>(N_next));
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
                                            pop.mcounts);
     fwdpp::fwdpp_internal::gamete_cleaner(
@@ -210,22 +210,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
-    double sort_time = 0.0;
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
-                              mmodel, recmap, generation, tables, ancestry,
+                              mmodel, recmap, generation, tables,
                               first_parental_index, next_index);
-            // if (first_parental_index == ROOTNODE)
-            //    {
-            //        first_parental_index = 0;
-            //    }
-            // else
-            //    {
-            //        first_parental_index += 2 * pop.diploids.size();
-            //    }
-            // std::cout<<next_index<<' '<<first_parental_index<<"->";
 
             std::vector<std::int32_t> samples;
             for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
@@ -234,51 +224,51 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     assert(tables.node_table[i].generation == generation + 1);
                     samples.push_back(i);
                 }
-            auto mt = tables.mutation_table;
-            auto nt = tables.node_table;
-            auto et = tables.edge_table;
-            std::ostringstream ofn;
-            ofn << "simoutput/last_edges." << generation << ".bin";
-            std::ofstream out;
-            out.open(ofn.str().c_str());
-            for (auto& e : et)
-                {
-                    out.write(reinterpret_cast<char*>(&e.parent),
-                              sizeof(decltype(e.parent)));
-                    out.write(reinterpret_cast<char*>(&e.child),
-                              sizeof(decltype(e.child)));
-                    out.write(reinterpret_cast<char*>(&e.left),
-                              sizeof(decltype(e.left)));
-                    out.write(reinterpret_cast<char*>(&e.right),
-                              sizeof(decltype(e.right)));
-                }
-            std::int32_t done = -1;
-            out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
-            out.close();
-            ofn.str(std::string());
-            ofn << "simoutput/last_nodes." << generation << ".bin";
-            out.open(ofn.str().c_str());
-            for (auto n : nt)
-                {
-                    out.write(reinterpret_cast<char*>(&n.id), 4);
-                    out.write(reinterpret_cast<char*>(&n.generation),
-                              sizeof(double));
-                }
-            out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
-            out.close();
-            ofn.str(std::string());
-            ofn << "simoutput/last_mutations." << generation << ".bin";
-            out.open(ofn.str().c_str());
-            for (auto& m : tables.mutation_table)
-                {
-                    out.write(reinterpret_cast<char*>(&m.node),
-                              sizeof(std::int32_t));
-                    out.write(
-                        reinterpret_cast<char*>(&pop.mutations[m.key].pos),
-                        sizeof(double));
-                }
-            out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
-            out.close();
+            // auto mt = tables.mutation_table;
+            // auto nt = tables.node_table;
+            // auto et = tables.edge_table;
+            // std::ostringstream ofn;
+            // ofn << "simoutput/last_edges." << generation << ".bin";
+            // std::ofstream out;
+            // out.open(ofn.str().c_str());
+            // for (auto& e : et)
+            //     {
+            //         out.write(reinterpret_cast<char*>(&e.parent),
+            //                   sizeof(decltype(e.parent)));
+            //         out.write(reinterpret_cast<char*>(&e.child),
+            //                   sizeof(decltype(e.child)));
+            //         out.write(reinterpret_cast<char*>(&e.left),
+            //                   sizeof(decltype(e.left)));
+            //         out.write(reinterpret_cast<char*>(&e.right),
+            //                   sizeof(decltype(e.right)));
+            //     }
+            // std::int32_t done = -1;
+            // out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
+            // out.close();
+            // ofn.str(std::string());
+            // ofn << "simoutput/last_nodes." << generation << ".bin";
+            // out.open(ofn.str().c_str());
+            // for (auto n : nt)
+            //     {
+            //         out.write(reinterpret_cast<char*>(&n.id), 4);
+            //         out.write(reinterpret_cast<char*>(&n.generation),
+            //                   sizeof(double));
+            //     }
+            // out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
+            // out.close();
+            // ofn.str(std::string());
+            // ofn << "simoutput/last_mutations." << generation << ".bin";
+            // out.open(ofn.str().c_str());
+            // for (auto& m : tables.mutation_table)
+            //     {
+            //         out.write(reinterpret_cast<char*>(&m.node),
+            //                   sizeof(std::int32_t));
+            //         out.write(
+            //             reinterpret_cast<char*>(&pop.mutations[m.key].pos),
+            //             sizeof(double));
+            //     }
+            // out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
+            // out.close();
             tables.sort_tables(pop.mutations);
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
 
@@ -287,147 +277,115 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             // via a policy passed into the simplifier.
             // Until then, we do it manually
             tables.mutation_table.erase(
-                std::remove_if(tables.mutation_table.begin(),
-                               tables.mutation_table.end(),
-                               [&xx,&pop](const fwdpp::ancestry::mutation_record& mr) {
-                               return xx.second[mr.key] == 2*pop.diploids.size();
-                               }),
+                std::remove_if(
+                    tables.mutation_table.begin(), tables.mutation_table.end(),
+                    [&xx, &pop](const fwdpp::ancestry::mutation_record& mr) {
+                        return xx.second[mr.key] == 2 * pop.diploids.size();
+                    }),
                 tables.mutation_table.end());
 
-            unsigned n = 0;
-            for (std::size_t i = 0; i < pop.mutations.size(); ++i)
-                {
-                    if (pop.mcounts[i])
-                        {
-                            ++n;
-                        }
-                }
-            std::cerr << "result "
-                      << int(std::accumulate(pop.mcounts.begin(),
-                                             pop.mcounts.end(), 0))
-                      << ' '
-                      << int(std::accumulate(xx.second.begin(),
-                                             xx.second.end(), 0))
-                      << ' ' << n << ' ' << tables.mutation_table.size() << ' '
-                      << pop.fixations.size() << '\n';
             assert(pop.mcounts.size() == xx.second.size());
-            //for (auto& mr : tables.mutation_table)
-            //    {
-            //        assert(tables.node_table.at(mr.node).generation
-            //               == 1. + pop.mutations[mr.key].g);
-            //    }
-            //output last set of nodes/edges
-            ofn.str(std::string());
-            ofn << "simoutput/edges." << generation << ".txt";
+            // ofn.str(std::string());
+            // ofn << "simoutput/edges." << generation << ".txt";
 
-            out.open(ofn.str().c_str());
-            for (auto e : tables.edge_table)
-                {
-                    out << e.parent << ' ' << e.child << ' ' << e.left << ' '
-                        << e.right << '\n';
-                }
-            out.close();
-            ofn.str(std::string());
-            ofn << "simoutput/nodes." << generation << ".txt";
-            out.open(ofn.str().c_str());
-            for (auto n : tables.node_table)
-                {
-                    out << n.id << ' ' << n.generation << '\n';
-                }
-            out.close();
-            ofn.str(std::string());
-            ofn << "simoutput/idmap." << generation << ".txt";
-            out.open(ofn.str().c_str());
-            for (std::size_t id = 0; id < xx.first.size(); ++id)
-                {
-                    out << id << ' ' << xx.first[id] << '\n';
-                }
-            out.close();
+            // out.open(ofn.str().c_str());
+            // for (auto e : tables.edge_table)
+            //     {
+            //         out << e.parent << ' ' << e.child << ' ' << e.left << ' '
+            //             << e.right << '\n';
+            //     }
+            // out.close();
+            // ofn.str(std::string());
+            // ofn << "simoutput/nodes." << generation << ".txt";
+            // out.open(ofn.str().c_str());
+            // for (auto n : tables.node_table)
+            //     {
+            //         out << n.id << ' ' << n.generation << '\n';
+            //     }
+            // out.close();
+            // ofn.str(std::string());
+            // ofn << "simoutput/idmap." << generation << ".txt";
+            // out.open(ofn.str().c_str());
+            // for (std::size_t id = 0; id < xx.first.size(); ++id)
+            //     {
+            //         out << id << ' ' << xx.first[id] << '\n';
+            //     }
+            // out.close();
 
-            if (pop.mcounts != xx.second)
-                {
-                    std::vector<std::size_t> failures;
-                    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
-                        {
-                            std::cout << generation << ' ' << pop.mcounts[i]
-                                      << ' ' << xx.second[i] << ' '
-                                      << pop.mutations[i].pos << ' '
-                                      << pop.mutations[i].g << '\n';
-                            if (pop.mcounts[i] != xx.second[i])
-                                {
-                                    failures.push_back(i);
-                                }
-                        }
-                    //Find diploids with failures
-                    std::vector<std::size_t> gfails;
-                    for (std::size_t g = 0; g < pop.gametes.size(); ++g)
-                        {
-                            auto& gam = pop.gametes[g];
-                            if (gam.n)
-                                {
-                                    for (auto f : failures)
-                                        {
-                                            auto itr = std::find(
-                                                gam.mutations.begin(),
-                                                gam.mutations.end(), f);
-                                            auto itr2 = std::find(
-                                                gam.smutations.begin(),
-                                                gam.smutations.end(), f);
-                                            if (itr != gam.mutations.end()
-                                                || itr2
-                                                       != gam.smutations.end())
-                                                {
-                                                    gfails.push_back(g);
-                                                }
-                                        }
-                                }
-                        }
-                    std::sort(gfails.begin(), gfails.end());
-                    gfails.erase(std::unique(gfails.begin(), gfails.end()),
-                                 gfails.end());
-                    for (std::size_t dip = 0; dip < pop.diploids.size(); ++dip)
-                        {
-                            if (std::find(gfails.begin(), gfails.end(),
-                                          pop.diploids[dip].first)
-                                != gfails.end())
-                                {
-                                    std::cout << "Node with mut: " << 2 * dip
-                                              << '\n';
-                                }
-                            if (std::find(gfails.begin(), gfails.end(),
-                                          pop.diploids[dip].second)
-                                != gfails.end())
-                                {
-                                    std::cout
-                                        << "Node with mut: " << 2 * dip + 1
-                                        << '\n';
-                                }
-                        }
-                    for (unsigned i = 0; i < mt.size(); ++i)
-                        {
-                            std::cout << mt[i].node << ' '
-                                      << xx.first[mt[i].node] << ' '
-                                      << pop.mutations[mt[i].key].pos << '\n';
-                        }
-                    std::exit(0);
-                }
-            std::cerr << (pop.mcounts == xx.second) << '\n';
+            // if (pop.mcounts != xx.second)
+            //     {
+            //         std::vector<std::size_t> failures;
+            //         for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
+            //             {
+            //                 std::cout << generation << ' ' << pop.mcounts[i]
+            //                           << ' ' << xx.second[i] << ' '
+            //                           << pop.mutations[i].pos << ' '
+            //                           << pop.mutations[i].g << '\n';
+            //                 if (pop.mcounts[i] != xx.second[i])
+            //                     {
+            //                         failures.push_back(i);
+            //                     }
+            //             }
+            //         //Find diploids with failures
+            //         std::vector<std::size_t> gfails;
+            //         for (std::size_t g = 0; g < pop.gametes.size(); ++g)
+            //             {
+            //                 auto& gam = pop.gametes[g];
+            //                 if (gam.n)
+            //                     {
+            //                         for (auto f : failures)
+            //                             {
+            //                                 auto itr = std::find(
+            //                                     gam.mutations.begin(),
+            //                                     gam.mutations.end(), f);
+            //                                 auto itr2 = std::find(
+            //                                     gam.smutations.begin(),
+            //                                     gam.smutations.end(), f);
+            //                                 if (itr != gam.mutations.end()
+            //                                     || itr2
+            //                                            != gam.smutations.end())
+            //                                     {
+            //                                         gfails.push_back(g);
+            //                                     }
+            //                             }
+            //                     }
+            //             }
+            //         std::sort(gfails.begin(), gfails.end());
+            //         gfails.erase(std::unique(gfails.begin(), gfails.end()),
+            //                      gfails.end());
+            //         for (std::size_t dip = 0; dip < pop.diploids.size(); ++dip)
+            //             {
+            //                 if (std::find(gfails.begin(), gfails.end(),
+            //                               pop.diploids[dip].first)
+            //                     != gfails.end())
+            //                     {
+            //                         std::cout << "Node with mut: " << 2 * dip
+            //                                   << '\n';
+            //                     }
+            //                 if (std::find(gfails.begin(), gfails.end(),
+            //                               pop.diploids[dip].second)
+            //                     != gfails.end())
+            //                     {
+            //                         std::cout
+            //                             << "Node with mut: " << 2 * dip + 1
+            //                             << '\n';
+            //                     }
+            //             }
+            //         for (unsigned i = 0; i < mt.size(); ++i)
+            //             {
+            //                 std::cout << mt[i].node << ' '
+            //                           << xx.first[mt[i].node] << ' '
+            //                           << pop.mutations[mt[i].key].pos << '\n';
+            //             }
+            //         std::exit(0);
+            //     }
             next_index = tables.num_nodes();
             first_parental_index = 0;
-            // std::cout<<next_index<<' '<<first_parental_index<<"\n";
             fwdpp::update_mutations(pop.mutations, pop.fixations,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
         }
-    std::cout << "sort time = " << sort_time << '\n';
-    // std::vector<std::int32_t> samples;
-    // for (auto i = next_index - 2 * pop.diploids.size(); i < next_index; ++i)
-    //    {
-    //        samples.push_back(i);
-    //    }
-    // ancestry.sort_tables();
-    // ancestry.simplify(samples);
     return tables;
 }
 
@@ -452,14 +410,4 @@ main(int argc, char** argv)
     std::cout << "finished without error " << pop.mutations.size() << ' '
               << tables.node_table.size() << ' ' << tables.edge_table.size()
               << ' ' << tables.mutation_table.size() << '\n';
-    // for (auto& a : tables.edge_table)
-    //    {
-    //        std::cout << tables.node_table[a.parent].generation << ' '
-    //                  << a.parent << ' ' << a.child << ' ' << a.left << ' '
-    //                  << a.right << '\n';
-    //    }
-    // for (auto& n : tables.node_table)
-    //    {
-    //        std::cout << n.id << ' ' << n.generation << '\n';
-    //    }
 }
