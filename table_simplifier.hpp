@@ -449,12 +449,14 @@ namespace fwdpp
 
                 for (auto& mm : mutation_map)
                     {
-                        std::sort(mm.second.begin(), mm.second.end(),
-                                  [&mutations, &tables](const std::pair<std::size_t,std::size_t> & a,
-                                                        const std::pair<std::size_t,std::size_t> & b) {
-                                      return mutations[a.first].pos
-                                             < mutations[b.first].pos;
-                                  });
+                        std::sort(
+                            mm.second.begin(), mm.second.end(),
+                            [&mutations, &tables](
+                                const std::pair<std::size_t, std::size_t>& a,
+                                const std::pair<std::size_t, std::size_t>& b) {
+                                return mutations[a.first].pos
+                                       < mutations[b.first].pos;
+                            });
                     }
 
                 // Relates input node ids to output node ids
@@ -547,8 +549,7 @@ namespace fwdpp
                 // TODO: This step can be done in the counter.
                 for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
                     {
-                        tables.mutation_table[i].node
-                            = mutation_node_map[i];
+                        tables.mutation_table[i].node = mutation_node_map[i];
                     }
 
                 // 1. Remove all mutations whose output nodes are simply gone.
@@ -624,58 +625,6 @@ namespace fwdpp
                 cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));
             }
-
-            //void
-            //sort_tables() noexcept
-            ////TODO: this can be removed
-            //{
-            //    tables.sort_edges(edge_offset, E);
-            //}
-
-            //table_collection
-            //dump_tables()
-            ///// Returns the tables via a move-constructed object.
-            ///// The table_simplifier instance is now in an inconsistent state.
-            //{
-            //    table_collection rv(std::move(tables));
-            //    return rv;
-            //}
-
-            //const node_vector&
-            //nodes() const
-            //{
-            //    return tables.node_table;
-            //}
-
-            //std::size_t
-            //num_nodes() const
-            //{
-            //    return tables.node_table.size();
-            //}
-
-            //std::size_t
-            //num_edges() const
-            //{
-            //    return tables.edge_table.size();
-            //}
-
-            //template <typename visitor>
-            //void
-            //algorithmL(visitor v, const std::vector<std::int32_t>& samples)
-            //{
-            //    tables.build_indexes();
-            //    ancestry::algorithmL(tables.input_left, tables.output_right,
-            //                         samples, tables.node_table.size(), 1.0,
-            //                         v);
-            //}
-
-            //void
-            //algorithmT()
-            //{
-            //    tables.build_indexes();
-            //    ancestry::algorithmT(tables.input_left, tables.output_right,
-            //                         tables.node_table.size(), 1.0);
-            //}
         };
     } // namespace ancestry
 } // namespace fwdpp
