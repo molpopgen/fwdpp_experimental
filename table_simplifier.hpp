@@ -387,71 +387,31 @@ namespace fwdpp
                     ancestry_segment.end());
             }
 
-          public:
-            table_simplifier(const double region_length)
-                : new_edge_table{}, new_node_table{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, L{ region_length }
+            using mutation_map_t = std::unordered_map<
+                std::int32_t,
+                std::vector<std::pair<std::size_t, std::size_t>>>;
+            using mutation_node_map_t = std::vector<std::int32_t>;
+
+            template <typename mcont_t>
+            std::pair<mutation_map_t, mutation_node_map_t>
+            prep_mutation_simplification(
+                const mcont_t& mutations,
+                const mutation_key_vector& mutation_table) const
             {
-            }
-
-            //template <typename TC>
-            //table_simplifier(TC&& initial_table_collection,
-            //                 const double region_length)
-            //    : tables{ std::forward<TC>(initial_table_collection) },
-            //      tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
-            //      edge_offset{ static_cast<std::ptrdiff_t>(
-            //          tables.edge_table.size()) },
-            //      L{ region_length }
-            //{
-            //    if (!tables.edges_are_sorted())
-            //        {
-            //            throw std::invalid_argument("edges are not sorted");
-            //        }
-            //}
-
-            template <typename mutation_container>
-            //std::vector<std::int32_t>
-            std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
-            simplify(table_collection& tables,
-                     const std::vector<std::int32_t>& samples,
-                     const mutation_container& mutations)
-            /// Set theoretic simplify.
-            /// TODO: shorten via additional function calls
-            /// for readability
-            /// TODO: compare against implementation more
-            /// closely matching what msprime is doing.
-            /// TODO: make a template member so that mutations are
-            /// also simplified
-            {
-                Ancestry.resize(tables.node_table.size());
-
-                // Set some things up for later mutation simplification
-
-                // This vector stores [(node,[(mutation_key, location in mutation table)])
-                std::unordered_map<
-                    std::int32_t,
-                    std::vector<std::pair<std::size_t, std::size_t>>>
-                    mutation_map; //maps input nodes to locations in input mut table
-                // TODO: the mutation node map is getting built incorrectly.
-                // It allows two mutations on the same input node, but on different
-                // marginal trees, to get remapped to the same output node, which is incorrect.
-                // It should be rebuild to be the same size as the input mutation table,
-                // and the mutation map's internal structure should be re-organized
-                // to key the index of the mutation record, rather than the mutation
-                // key of the mutation record.
-                std::vector<std::int32_t> mutation_node_map(
-                    tables.mutation_table.size(), -1);
-                for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                mutation_map_t mutation_map;
+                mutation_node_map_t mutation_node_map(mutation_table.size(),
+                                                      -1);
+                for (std::size_t i = 0; i < mutation_table.size(); ++i)
                     {
-                        mutation_map[tables.mutation_table[i].node]
-                            .emplace_back(tables.mutation_table[i].key, i);
+                        mutation_map[mutation_table[i].node].emplace_back(
+                            mutation_table[i].key, i);
                     }
 
                 for (auto& mm : mutation_map)
                     {
                         std::sort(
                             mm.second.begin(), mm.second.end(),
-                            [&mutations, &tables](
+                            [&mutations](
                                 const std::pair<std::size_t, std::size_t>& a,
                                 const std::pair<std::size_t, std::size_t>& b) {
                                 return mutations[a.first].pos
@@ -459,53 +419,19 @@ namespace fwdpp
                             });
                     }
 
-                // Relates input node ids to output node ids
-                std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
+                return std::make_pair(std::move(mutation_map),
+                                      std::move(mutation_node_map));
+            }
 
-                // We take our samples and add them to both the output
-                // node list and initialize their ancestry with
-                // a segment on [0,L).
-                for (const auto& s : samples)
-                    {
-                        new_node_table.emplace_back(node{
-                            static_cast<std::int32_t>(new_node_table.size()),
-                            tables.node_table[s].population,
-                            tables.node_table[s].generation });
-                        Ancestry[s].emplace_back(
-                            0, L,
-                            static_cast<std::int32_t>(new_node_table.size()
-                                                      - 1));
-                        idmap[s] = static_cast<std::int32_t>(
-                            new_node_table.size() - 1);
-                    }
-
-                // At this point, our edges are sorted by birth
-                // order of parents, from present to past.
-                // We can now work our way up the pedigree.
-                // This outer loop differs from how we describe it in the
-                // paper, but the strict sorting of edges means that this
-                // equivalent.
-                auto edge_ptr = tables.edge_table.cbegin();
-                const auto edge_end = tables.edge_table.cend();
-                while (edge_ptr < edge_end)
-                    {
-                        auto u = edge_ptr->parent;
-                        edge_ptr = step_S3(edge_ptr, edge_end, u);
-                        merge_ancestors(tables.node_table, u, idmap);
-                    }
-
-                assert(static_cast<std::size_t>(std::count_if(
-                           idmap.begin(), idmap.end(),
-                           [](const std::int32_t i) { return i != -1; }))
-                       == new_node_table.size());
-                // After swapping, new_node_table
-                // contains the input nodes
-                tables.edge_table.swap(new_edge_table);
-                tables.node_table.swap(new_node_table);
-                // TODO: allow for exception instead of assert
-                assert(tables.edges_are_sorted());
-                tables.update_offset();
-
+            template <typename mcont_t>
+            std::vector<std::uint32_t>
+            simplify_mutations(const mcont_t& mutations,
+                               const std::vector<std::int32_t>& samples,
+                               const std::vector<std::int32_t>& idmap,
+                               table_collection& tables,
+                               std::pair<mutation_map_t, mutation_node_map_t>&
+                                   mutation_data) const
+            {
                 // Simplify mutations
 
                 // 0. Remap mutation input node ids.  To do this, we use
@@ -513,6 +439,8 @@ namespace fwdpp
                 // mutation nodes down the tree.
 
                 //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                auto mutation_map = std::move(mutation_data.first);
+                auto mutation_node_map = std::move(mutation_data.second);
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
@@ -622,6 +550,125 @@ namespace fwdpp
                                        return mcounts[mr.key] == 0;
                                    }),
                     tables.mutation_table.end());
+                return mcounts;
+            }
+
+          public:
+            table_simplifier(const double region_length)
+                : new_edge_table{}, new_node_table{},
+                  segment_queue{}, X{}, Ancestry{}, E{}, L{ region_length }
+            {
+            }
+
+            //template <typename TC>
+            //table_simplifier(TC&& initial_table_collection,
+            //                 const double region_length)
+            //    : tables{ std::forward<TC>(initial_table_collection) },
+            //      tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
+            //      edge_offset{ static_cast<std::ptrdiff_t>(
+            //          tables.edge_table.size()) },
+            //      L{ region_length }
+            //{
+            //    if (!tables.edges_are_sorted())
+            //        {
+            //            throw std::invalid_argument("edges are not sorted");
+            //        }
+            //}
+
+            template <typename mutation_container>
+            //std::vector<std::int32_t>
+            std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
+            simplify(table_collection& tables,
+                     const std::vector<std::int32_t>& samples,
+                     const mutation_container& mutations)
+            /// Set theoretic simplify.
+            /// TODO: shorten via additional function calls
+            /// for readability
+            /// TODO: compare against implementation more
+            /// closely matching what msprime is doing.
+            /// TODO: make a template member so that mutations are
+            /// also simplified
+            {
+                Ancestry.resize(tables.node_table.size());
+
+                // Set some things up for later mutation simplification
+                auto mutation_data = prep_mutation_simplification(
+                    mutations, tables.mutation_table);
+
+                // This vector stores [(node,[(mutation_key, location in mutation table)])
+                //std::unordered_map<
+                //    std::int32_t,
+                //    std::vector<std::pair<std::size_t, std::size_t>>>
+                //    mutation_map; //maps input nodes to locations in input mut table
+                //std::vector<std::int32_t> mutation_node_map(
+                //    tables.mutation_table.size(), -1);
+                //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
+                //    {
+                //        mutation_map[tables.mutation_table[i].node]
+                //            .emplace_back(tables.mutation_table[i].key, i);
+                //    }
+
+                //for (auto& mm : mutation_map)
+                //    {
+                //        std::sort(
+                //            mm.second.begin(), mm.second.end(),
+                //            [&mutations, &tables](
+                //                const std::pair<std::size_t, std::size_t>& a,
+                //                const std::pair<std::size_t, std::size_t>& b) {
+                //                return mutations[a.first].pos
+                //                       < mutations[b.first].pos;
+                //            });
+                //    }
+
+                // Relates input node ids to output node ids
+                std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
+
+                // We take our samples and add them to both the output
+                // node list and initialize their ancestry with
+                // a segment on [0,L).
+                for (const auto& s : samples)
+                    {
+                        new_node_table.emplace_back(node{
+                            static_cast<std::int32_t>(new_node_table.size()),
+                            tables.node_table[s].population,
+                            tables.node_table[s].generation });
+                        Ancestry[s].emplace_back(
+                            0, L,
+                            static_cast<std::int32_t>(new_node_table.size()
+                                                      - 1));
+                        idmap[s] = static_cast<std::int32_t>(
+                            new_node_table.size() - 1);
+                    }
+
+                // At this point, our edges are sorted by birth
+                // order of parents, from present to past.
+                // We can now work our way up the pedigree.
+                // This outer loop differs from how we describe it in the
+                // paper, but the strict sorting of edges means that this
+                // equivalent.
+                auto edge_ptr = tables.edge_table.cbegin();
+                const auto edge_end = tables.edge_table.cend();
+                while (edge_ptr < edge_end)
+                    {
+                        auto u = edge_ptr->parent;
+                        edge_ptr = step_S3(edge_ptr, edge_end, u);
+                        merge_ancestors(tables.node_table, u, idmap);
+                    }
+
+                assert(static_cast<std::size_t>(std::count_if(
+                           idmap.begin(), idmap.end(),
+                           [](const std::int32_t i) { return i != -1; }))
+                       == new_node_table.size());
+                // After swapping, new_node_table
+                // contains the input nodes
+                tables.edge_table.swap(new_edge_table);
+                tables.node_table.swap(new_node_table);
+                // TODO: allow for exception instead of assert
+                assert(tables.edges_are_sorted());
+                tables.update_offset();
+
+                auto mcounts = simplify_mutations(mutations, samples, idmap,
+                                                  tables, mutation_data);
 
                 cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));

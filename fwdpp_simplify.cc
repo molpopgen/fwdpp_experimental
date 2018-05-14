@@ -271,6 +271,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             // out.close();
             tables.sort_tables(pop.mutations);
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
+            assert(xx.second == pop.mcounts);
 
             // TODO: decide how to handle fixations.
             // Ideally, this would be done during simplification,
