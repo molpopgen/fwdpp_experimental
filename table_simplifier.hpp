@@ -560,21 +560,6 @@ namespace fwdpp
             {
             }
 
-            //template <typename TC>
-            //table_simplifier(TC&& initial_table_collection,
-            //                 const double region_length)
-            //    : tables{ std::forward<TC>(initial_table_collection) },
-            //      tables_{}, segment_queue{}, X{}, Ancestry{}, E{},
-            //      edge_offset{ static_cast<std::ptrdiff_t>(
-            //          tables.edge_table.size()) },
-            //      L{ region_length }
-            //{
-            //    if (!tables.edges_are_sorted())
-            //        {
-            //            throw std::invalid_argument("edges are not sorted");
-            //        }
-            //}
-
             template <typename mutation_container>
             //std::vector<std::int32_t>
             std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
