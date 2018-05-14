@@ -526,8 +526,9 @@ namespace fwdpp
                                     {
                                         assert(mut < mute);
                                         assert(mut->first < mutations.size());
-                                        assert(seg->node
-                                               < new_edge_table.size());
+                                        assert(
+                                            static_cast<std::size_t>(seg->node)
+                                            < new_edge_table.size());
                                         //TODO: replace at with []
                                         mutation_node_map.at(mut->second)
                                             = seg->node;

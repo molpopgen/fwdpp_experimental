@@ -111,7 +111,7 @@ namespace fwdpp
             {
                 for (auto s : samples)
                     {
-                        if (s >= leaf_counts.size())
+                        if (static_cast<std::size_t>(s) >= leaf_counts.size())
                             {
                                 throw std::invalid_argument(
                                     "sample index out of range");
