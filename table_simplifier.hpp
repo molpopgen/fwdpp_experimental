@@ -595,31 +595,6 @@ namespace fwdpp
                 auto mutation_data = prep_mutation_simplification(
                     mutations, tables.mutation_table);
 
-                // This vector stores [(node,[(mutation_key, location in mutation table)])
-                //std::unordered_map<
-                //    std::int32_t,
-                //    std::vector<std::pair<std::size_t, std::size_t>>>
-                //    mutation_map; //maps input nodes to locations in input mut table
-                //std::vector<std::int32_t> mutation_node_map(
-                //    tables.mutation_table.size(), -1);
-                //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
-                //    {
-                //        mutation_map[tables.mutation_table[i].node]
-                //            .emplace_back(tables.mutation_table[i].key, i);
-                //    }
-
-                //for (auto& mm : mutation_map)
-                //    {
-                //        std::sort(
-                //            mm.second.begin(), mm.second.end(),
-                //            [&mutations, &tables](
-                //                const std::pair<std::size_t, std::size_t>& a,
-                //                const std::pair<std::size_t, std::size_t>& b) {
-                //                return mutations[a.first].pos
-                //                       < mutations[b.first].pos;
-                //            });
-                //    }
-
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
 
