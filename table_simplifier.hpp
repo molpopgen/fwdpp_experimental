@@ -393,14 +393,12 @@ namespace fwdpp
             using mutation_node_map_t = std::vector<std::int32_t>;
 
             template <typename mcont_t>
-            std::pair<mutation_map_t, mutation_node_map_t>
+            mutation_map_t
             prep_mutation_simplification(
                 const mcont_t& mutations,
                 const mutation_key_vector& mutation_table) const
             {
                 mutation_map_t mutation_map;
-                mutation_node_map_t mutation_node_map(mutation_table.size(),
-                                                      -1);
                 for (std::size_t i = 0; i < mutation_table.size(); ++i)
                     {
                         mutation_map[mutation_table[i].node].emplace_back(
@@ -419,8 +417,7 @@ namespace fwdpp
                             });
                     }
 
-                return std::make_pair(std::move(mutation_map),
-                                      std::move(mutation_node_map));
+                return mutation_map;
             }
 
             template <typename mcont_t>
@@ -429,8 +426,7 @@ namespace fwdpp
                                const std::vector<std::int32_t>& samples,
                                const std::vector<std::int32_t>& idmap,
                                table_collection& tables,
-                               std::pair<mutation_map_t, mutation_node_map_t>&
-                                   mutation_data) const
+                               mutation_map_t& mutation_map) const
             {
                 // Simplify mutations
 
@@ -439,8 +435,7 @@ namespace fwdpp
                 // mutation nodes down the tree.
 
                 //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
-                auto mutation_map = std::move(mutation_data.first);
-                auto mutation_node_map = std::move(mutation_data.second);
+                for(auto & mr : tables.mutation_table){mr.node=-1;}
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
@@ -458,8 +453,7 @@ namespace fwdpp
                                             static_cast<std::size_t>(seg->node)
                                             < new_edge_table.size());
                                         //TODO: replace at with []
-                                        mutation_node_map.at(mut->second)
-                                            = seg->node;
+                                            tables.mutation_table[mut->second].node= seg->node;
                                         ++mut;
                                     }
                                 else if (pos >= seg->right)
@@ -471,14 +465,6 @@ namespace fwdpp
                                         ++mut;
                                     }
                             }
-                    }
-
-                // 2. Map input mutation node IDs to output IDs
-                // This is fast O(n).
-                // TODO: This step can be done in the counter.
-                for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
-                    {
-                        tables.mutation_table[i].node = mutation_node_map[i];
                     }
 
                 // 1. Remove all mutations whose output nodes are simply gone.
@@ -577,8 +563,7 @@ namespace fwdpp
                 Ancestry.resize(tables.node_table.size());
 
                 // Set some things up for later mutation simplification
-                auto mutation_data = prep_mutation_simplification(
-                    mutations, tables.mutation_table);
+                auto mutation_map = prep_mutation_simplification(mutations,tables.mutation_table);
 
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
@@ -628,7 +613,7 @@ namespace fwdpp
                 tables.update_offset();
 
                 auto mcounts = simplify_mutations(mutations, samples, idmap,
-                                                  tables, mutation_data);
+                                                  tables, mutation_map);
 
                 cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));
