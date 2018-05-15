@@ -23,9 +23,14 @@ namespace fwdpp
             {
                 double left, right;
                 std::int32_t node;
-                segment(double l, double r, std::int32_t n) noexcept
+                segment(double l, double r, std::int32_t n)
                     : left{ l }, right{ r }, node{ n }
                 {
+                    if (right <= left)
+                        {
+                            throw std::invalid_argument(
+                                "right must be > left");
+                        }
                 }
             };
 
@@ -435,7 +440,10 @@ namespace fwdpp
                 // mutation nodes down the tree.
 
                 //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
-                for(auto & mr : tables.mutation_table){mr.node=-1;}
+                for (auto& mr : tables.mutation_table)
+                    {
+                        mr.node = -1;
+                    }
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
@@ -453,7 +461,8 @@ namespace fwdpp
                                             static_cast<std::size_t>(seg->node)
                                             < new_edge_table.size());
                                         //TODO: replace at with []
-                                            tables.mutation_table[mut->second].node= seg->node;
+                                        tables.mutation_table[mut->second].node
+                                            = seg->node;
                                         ++mut;
                                     }
                                 else if (pos >= seg->right)
@@ -563,7 +572,8 @@ namespace fwdpp
                 Ancestry.resize(tables.node_table.size());
 
                 // Set some things up for later mutation simplification
-                auto mutation_map = prep_mutation_simplification(mutations,tables.mutation_table);
+                auto mutation_map = prep_mutation_simplification(
+                    mutations, tables.mutation_table);
 
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
