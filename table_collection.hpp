@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <stdexcept>
 #include "node.hpp"
 #include "edge.hpp"
 #include "mutation_record.hpp"
@@ -48,6 +49,11 @@ namespace fwdpp
                         double b = (j < breakpoints.size() - 1)
                                        ? breakpoints[j]
                                        : L;
+                        if (b <= a)
+                            {
+                                throw std::runtime_error(
+                                    "right must be > left");
+                            }
                         if (j % 2 == 0.)
                             {
                                 this->push_back_edge(
@@ -114,30 +120,31 @@ namespace fwdpp
             /// time rather than backwards.
             /// TODO: need offset
             {
-                std::sort(edge_table.begin() + edge_offset, edge_table.end(),
-                          [this](const edge& a, const edge& b) {
-                              auto ga = this->node_table[a.parent].generation;
-                              auto gb = this->node_table[b.parent].generation;
-                              //
-                              //return ga > gb
-                              //       || (ga == gb
-                              //           && std::tie(a.parent, a.child, a.left)
-                              //                  < std::tie(b.parent, b.child,
-                              //                             b.left));
-                              if (ga == gb)
-                                  {
-                                      if (a.parent == b.parent)
-                                          {
-                                              if (a.child == b.child)
-                                                  {
-                                                      return a.left < b.left;
-                                                  }
-                                              return a.child < b.child;
-                                          }
-                                      return a.parent < b.parent;
-                                  }
-                              return ga > gb;
-                          });
+                std::sort(
+                    edge_table.begin() + edge_offset, edge_table.end(),
+                    [this](const edge& a, const edge& b) {
+                        auto ga = this->node_table[a.parent].generation;
+                        auto gb = this->node_table[b.parent].generation;
+                        //
+                        //return ga > gb
+                        //       || (ga == gb
+                        //           && std::tie(a.parent, a.child, a.left)
+                        //                  < std::tie(b.parent, b.child,
+                        //                             b.left));
+                        if (ga == gb)
+                            {
+                                if (a.parent == b.parent)
+                                    {
+                                        if (a.child == b.child)
+                                            {
+                                                return a.left < b.left;
+                                            }
+                                        return a.child < b.child;
+                                    }
+                                return a.parent < b.parent;
+                            }
+                        return ga > gb;
+                    });
                 if (edge_offset > 0)
                     {
                         temp_edges.reserve(edge_table.size());
@@ -262,6 +269,7 @@ namespace fwdpp
                 output_right.clear();
                 for (auto& e : edge_table)
                     {
+                        assert(e.left < e.right);
                         input_left.emplace_back(
                             e.left, -node_table[e.parent].generation, e.parent,
                             e.child);
@@ -290,8 +298,8 @@ namespace fwdpp
                     {
                         mutation_table.emplace_back(
                             mutation_record{ next_index, m });
-						assert(mutation_table.back().node==next_index);
-						assert(mutation_table.back().key==m);
+                        assert(mutation_table.back().node == next_index);
+                        assert(mutation_table.back().key == m);
                     }
             }
 
@@ -307,7 +315,7 @@ namespace fwdpp
                 edge_offset = edge_table.size();
             }
         };
-    }
-}
+    } // namespace ancestry
+} // namespace fwdpp
 
 #endif
