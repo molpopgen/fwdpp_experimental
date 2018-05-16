@@ -264,7 +264,7 @@ namespace fwdpp
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
             // Based on implementation found in msprime/lib/msprime.c
-            // by Jerome Kelleher.
+            // by Jerome Kelleher, version 0.5.0 of that code.
             // http://github.com/jeromekelleher/msprime.
             {
                 if (!E.empty())
