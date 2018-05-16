@@ -439,7 +439,6 @@ namespace fwdpp
                 // the data stored in Ancestry, which allows us to "push"
                 // mutation nodes down the tree.
 
-                //for (std::size_t i = 0; i < tables.mutation_table.size(); ++i)
                 for (auto& mr : tables.mutation_table)
                     {
                         mr.node = -1;
@@ -460,7 +459,6 @@ namespace fwdpp
                                         assert(
                                             static_cast<std::size_t>(seg->node)
                                             < new_edge_table.size());
-                                        //TODO: replace at with []
                                         tables.mutation_table[mut->second].node
                                             = seg->node;
                                         ++mut;
