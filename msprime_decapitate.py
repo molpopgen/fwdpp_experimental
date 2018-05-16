@@ -24,19 +24,29 @@ with open("decap_nodes.bin","wb") as f:
 with open("decap_edges.bin","wb") as f:
     f.write(struct.pack('i',len(t.edges)))
     for e in t.edges:
-        f.write(struct.pack('i',e.parent))
-        f.write(struct.pack('i',e.child))
+        f.write(struct.pack('i',np.int32(e.parent)))
+        f.write(struct.pack('i',np.int32(e.child)))
         f.write(struct.pack('d',e.left))
         f.write(struct.pack('d',e.right))
 
 with open("decap_mutations.bin","wb") as f:
+    print(len(t.sites),len(t.mutations)," sites and muts")
     f.write(struct.pack('i',len(t.mutations)))
     for i,j in zip(t.mutations, t.sites):
-        f.write(struct.pack('i',i.node))
+        f.write(struct.pack('i',np.int32(i.node)))
         f.write(struct.pack('d',j.position))
         
 # finally, let's simplify things down so that we can look at
 # what msprime thinks
 
-msprime.simplify_tables(nodes=t.nodes,edges=t.edges,sites=t.sites,mutations=t.mutations, samples=np.where(t.nodes.time == 0)[0].astype(np.int32))
+msprime.simplify_tables(nodes=t.nodes,edges=t.edges,sites=t.sites,
+        mutations=t.mutations,
+        samples=np.where(t.nodes.time == 0)[0].astype(np.int32))
 print(len(t.nodes),len(t.edges),len(t.mutations))
+
+ts = msprime.load_tables(nodes=t.nodes,edges=t.edges,sites=t.sites,mutations=t.mutations)
+m=ts.genotype_matrix()
+print(m.shape)
+with open("msprime_counts.txt","w") as f:
+    for i in m:
+        f.write("{}\n".format(np.sum(i)))
