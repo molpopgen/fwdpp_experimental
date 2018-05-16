@@ -116,7 +116,7 @@ test3()
 
 void
 test4()
-//This is test3, but with the mutation
+//This is test2, but with the mutation
 //position == rightmost position of
 //most ancient edge
 {
@@ -169,7 +169,7 @@ test5()
     tables.push_back_node(2, 1.0, 0);
     tables.push_back_node(3, 0., 0); // Node that has the mut
 
-    vector<fake_mut> mutations(1, fake_mut{ 0.8 }); // one mutation at pos 0.8
+    vector<fake_mut> mutations(1, fake_mut{ 0.6 }); // one mutation at pos 0.6
     tables.mutation_table.emplace_back(
         mutation_record{ 3, 0 }); //node, index of mutation in mutations
 
@@ -181,8 +181,8 @@ test5()
     // res.first is the node remapping,
     // and res.second contains mutation counts
     assert(res.second.size() == 1);
-    assert(res.second[0] == 0);
-    assert(tables.mutation_table.empty());
+    assert(res.second[0] == 2);
+    assert(tables.mutation_table[0].node == res.first[0]);
 }
 
 // The above tests all have gaps, and seem to cover relevant
