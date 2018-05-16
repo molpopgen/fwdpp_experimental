@@ -266,63 +266,6 @@ namespace fwdpp
             // Based on implementation found in msprime/lib/msprime.c
             // by Jerome Kelleher.
             // http://github.com/jeromekelleher/msprime.
-            //
-            // Text of a rambling email sent to David Lawrie
-            // on 19 April 2018:
-            // Your comments yesterday prompted me to look at the code again.
-            // I don't have time to actually do anything until June, but I
-            // realized the following:
-            //
-            // The number of nodes that (immediately) descend from a node is
-            // related to the final value of 'l' in squash_and_flush_edges.
-            //
-            // In other words, if you have a part of an edge table looking
-            // like:
-            //
-            // 200 9 0 1
-            // 200 119 0 1
-            //
-            // The final value of 'l' for all squashed edges with parent 200 is
-            // 1, meaning that 200 leaves two records in the edge table.
-            //
-            // It is better than that, actually.  Below is a squashed record
-            // for node 389 in a test sim.  These are edges (p/c/l/r), and
-            // squashing reduces them to non-overlapping intervals.  Thus, the
-            // data below can be processed to a lookup table of the form parent
-            // -> left -> # immediate descendants, or parent -> (left,right) ->
-            // # immediate descendants.  Building that info must help
-            // simultaneously simplify and count mutations.
-            //
-            // 389 53 0.900531 0.990035
-            // 389 375 0.517643 0.609341
-            // 389 375 0.823912 1
-            // 389 380 0.990035 1
-            // 389 382 0 0.0121917
-            // 389 382 0.823912 0.900531
-            // 389 384 0 0.609341
-            // 389 388 0.0121917 0.517643
-            // 389 384 0 0.0121917
-            // 389 384 0.0121917 0.517643
-            // 389 384 0.517643 0.609341
-            // 389 388 0.0121917 0.517643
-            //
-            //
-            // That information means that you can skip a LOT of counting,
-            // etc., which must simplify mutation counting tremendously.
-            //
-            // There are multiple approaches possible.
-            //
-            // 1. Convert the data here into (double,(parent,[children])),
-            // where double is the left.  These entries can be placed
-            // in vectors and sorted.  Essentially, this builds the
-            // trees for all marginals as we go along, and it can be searched
-            // quickly in the usual ways.
-            //
-            // 2. Implement algorithms L (and T?) from the msprime paper.
-            // Jerome pointed out that they work perfectly well with
-            // incompletely-coalesced trees.  I have to reread his
-            // paper to see if that should be done here, or after
-            // all of simplify is done with.
             {
                 if (!E.empty())
                     {
