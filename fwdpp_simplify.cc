@@ -122,10 +122,20 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             auto new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
                 pop.gametes, pop.mutations, p1g1, mmodel);
+            for (auto& m : new_mutations)
+                {
+                    auto itr
+                        = pop.mut_lookup.equal_range(pop.mutations[m].pos);
+                    assert(std::distance(itr.first, itr.second) == 1);
+                }
             dip.first = fwdpp::mutate_recombine(
                 new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
+            if (!new_mutations.empty() || !breakpoints.empty())
+                {
+                    assert(dip.first != p1g1);
+                }
 
             tables.add_offspring_data(next_index_local, breakpoints,
                                       new_mutations, p1id, generation);
@@ -138,10 +148,20 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
                 pop.gametes, pop.mutations, p2g1, mmodel);
+            for (auto& m : new_mutations)
+                {
+                    auto itr
+                        = pop.mut_lookup.equal_range(pop.mutations[m].pos);
+                    assert(std::distance(itr.first, itr.second) == 1);
+                }
             dip.second = fwdpp::mutate_recombine(
                 new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
                 pop.mutations, gamete_recycling_bin, pop.neutral,
                 pop.selected);
+            if (!new_mutations.empty() || !breakpoints.empty())
+                {
+                    assert(dip.second != p2g1);
+                }
             tables.add_offspring_data(next_index_local, breakpoints,
                                       new_mutations, p2id, generation);
             next_index_local++;
