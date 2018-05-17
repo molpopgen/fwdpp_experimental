@@ -101,36 +101,18 @@ namespace fwdpp
                     }
             }
 
-            //void
-            //sort_edges()
-            //{
-            //    edge_vector temp_edges;
-            //    if (edge_offset > 0)
-            //        {
-            //            temp_edges.reserve(edge_table.size());
-            //        }
-            //    sort_edges(edge_offset, temp_edges);
-            //}
-
             void
             sort_edges() noexcept
             /// Sort the edge table.  On PARENT birth times.
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
-            /// TODO: need offset
             {
                 std::sort(
                     edge_table.begin() + edge_offset, edge_table.end(),
                     [this](const edge& a, const edge& b) {
                         auto ga = this->node_table[a.parent].generation;
                         auto gb = this->node_table[b.parent].generation;
-                        //
-                        //return ga > gb
-                        //       || (ga == gb
-                        //           && std::tie(a.parent, a.child, a.left)
-                        //                  < std::tie(b.parent, b.child,
-                        //                             b.left));
                         if (ga == gb)
                             {
                                 if (a.parent == b.parent)
@@ -160,12 +142,6 @@ namespace fwdpp
                             std::make_move_iterator(edge_table.begin()),
                             std::make_move_iterator(edge_table.begin()
                                                     + edge_offset));
-                        // std::move(edge_table.begin() + offset,
-                        //          edge_table.end(),
-                        //          std::back_inserter(temp_edges));
-                        // std::move(edge_table.begin(),
-                        // edge_table.begin()+offset,
-                        //          std::back_inserter(temp_edges));
                         assert(temp_edges.size() == size);
                         temp_edges.swap(edge_table);
                     }
@@ -178,7 +154,9 @@ namespace fwdpp
             template <typename mutation_container>
             void
             sort_tables(const mutation_container& mutations)
-            //TODO: static_assert that mutations contains the right stuff
+            /// Sorts the tables
+            /// Note that mutations can be mocked via any struct 
+            /// containing double pos
             {
                 sort_edges();
                 //mutations are sorted by increasing position
@@ -189,18 +167,6 @@ namespace fwdpp
                                      < mutations[b.key].pos;
                           });
             }
-
-            //void
-            //swap(table_collection& t) noexcept
-            ///// Swaps out data members.
-            ///// Primary use is after simplification,
-            ///// where a table_collection is used
-            ///// as a temp object.
-            //{
-            //    edge_table.swap(t.edge_table);
-            //    node_table.swap(t.node_table);
-            //    mutation_table.swap(t.mutation_table);
-            //}
 
             bool
             edges_are_sorted() const noexcept

@@ -187,21 +187,9 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         * (4. * double(pop.diploids.size()) * (mu_selected)
            + 0.667 * (4. * double(pop.diploids.size()) * (mu_selected)))));
 
-    //fwdpp::poisson_xover recmap(recrate, 0., 1.);
-    //const auto bound_recmodel =[&rng,&recmap](){return recmap(rng.get());};
     const auto recmap
         = fwdpp::recbinder(fwdpp::poisson_xover(recrate, 0., 1.), rng.get());
     unsigned generation = 0;
-    //fwdpp::infsites inf;
-    // const auto mmodel
-    //    = [&pop, &rng, &inf, &generation, mu_neutral, mu_selected](
-    //        fwdpp::traits::recycling_bin_t<slocuspop_t::mcont_t>& recbin,
-    //        slocuspop_t::mcont_t& mutations) {
-    //          return inf(recbin, mutations, rng.get(), pop.mut_lookup,
-    //                     generation, mu_neutral, mu_selected,
-    //                     [&rng]() { return gsl_rng_uniform(rng.get()); },
-    //                     []() { return 0.; }, []() { return 0.; });
-    //      };
 
     const auto mmodel
         = [&pop, &rng, &generation](std::queue<std::size_t>& recbin,
