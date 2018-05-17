@@ -208,13 +208,6 @@ namespace fwdpp
                                                 .population,
                                             input_node_table[parent_input_id]
                                                 .generation });
-                                        //tables_.push_back_node(
-                                        //    static_cast<std::int32_t>(
-                                        //        tables_.node_table.size()),
-                                        //    tables.node_table[parent_input_id]
-                                        //        .generation,
-                                        //    tables.node_table[parent_input_id]
-                                        //        .population);
                                         v = new_node_table.size() - 1;
                                         // update sample map
                                         idmap[parent_input_id] = v;
