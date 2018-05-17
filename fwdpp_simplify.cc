@@ -56,10 +56,6 @@ std::tuple<std::int32_t, std::int32_t>
 get_parent_ids(const std::int32_t first_parental_index,
                const std::uint32_t parent, const int did_swap)
 {
-    // if (first_parental_index == ROOTNODE)
-    //    {
-    //        return std::make_tuple(ROOTNODE, ROOTNODE);
-    //    }
     return std::make_tuple(
         first_parental_index + 2 * static_cast<std::int32_t>(parent)
             + did_swap,
