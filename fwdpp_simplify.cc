@@ -111,13 +111,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
             assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
             assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
-            // auto breakpoints = fwdpp::generate_breakpoints(
-            //    pop.diploids[p1], p1g1, p1g2, pop.gametes, pop.mutations,
-            //    recmodel);
+
             auto breakpoints = recmodel();
             auto new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
@@ -140,11 +134,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             tables.add_offspring_data(next_index_local, breakpoints,
                                       new_mutations, p1id, generation);
             next_index_local++;
-            breakpoints
-                = recmodel(); // fwdpp::generate_breakpoints(pop.diploids[p2],
-            // p2g1,
-            //                 p2g2, pop.gametes,
-            //               pop.mutations, recmodel);
+            breakpoints = recmodel();
             new_mutations = fwdpp::generate_new_mutations(
                 mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
                 pop.gametes, pop.mutations, p2g1, mmodel);
