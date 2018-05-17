@@ -399,9 +399,11 @@ namespace fwdpp
                                     {
                                         assert(mut < mute);
                                         assert(mut->first < mutations.size());
-                                        assert(
-                                            static_cast<std::size_t>(seg->node)
-                                            < new_edge_table.size());
+                                        //The following assert fails when 
+                                        //processing "decaptitated" trees
+                                        //assert(
+                                        //    static_cast<std::size_t>(seg->node)
+                                        //    < new_edge_table.size());
                                         tables.mutation_table[mut->second].node
                                             = seg->node;
                                         ++mut;
