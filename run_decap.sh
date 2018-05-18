@@ -1,8 +1,12 @@
 #!/bin/bash
 
-for i in $(seq 1 1 1000)
+for i in $(seq 1 1 100)
 do
-    python3 msprime_decapitate.py 10000 20000 > /dev/null
+    python3 msprime_decapitate.py 20000 100000 > /dev/null
     ./process_decap > /dev/null
-    diff -q msprime_counts.txt cpp_counts.txt
+    d=`diff -q msprime_counts.txt cpp_counts.txt`
+    if [ "$d" != "" ]
+    then
+        exit 1
+    fi
 done    
