@@ -63,6 +63,42 @@ get_parent_ids(const std::int32_t first_parental_index,
             + !did_swap);
 }
 
+// Wow, that's a lot of stuff needed:
+template <typename breakpoint_function, typename mutation_model,
+          typename mrecbin, typename grecbin>
+std::int32_t
+generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
+                   const mutation_model& mmodel, const double mu,
+                   const std::size_t parent, const fwdpp::uint_t parent_g1,
+                   const fwdpp::uint_t parent_g2,
+                   const std::tuple<std::int32_t, std::int32_t>& parent_nodes,
+                   const std::int32_t generation,
+                   const std::int32_t next_index, slocuspop_t& pop,
+                   std::size_t & offspring_gamete, table_collection& tables,
+                   mrecbin& mutation_recycling_bin,
+                   grecbin& gamete_recycling_bin)
+{
+    auto breakpoints = recmodel();
+    auto new_mutations = fwdpp::generate_new_mutations(
+        mutation_recycling_bin, rng.get(), mu, pop.diploids[parent],
+        pop.gametes, pop.mutations, parent_g1, mmodel);
+    for (auto& m : new_mutations)
+        {
+            auto itr = pop.mut_lookup.equal_range(pop.mutations[m].pos);
+            assert(std::distance(itr.first, itr.second) == 1);
+        }
+    offspring_gamete = fwdpp::mutate_recombine(
+        new_mutations, breakpoints, parent_g1, parent_g2, pop.gametes,
+        pop.mutations, gamete_recycling_bin, pop.neutral, pop.selected);
+    if (!new_mutations.empty() || !breakpoints.empty())
+        {
+            assert(offspring_gamete != parent_g1);
+        }
+    tables.add_offspring_data(next_index, breakpoints, new_mutations,
+                              parent_nodes, generation);
+    return next_index + 1;
+}
+
 template <typename breakpoint_function, typename mutation_model>
 void
 evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
@@ -108,49 +144,57 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
             assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
 
-            auto breakpoints = recmodel();
-            auto new_mutations = fwdpp::generate_new_mutations(
-                mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
-                pop.gametes, pop.mutations, p1g1, mmodel);
-            for (auto& m : new_mutations)
-                {
-                    auto itr
-                        = pop.mut_lookup.equal_range(pop.mutations[m].pos);
-                    assert(std::distance(itr.first, itr.second) == 1);
-                }
-            dip.first = fwdpp::mutate_recombine(
-                new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
-                pop.mutations, gamete_recycling_bin, pop.neutral,
-                pop.selected);
-            if (!new_mutations.empty() || !breakpoints.empty())
-                {
-                    assert(dip.first != p1g1);
-                }
+            next_index_local = generate_offspring(
+                rng, recmodel, mmodel, mu, p1, p1g1, p1g2, p1id, generation,
+                next_index_local, pop, dip.first, tables, mutation_recycling_bin,
+                gamete_recycling_bin);
+            next_index_local = generate_offspring(
+                rng, recmodel, mmodel, mu, p2, p2g1, p2g2, p2id, generation,
+                next_index_local, pop, dip.second, tables, mutation_recycling_bin,
+                gamete_recycling_bin);
+            //auto breakpoints = recmodel();
+            //auto new_mutations = fwdpp::generate_new_mutations(
+            //    mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
+            //    pop.gametes, pop.mutations, p1g1, mmodel);
+            //for (auto& m : new_mutations)
+            //    {
+            //        auto itr
+            //            = pop.mut_lookup.equal_range(pop.mutations[m].pos);
+            //        assert(std::distance(itr.first, itr.second) == 1);
+            //    }
+            //dip.first = fwdpp::mutate_recombine(
+            //    new_mutations, breakpoints, p1g1, p1g2, pop.gametes,
+            //    pop.mutations, gamete_recycling_bin, pop.neutral,
+            //    pop.selected);
+            //if (!new_mutations.empty() || !breakpoints.empty())
+            //    {
+            //        assert(dip.first != p1g1);
+            //    }
 
-            tables.add_offspring_data(next_index_local, breakpoints,
-                                      new_mutations, p1id, generation);
-            next_index_local++;
-            breakpoints = recmodel();
-            new_mutations = fwdpp::generate_new_mutations(
-                mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
-                pop.gametes, pop.mutations, p2g1, mmodel);
-            for (auto& m : new_mutations)
-                {
-                    auto itr
-                        = pop.mut_lookup.equal_range(pop.mutations[m].pos);
-                    assert(std::distance(itr.first, itr.second) == 1);
-                }
-            dip.second = fwdpp::mutate_recombine(
-                new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
-                pop.mutations, gamete_recycling_bin, pop.neutral,
-                pop.selected);
-            if (!new_mutations.empty() || !breakpoints.empty())
-                {
-                    assert(dip.second != p2g1);
-                }
-            tables.add_offspring_data(next_index_local, breakpoints,
-                                      new_mutations, p2id, generation);
-            next_index_local++;
+            //tables.add_offspring_data(next_index_local, breakpoints,
+            //                          new_mutations, p1id, generation);
+            //next_index_local++;
+            //breakpoints = recmodel();
+            //new_mutations = fwdpp::generate_new_mutations(
+            //    mutation_recycling_bin, rng.get(), mu, pop.diploids[p2],
+            //    pop.gametes, pop.mutations, p2g1, mmodel);
+            //for (auto& m : new_mutations)
+            //    {
+            //        auto itr
+            //            = pop.mut_lookup.equal_range(pop.mutations[m].pos);
+            //        assert(std::distance(itr.first, itr.second) == 1);
+            //    }
+            //dip.second = fwdpp::mutate_recombine(
+            //    new_mutations, breakpoints, p2g1, p2g2, pop.gametes,
+            //    pop.mutations, gamete_recycling_bin, pop.neutral,
+            //    pop.selected);
+            //if (!new_mutations.empty() || !breakpoints.empty())
+            //    {
+            //        assert(dip.second != p2g1);
+            //    }
+            //tables.add_offspring_data(next_index_local, breakpoints,
+            //                          new_mutations, p2id, generation);
+            //next_index_local++;
             pop.gametes[dip.first].n++;
             pop.gametes[dip.second].n++;
         }
@@ -265,6 +309,16 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             // out.close();
             tables.sort_tables(pop.mutations);
             auto xx = ancestry.simplify(tables, samples, pop.mutations);
+            if (xx.second != pop.mcounts)
+                {
+                    for (std::size_t i = 0; i < xx.second.size(); ++i)
+                        {
+                            std::cout << xx.second[i] << ' ' << pop.mcounts[i];
+                            if (xx.second[i] != pop.mcounts[i])
+                                std::cout << " *";
+                            std::cout << '\n';
+                        }
+                }
             assert(xx.second == pop.mcounts);
 
             // TODO: decide how to handle fixations.
