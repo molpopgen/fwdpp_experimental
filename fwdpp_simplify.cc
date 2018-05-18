@@ -304,9 +304,9 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
                               parent_nodes, generation);
 #ifndef NDEBUG
-    debug_new_edges(new_mutations, breakpoints, nedges, parent_nodes,
-                    next_index, offspring_gamete, parent_g1, parent_g2, pop,
-                    tables);
+    //debug_new_edges(new_mutations, breakpoints, nedges, parent_nodes,
+    //                next_index, offspring_gamete, parent_g1, parent_g2, pop,
+    //                tables);
 #endif
     return next_index + 1;
 }
