@@ -63,6 +63,116 @@ get_parent_ids(const std::int32_t first_parental_index,
             + !did_swap);
 }
 
+void
+debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
+                const std::vector<double>& breakpoints,
+                const std::size_t nedges,
+                const std::tuple<std::int32_t, std::int32_t>& parent_nodes,
+                const std::int32_t offspring_node,
+                const std::size_t offspring_gamete, const slocuspop_t& pop,
+                const table_collection& tables)
+{
+    // Enforce that all new mutations are found
+    // in an edge
+    for (auto m : new_mutations)
+        {
+            const auto pos = pop.mutations[m].pos;
+            bool valid = false;
+            for (std::size_t i = nedges;
+                 !valid && nedges < tables.edge_table.size(); ++i)
+                {
+                    if (pos >= tables.edge_table[i].left
+                        && pos < tables.edge_table[i].right)
+                        {
+                            valid = true;
+                        }
+                }
+            if (!valid)
+                {
+                    throw std::runtime_error(
+                        "a new mutation is not contained in new edges");
+                }
+        }
+    // All new mutations must be associated with
+    // the offspring node
+    for (auto m : new_mutations)
+        {
+            bool valid = false;
+            const auto pos = pop.mutations[m].pos;
+            for (std::size_t i = 0; !valid && i < tables.mutation_table.size();
+                 ++i)
+                {
+                    if (pop.mutations[tables.mutation_table[i].key].pos == pos)
+                        {
+                            if (tables.mutation_table[i].node
+                                == offspring_node)
+                                {
+                                    valid = true;
+                                }
+                        }
+                }
+            if (!valid)
+                {
+                    throw std::runtime_error(
+                        "new mutation node != offspring node");
+                }
+        }
+    if (!breakpoints.empty())
+        {
+            std::vector<double> b2(breakpoints);
+            auto p1 = std::get<0>(parent_nodes),
+                 p2 = std::get<1>(parent_nodes);
+            if (b2.front() != 0.0)
+                {
+                    b2.insert(b2.begin(), 0.0);
+                }
+            else
+                {
+                    std::swap(p1, p2);
+                }
+            if (!std::is_sorted(b2.begin(), b2.end()))
+                {
+                    throw std::runtime_error("breakpoints not sorted");
+                }
+            // Delete double x-overs, which is potential source of error
+            b2.erase(std::unique(b2.begin(), b2.end()), b2.end());
+            if (b2.size() != (tables.edge_table.size() - nedges + 1))
+                {
+                    throw std::runtime_error("invalid size of new edges");
+                }
+            for (std::size_t i = 1, j = nedges; i < b2.size(); ++i, ++j)
+                {
+                    double start = b2[i - 1],
+                           stop = (b2[i] == std::numeric_limits<double>::max())
+                                      ? tables.L
+                                      : b2[i];
+                    if (tables.edge_table[j].left
+                        == tables.edge_table[j].right)
+                        {
+                            throw std::runtime_error(
+                                "edge left == edge right");
+                        }
+                    if (start != tables.edge_table[j].left)
+                        {
+                            throw std::runtime_error("left disagrees");
+                        }
+                    if (stop != tables.edge_table[j].right)
+                        {
+                            throw std::runtime_error("right disagrees");
+                        }
+                    if (tables.edge_table[j].parent != p1)
+                        {
+                            throw std::runtime_error("parent mismatch");
+                        }
+                    if (tables.edge_table[j].child != offspring_node)
+                        {
+                            throw std::runtime_error("child mismatch");
+                        }
+                    std::swap(p1, p2);
+                }
+        }
+}
+
 // Wow, that's a lot of stuff needed:
 template <typename breakpoint_function, typename mutation_model,
           typename mrecbin, typename grecbin>
@@ -74,7 +184,7 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
                    const std::tuple<std::int32_t, std::int32_t>& parent_nodes,
                    const std::int32_t generation,
                    const std::int32_t next_index, slocuspop_t& pop,
-                   std::size_t & offspring_gamete, table_collection& tables,
+                   std::size_t& offspring_gamete, table_collection& tables,
                    mrecbin& mutation_recycling_bin,
                    grecbin& gamete_recycling_bin)
 {
@@ -94,8 +204,13 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
         {
             assert(offspring_gamete != parent_g1);
         }
+    auto nedges = tables.edge_table.size();
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
                               parent_nodes, generation);
+#ifndef NDEBUG
+    debug_new_edges(new_mutations, breakpoints, nedges, parent_nodes,
+                    next_index, offspring_gamete, pop, tables);
+#endif
     return next_index + 1;
 }
 
@@ -146,12 +261,12 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
 
             next_index_local = generate_offspring(
                 rng, recmodel, mmodel, mu, p1, p1g1, p1g2, p1id, generation,
-                next_index_local, pop, dip.first, tables, mutation_recycling_bin,
-                gamete_recycling_bin);
+                next_index_local, pop, dip.first, tables,
+                mutation_recycling_bin, gamete_recycling_bin);
             next_index_local = generate_offspring(
                 rng, recmodel, mmodel, mu, p2, p2g1, p2g2, p2id, generation,
-                next_index_local, pop, dip.second, tables, mutation_recycling_bin,
-                gamete_recycling_bin);
+                next_index_local, pop, dip.second, tables,
+                mutation_recycling_bin, gamete_recycling_bin);
             //auto breakpoints = recmodel();
             //auto new_mutations = fwdpp::generate_new_mutations(
             //    mutation_recycling_bin, rng.get(), mu, pop.diploids[p1],
