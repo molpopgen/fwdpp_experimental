@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <vector>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -69,9 +70,36 @@ debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
                 const std::size_t nedges,
                 const std::tuple<std::int32_t, std::int32_t>& parent_nodes,
                 const std::int32_t offspring_node,
-                const std::size_t offspring_gamete, const slocuspop_t& pop,
-                const table_collection& tables)
+                const std::size_t offspring_gamete,
+                const std::size_t parent_g1, const std::size_t parent_g2,
+                const slocuspop_t& pop, const table_collection& tables)
 {
+    // All new mutations must be found in the new offspring
+    for (auto m : new_mutations)
+        {
+            if (pop.mutations[m].neutral)
+                {
+                    if (std::find(
+                            pop.gametes[offspring_gamete].mutations.begin(),
+                            pop.gametes[offspring_gamete].mutations.end(), m)
+                        == pop.gametes[offspring_gamete].mutations.end())
+                        {
+                            throw std::runtime_error(
+                                "mutation not found in offspring");
+                        }
+                }
+            else
+                {
+                    if (std::find(
+                            pop.gametes[offspring_gamete].smutations.begin(),
+                            pop.gametes[offspring_gamete].smutations.end(), m)
+                        == pop.gametes[offspring_gamete].smutations.end())
+                        {
+                            throw std::runtime_error(
+                                "mutation not found in offspring");
+                        }
+                }
+        }
     // Enforce that all new mutations are found
     // in an edge
     for (auto m : new_mutations)
@@ -122,6 +150,7 @@ debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
             std::vector<double> b2(breakpoints);
             auto p1 = std::get<0>(parent_nodes),
                  p2 = std::get<1>(parent_nodes);
+            auto pg1 = parent_g1, pg2 = parent_g2;
             if (b2.front() != 0.0)
                 {
                     b2.insert(b2.begin(), 0.0);
@@ -129,6 +158,7 @@ debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
             else
                 {
                     std::swap(p1, p2);
+                    std::swap(pg1, pg2);
                 }
             if (!std::is_sorted(b2.begin(), b2.end()))
                 {
@@ -169,6 +199,72 @@ debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
                             throw std::runtime_error("child mismatch");
                         }
                     std::swap(p1, p2);
+
+                    //Finally, the offspring must have
+                    //all mutations from the parent in the interval [start,stop).
+                    auto nneutral
+                        = pop.gametes[offspring_gamete].mutations.size();
+                    auto nselected
+                        = pop.gametes[offspring_gamete].smutations.size();
+                    // need to adjust above for new mutations
+                    unsigned new_neutral = 0, new_selected = 0;
+                    for (auto m : new_mutations)
+                        {
+                            if (pop.mutations[m].neutral)
+                                {
+                                    ++new_neutral;
+                                }
+                            else
+                                {
+                                    ++new_selected;
+                                }
+                        }
+                    auto itr_i = std::lower_bound(
+                        pop.gametes[pg1].mutations.begin(),
+                        pop.gametes[pg1].mutations.end(), start,
+                        [&pop](const fwdpp::uint_t key, const double d) {
+                            return pop.mutations[key].pos < d;
+                        });
+                    if (itr_i != pop.gametes[pg1].mutations.end())
+                        {
+                            auto itr_j = std::upper_bound(
+                                pop.gametes[pg1].mutations.begin(),
+                                pop.gametes[pg1].mutations.end(), start,
+                                [&pop](double d, const fwdpp::uint_t key) {
+                                    return d < pop.mutations[key].pos;
+                                });
+                            auto itr_c = itr_i;
+                            for (; itr_i < itr_j; ++itr_i)
+                                {
+                                    if (std::find(pop.gametes[offspring_gamete]
+                                                      .mutations.begin(),
+                                                  pop.gametes[offspring_gamete]
+                                                      .mutations.end(),
+                                                  *itr_i)
+                                        == pop.gametes[offspring_gamete]
+                                               .mutations.end())
+                                        {
+                                            std::cerr << std::setprecision(15)
+                                                      << start << ' ' << stop
+                                                      << ' ' << pg1 << '\n';
+                                            for (; itr_c < itr_j; ++itr_c)
+                                                {
+                                                    std::cerr
+                                                        << std::setprecision(
+                                                               15)
+                                                        << "parental mutation "
+                                                        << pop.mutations
+                                                               [*itr_c]
+                                                                   .pos
+                                                        << '\n';
+                                                }
+                                            throw std::runtime_error(
+                                                "neutral parental mut not in "
+                                                "offspring");
+                                        }
+                                }
+                        }
+                    std::swap(pg1, pg2);
                 }
         }
 }
@@ -209,7 +305,8 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
                               parent_nodes, generation);
 #ifndef NDEBUG
     debug_new_edges(new_mutations, breakpoints, nedges, parent_nodes,
-                    next_index, offspring_gamete, pop, tables);
+                    next_index, offspring_gamete, parent_g1, parent_g2, pop,
+                    tables);
 #endif
     return next_index + 1;
 }
