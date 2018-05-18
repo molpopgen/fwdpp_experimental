@@ -7,6 +7,7 @@ do
     d=`diff -q msprime_counts.txt cpp_counts.txt`
     if [ "$d" != "" ]
     then
+        echo "found a diff"
         exit 1
     fi
 done    
