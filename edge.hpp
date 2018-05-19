@@ -8,7 +8,7 @@
 
 namespace fwdpp
 {
-    namespace ancestry
+    namespace ts
     {
         struct edge
         {

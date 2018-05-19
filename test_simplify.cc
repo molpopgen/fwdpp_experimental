@@ -20,7 +20,7 @@
 #include "edge.hpp"
 #include "node.hpp"
 #include "table_simplifier.hpp"
-using namespace fwdpp::ancestry;
+using namespace fwdpp::ts;
 
 // The following needs to be dealt with before we'd be able to move
 // the code into the context of a class to be tied to a simulation.

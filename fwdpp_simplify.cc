@@ -31,7 +31,7 @@
 #include "table_simplifier.hpp"
 //#include "split_breakpoints.hpp"
 
-using namespace fwdpp::ancestry;
+using namespace fwdpp::ts;
 
 using slocuspop_t = fwdpp::slocuspop<fwdpp::popgenmut>;
 using GSLrng_t = fwdpp::GSLrng_t<fwdpp::GSL_RNG_MT19937>;
@@ -434,7 +434,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     tables.mutation_table.erase(
         std::remove_if(
             tables.mutation_table.begin(), tables.mutation_table.end(),
-            [&pop](const fwdpp::ancestry::mutation_record& mr) {
+            [&pop](const fwdpp::ts::mutation_record& mr) {
                 return pop.mcounts[mr.key] == 2 * pop.diploids.size();
             }),
         tables.mutation_table.end());

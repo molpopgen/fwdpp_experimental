@@ -16,7 +16,7 @@
 
 namespace fwdpp
 {
-    namespace ancestry
+    namespace ts
     {
         using edge_vector = std::vector<edge>;
         using node_vector = std::vector<node>;

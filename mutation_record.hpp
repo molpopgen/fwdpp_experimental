@@ -5,7 +5,7 @@
 
 namespace fwdpp
 {
-	namespace ancestry
+	namespace ts
 	{
 		struct mutation_record
 		{

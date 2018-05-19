@@ -14,7 +14,7 @@
 
 namespace fwdpp
 {
-    namespace ancestry
+    namespace ts
     {
         class table_simplifier
         {

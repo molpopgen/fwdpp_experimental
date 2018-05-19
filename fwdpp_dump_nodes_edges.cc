@@ -24,7 +24,7 @@
 #include "edge.hpp"
 #include "split_breakpoints.hpp"
 
-using namespace fwdpp::ancestry;
+using namespace fwdpp::ts;
 
 static constexpr std::int32_t ROOTNODE
     = std::numeric_limits<std::int32_t>::min();

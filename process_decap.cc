@@ -7,7 +7,7 @@
 
 using namespace std;
 using namespace fwdpp;
-using namespace fwdpp::ancestry;
+using namespace fwdpp::ts;
 
 struct fake_mut
 {

@@ -5,7 +5,7 @@
 
 using namespace std;
 using namespace fwdpp;
-using namespace fwdpp::ancestry;
+using namespace fwdpp::ts;
 
 struct fake_mut
 // We need to mock minimal API needed for a fwdpp

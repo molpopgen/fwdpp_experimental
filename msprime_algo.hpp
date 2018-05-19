@@ -25,7 +25,7 @@
 
 namespace fwdpp
 {
-    namespace ancestry
+    namespace ts
     {
         struct index_key
         {
