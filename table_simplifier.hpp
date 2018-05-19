@@ -433,7 +433,7 @@ namespace fwdpp
                         return mutations[a.key].pos < mutations[b.key].pos;
                     }));
 
-                // 3. Now, we use Kelleher et al. (2016)'s Algorithm L
+                // 2. Now, we use Kelleher et al. (2016)'s Algorithm L
                 // to march through each marginal tree and its leaf
                 // counts. At the same time, we march through our mutation
                 // table, which is sorted by position.
@@ -473,7 +473,7 @@ namespace fwdpp
                            remapped_samples, tables.node_table.size(),
                            tables.L, mutation_counter);
 
-                // 4. Remove any elements from table with count == 0
+                // 3. Remove any elements from table with count == 0
                 // TODO: this has to be updated to handle fixations
                 // and losses in one pass!
                 tables.mutation_table.erase(
