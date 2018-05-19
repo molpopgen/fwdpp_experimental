@@ -37,7 +37,7 @@ namespace fwdpp
                     {
                         this->push_back_edge(0., L, std::get<0>(parents),
                                              next_index);
-                        goto out;
+                        return;
                     }
                 if (breakpoints.front() != 0.0)
                     {
