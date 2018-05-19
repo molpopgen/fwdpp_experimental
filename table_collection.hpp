@@ -4,6 +4,7 @@
 #include <vector>
 #include <utility>
 #include <cstdint>
+#include <cmath>
 #include <tuple>
 #include <algorithm>
 #include <cassert>
@@ -85,7 +86,12 @@ namespace fwdpp
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
+                if(maxpos < 0 || !std::isfinite(maxpos))
+                {
+                    throw std::invalid_argument("maxpos must be > 0 and finite");
+                }
                 //TODO assert maxpos is > 0 and finite
+                
             }
 
             table_collection(const std::int32_t num_initial_nodes,
@@ -94,6 +100,10 @@ namespace fwdpp
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
+                if(maxpos < 0 || !std::isfinite(maxpos))
+                {
+                    throw std::invalid_argument("maxpos must be > 0 and finite");
+                }
                 //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {

@@ -1,6 +1,7 @@
 #ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP__
 #define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP__
 
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -489,6 +490,10 @@ namespace fwdpp
                 : new_edge_table{}, new_node_table{},
                   segment_queue{}, X{}, Ancestry{}, E{}, L{ region_length }
             {
+                if(region_length < 0 || !std::isfinite(region_length))
+                {
+                    throw std::invalid_argument("region_length must be > 0 and finite");
+                }
             }
 
             template <typename mutation_container>
