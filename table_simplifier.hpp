@@ -503,12 +503,8 @@ namespace fwdpp
                      const mutation_container& mutations,
                      std::vector<std::uint32_t>& mcounts)
             /// Set theoretic simplify.
-            /// TODO: shorten via additional function calls
-            /// for readability
-            /// TODO: compare against implementation more
-            /// closely matching what msprime is doing.
-            /// TODO: make a template member so that mutations are
-            /// also simplified
+            /// TODO: compare against current msprime, 
+            /// which has streamlined some steps
             {
                 Ancestry.resize(tables.node_table.size());
 
