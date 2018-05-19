@@ -362,8 +362,9 @@ namespace fwdpp
             }
 
             template <typename mcont_t>
-            std::vector<std::uint32_t>
+            void
             simplify_mutations(const mcont_t& mutations,
+                               std::vector<std::uint32_t>& mcounts,
                                const std::vector<std::int32_t>& samples,
                                const std::vector<std::int32_t>& idmap,
                                table_collection& tables,
@@ -392,7 +393,7 @@ namespace fwdpp
                                     {
                                         assert(mut < mute);
                                         assert(mut->first < mutations.size());
-                                        //The following assert fails when 
+                                        //The following assert fails when
                                         //processing "decaptitated" trees
                                         //assert(
                                         //    static_cast<std::size_t>(seg->node)
@@ -435,8 +436,8 @@ namespace fwdpp
                 // to march through each marginal tree and its leaf
                 // counts. At the same time, we march through our mutation
                 // table, which is sorted by position.
-                std::vector<std::uint32_t> mcounts(
-                    mutations.size(), 0); //TODO: update the real mcounts!!!
+                std::fill(mcounts.begin(), mcounts.end(), 0);
+                mcounts.resize(mutations.size(), 0);
 
                 auto mtable_itr = tables.mutation_table.begin();
                 auto mtable_end = tables.mutation_table.end();
@@ -481,7 +482,6 @@ namespace fwdpp
                                        return mcounts[mr.key] == 0;
                                    }),
                     tables.mutation_table.end());
-                return mcounts;
             }
 
           public:
@@ -496,7 +496,8 @@ namespace fwdpp
             std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
             simplify(table_collection& tables,
                      const std::vector<std::int32_t>& samples,
-                     const mutation_container& mutations)
+                     const mutation_container& mutations,
+                     std::vector<std::uint32_t>& mcounts)
             /// Set theoretic simplify.
             /// TODO: shorten via additional function calls
             /// for readability
@@ -558,8 +559,8 @@ namespace fwdpp
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
 
-                auto mcounts = simplify_mutations(mutations, samples, idmap,
-                                                  tables, mutation_map);
+                simplify_mutations(mutations, mcounts, samples, idmap, tables,
+                                   mutation_map);
 
                 cleanup();
                 return std::make_pair(std::move(idmap), std::move(mcounts));
