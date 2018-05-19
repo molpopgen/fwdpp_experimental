@@ -37,15 +37,16 @@ test1()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 1);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 1);
 
     //the mutation must remap to xx.first[2]
-    assert(tables.mutation_table[0].node == res.first[2]);
+    assert(tables.mutation_table[0].node == res[2]);
 }
 
 void
@@ -73,12 +74,13 @@ test2()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 0);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 0);
     assert(tables.mutation_table.empty());
 }
 void
@@ -104,14 +106,15 @@ test3()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 1);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 1);
     //the mutation must remap to xx.first[2]
-    assert(tables.mutation_table[0].node == res.first[2]);
+    assert(tables.mutation_table[0].node == res[2]);
 }
 
 void
@@ -139,12 +142,13 @@ test4()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 0);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 0);
     assert(tables.mutation_table.empty());
 }
 
@@ -176,13 +180,14 @@ test5()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 2);
-    assert(tables.mutation_table[0].node == res.first[0]);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 2);
+    assert(tables.mutation_table[0].node == res[0]);
 }
 
 // The above tests all have gaps, and seem to cover relevant
@@ -220,13 +225,14 @@ test6()
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
 
-    // res.first is the node remapping,
-    // and res.second contains mutation counts
-    assert(res.second.size() == 1);
-    assert(res.second[0] == 1);
-    assert(tables.mutation_table[0].node == res.first[2]);
+    // res is the node remapping,
+    // and mcounts contains mutation counts
+    assert(mcounts.size() == 1);
+    assert(mcounts[0] == 1);
+    assert(tables.mutation_table[0].node == res[2]);
 }
 
 int

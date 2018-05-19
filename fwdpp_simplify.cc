@@ -318,6 +318,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
                   const fwdpp::uint_t generation, table_collection& tables,
+                  table_simplifier& simplifier,
                   std::int32_t first_parental_index, std::int32_t next_index)
 {
 
@@ -412,12 +413,33 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
         }
     assert(next_index_local
            == next_index + 2 * static_cast<std::int32_t>(N_next));
-    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
-                                           pop.mcounts);
-    fwdpp::fwdpp_internal::gamete_cleaner(
-        pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
     // This is constant-time
     pop.diploids.swap(offspring);
+    tables.sort_tables(pop.mutations);
+    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+    std::iota(samples.begin(), samples.end(),
+              tables.num_nodes() - 2 * pop.diploids.size());
+    auto idmap
+        = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
+#ifndef NDEBUG
+    decltype(pop.mcounts) mc;
+    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
+                                           mc);
+    //if(pop.mcounts!=mc2)
+    //{
+    //    for(std::size_t i=0;i<pop.mcounts.size();++i)
+    //}
+    assert(pop.mcounts == mc);
+#endif
+    tables.mutation_table.erase(
+        std::remove_if(
+            tables.mutation_table.begin(), tables.mutation_table.end(),
+            [&pop](const fwdpp::ancestry::mutation_record& mr) {
+                return pop.mcounts[mr.key] == 2 * pop.diploids.size();
+            }),
+        tables.mutation_table.end());
+    fwdpp::fwdpp_internal::gamete_cleaner(
+        pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
 }
 
 table_collection
@@ -456,7 +478,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                   []() { return 0.0; }, []() { return 0.0; });
           };
 
-    table_simplifier ancestry(1.0);
+    table_simplifier simplifier(1.0);
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
@@ -464,16 +486,16 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         {
             const auto N_next = popsizes.at(generation);
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
-                              mmodel, recmap, generation, tables,
+                              mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
 
-            std::vector<std::int32_t> samples;
-            for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
-                 i < tables.num_nodes(); ++i)
-                {
-                    assert(tables.node_table[i].generation == generation + 1);
-                    samples.push_back(i);
-                }
+            //std::vector<std::int32_t> samples;
+            //for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
+            //     i < tables.num_nodes(); ++i)
+            //    {
+            //        assert(tables.node_table[i].generation == generation + 1);
+            //        samples.push_back(i);
+            //    }
             // auto mt = tables.mutation_table;
             // auto nt = tables.node_table;
             // auto et = tables.edge_table;
@@ -519,33 +541,33 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //     }
             // out.write(reinterpret_cast<char*>(&done), sizeof(std::int32_t));
             // out.close();
-            tables.sort_tables(pop.mutations);
-            auto xx = ancestry.simplify(tables, samples, pop.mutations);
-            if (xx.second != pop.mcounts)
-                {
-                    for (std::size_t i = 0; i < xx.second.size(); ++i)
-                        {
-                            std::cout << xx.second[i] << ' ' << pop.mcounts[i];
-                            if (xx.second[i] != pop.mcounts[i])
-                                std::cout << " *";
-                            std::cout << '\n';
-                        }
-                }
-            assert(xx.second == pop.mcounts);
+            //tables.sort_tables(pop.mutations);
+            //auto xx = ancestry.simplify(tables, samples, pop.mutations);
+            //if (xx.second != pop.mcounts)
+            //    {
+            //        for (std::size_t i = 0; i < xx.second.size(); ++i)
+            //            {
+            //                std::cout << xx.second[i] << ' ' << pop.mcounts[i];
+            //                if (xx.second[i] != pop.mcounts[i])
+            //                    std::cout << " *";
+            //                std::cout << '\n';
+            //            }
+            //    }
+            //assert(xx.second == pop.mcounts);
 
             // TODO: decide how to handle fixations.
             // Ideally, this would be done during simplification,
             // via a policy passed into the simplifier.
             // Until then, we do it manually
-            tables.mutation_table.erase(
-                std::remove_if(
-                    tables.mutation_table.begin(), tables.mutation_table.end(),
-                    [&xx, &pop](const fwdpp::ancestry::mutation_record& mr) {
-                        return xx.second[mr.key] == 2 * pop.diploids.size();
-                    }),
-                tables.mutation_table.end());
+            //tables.mutation_table.erase(
+            //    std::remove_if(
+            //        tables.mutation_table.begin(), tables.mutation_table.end(),
+            //        [&xx, &pop](const fwdpp::ancestry::mutation_record& mr) {
+            //            return xx.second[mr.key] == 2 * pop.diploids.size();
+            //        }),
+            //    tables.mutation_table.end());
 
-            assert(pop.mcounts.size() == xx.second.size());
+            //assert(pop.mcounts.size() == xx.second.size());
             // ofn.str(std::string());
             // ofn << "simoutput/edges." << generation << ".txt";
 

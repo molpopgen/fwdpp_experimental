@@ -88,7 +88,7 @@ main(int argc, char** argv)
     std::ifstream in(nodefilename.c_str());
     std::int32_t a, b;
     double x, y;
-	table_collection tables(1.0);
+    table_collection tables(1.0);
     auto start = std::chrono::steady_clock::now();
     while (!in.eof())
         {
@@ -97,7 +97,7 @@ main(int argc, char** argv)
                 break;
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
-			tables.emplace_back_node(a,0,x);
+            tables.emplace_back_node(a, 0, x);
         }
     // for(auto & n : nodes)
     //{
@@ -114,31 +114,34 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&b), sizeof(decltype(b)));
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             in.read(reinterpret_cast<char*>(&y), sizeof(decltype(y)));
-			tables.emplace_back_edge(x,y,a,b);
+            tables.emplace_back_edge(x, y, a, b);
         }
     auto end = std::chrono::steady_clock::now();
     auto diff = end - start;
     std::cerr
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
-    std::cerr << tables.node_table.size() << " nodes, " << tables.edge_table.size() << " edges\n";
+    std::cerr << tables.node_table.size() << " nodes, "
+              << tables.edge_table.size() << " edges\n";
     std::vector<std::int32_t> samples;
-    for (unsigned i = tables.node_table.size() - 2 * N; i < tables.node_table.size(); ++i)
+    for (unsigned i = tables.node_table.size() - 2 * N;
+         i < tables.node_table.size(); ++i)
         {
             samples.push_back(i);
         }
     start = std::chrono::steady_clock::now();
-	tables.sort_edges();
+    tables.sort_edges();
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr
         << "sort time = "
         << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count()
         << " ms" << std::endl;
-	table_simplifier ancestry(1.0);
+    table_simplifier ancestry(1.0);
     start = std::chrono::steady_clock::now();
-	std::vector<fwdpp::popgenmut> dummy;
-    ancestry.simplify(tables,samples,dummy);
+    std::vector<fwdpp::popgenmut> dummy;
+    std::vector<std::uint32_t> mcounts;
+    ancestry.simplify(tables, samples, dummy, mcounts);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr

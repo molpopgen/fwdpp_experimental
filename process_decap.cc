@@ -75,11 +75,12 @@ main(int argc, char** argv)
 
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0);
-    auto res = simplifier.simplify(tables, samples, mutations);
+    std::vector<std::uint32_t> mcounts;
+    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
     tables.mutation_table.erase(
         remove_if(tables.mutation_table.begin(), tables.mutation_table.end(),
-                  [&res, &samples](const mutation_record& mr) {
-                      return res.second[mr.key] == samples.size();
+                  [&mcounts, &samples](const mutation_record& mr) {
+                      return mcounts[mr.key] == samples.size();
                   }),
         tables.mutation_table.end());
     std::cout << "mutation table size = " << tables.mutation_table.size()
@@ -87,7 +88,7 @@ main(int argc, char** argv)
     ofstream out("cpp_counts.txt");
     for (auto mr : tables.mutation_table)
         {
-            out << res.second[mr.key] << '\n';
+            out << mcounts[mr.key] << '\n';
         }
     out.close();
 }

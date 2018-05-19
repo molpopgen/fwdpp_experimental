@@ -492,8 +492,7 @@ namespace fwdpp
             }
 
             template <typename mutation_container>
-            //std::vector<std::int32_t>
-            std::pair<std::vector<std::int32_t>, std::vector<std::uint32_t>>
+            std::vector<std::int32_t>
             simplify(table_collection& tables,
                      const std::vector<std::int32_t>& samples,
                      const mutation_container& mutations,
@@ -563,7 +562,7 @@ namespace fwdpp
                                    mutation_map);
 
                 cleanup();
-                return std::make_pair(std::move(idmap), std::move(mcounts));
+                return idmap;
             }
         };
     } // namespace ancestry
