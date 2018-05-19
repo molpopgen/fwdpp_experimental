@@ -486,13 +486,13 @@ namespace fwdpp
             }
 
           public:
-            table_simplifier(const double region_length)
+            table_simplifier(const double maxpos)
                 : new_edge_table{}, new_node_table{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, L{ region_length }
+                  segment_queue{}, X{}, Ancestry{}, E{}, L{ maxpos }
             {
-                if(region_length < 0 || !std::isfinite(region_length))
+                if(maxpos < 0 || !std::isfinite(maxpos))
                 {
-                    throw std::invalid_argument("region_length must be > 0 and finite");
+                    throw std::invalid_argument("maxpos must be > 0 and finite");
                 }
             }
 
