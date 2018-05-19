@@ -70,7 +70,7 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&p), sizeof(int32_t));
             in.read(reinterpret_cast<char*>(&l), sizeof(double));
             mutations.emplace_back(fake_mut{ l });
-            tables.mutation_table.emplace_back(mutation_record{ p, i });
+            tables.mutation_table.emplace_back(mutation_record{ p, static_cast<std::size_t>(i) });
         }
 
     tables.sort_tables(mutations);
