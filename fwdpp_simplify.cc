@@ -288,11 +288,13 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
     auto new_mutations = fwdpp::generate_new_mutations(
         mutation_recycling_bin, rng.get(), mu, pop.diploids[parent],
         pop.gametes, pop.mutations, parent_g1, mmodel);
+#ifndef NDEBUG
     for (auto& m : new_mutations)
         {
             auto itr = pop.mut_lookup.equal_range(pop.mutations[m].pos);
             assert(std::distance(itr.first, itr.second) == 1);
         }
+#endif
     offspring_gamete = fwdpp::mutate_recombine(
         new_mutations, breakpoints, parent_g1, parent_g2, pop.gametes,
         pop.mutations, gamete_recycling_bin, pop.neutral, pop.selected);
@@ -423,12 +425,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
         = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
 #ifndef NDEBUG
     decltype(pop.mcounts) mc;
-    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations,
-                                           mc);
-    //if(pop.mcounts!=mc2)
-    //{
-    //    for(std::size_t i=0;i<pop.mcounts.size();++i)
-    //}
+    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
     assert(pop.mcounts == mc);
 #endif
     tables.mutation_table.erase(
@@ -440,6 +437,9 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
         tables.mutation_table.end());
     fwdpp::fwdpp_internal::gamete_cleaner(
         pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
+    fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
+                            pop.mut_lookup, pop.mcounts, generation,
+                            2 * pop.diploids.size());
 }
 
 table_collection
@@ -484,7 +484,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
-            const auto N_next = popsizes.at(generation);
+            const auto N_next = popsizes[generation];
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
@@ -664,10 +664,6 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //     }
             next_index = tables.num_nodes();
             first_parental_index = 0;
-            fwdpp::update_mutations(pop.mutations, pop.fixations,
-                                    pop.fixation_times, pop.mut_lookup,
-                                    pop.mcounts, generation,
-                                    2 * pop.diploids.size());
         }
     return tables;
 }
