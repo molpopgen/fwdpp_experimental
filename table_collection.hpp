@@ -28,9 +28,9 @@ namespace fwdpp
           private:
             struct index_recorder
             {
-                index_vector left_temp, right_temp;
+                index_vector index_temp;
                 inline void
-                operator()(index_vector& input_left, index_vector& input_right,
+                operator()(index_vector& input_left, index_vector& output_right,
                            const node_vector& nodes, const edge_vector& edges,
                            const size_t last_et_size)
                 {
@@ -53,8 +53,7 @@ namespace fwdpp
                                          edges[b].right,
                                          nodes[edges[b].parent].generation);
                         });
-                    left_temp.clear();
-                    right_temp.clear();
+                    index_temp.clear();
                     auto beg = input_left.begin();
                     for (auto& l : L)
                         {
@@ -67,30 +66,30 @@ namespace fwdpp
                                 {
                                     assert(k < *itr);
                                 }
-                            left_temp.insert(left_temp.end(), beg, itr);
-                            left_temp.emplace_back(k);
+                            index_temp.insert(index_temp.end(), beg, itr);
+                            index_temp.emplace_back(k);
                             beg = itr;
                         }
-                    left_temp.insert(left_temp.end(), beg, input_left.end());
-
-                    beg = input_right.begin();
+                    index_temp.insert(index_temp.end(), beg, input_left.end());
+                    assert(index_temp.size() == edges.size());
+                    input_left.swap(index_temp);
+                    index_temp.clear();
+                    beg = output_right.begin();
                     for (auto& r : R)
                         {
                             index_key k{ edges[r].right,
                                          nodes[edges[r].parent].generation,
                                          edges[r].parent, edges[r].child };
                             auto itr
-                                = std::upper_bound(beg, input_right.end(), k);
-                            right_temp.insert(right_temp.end(), beg, itr);
-                            right_temp.emplace_back(k);
+                                = std::upper_bound(beg, output_right.end(), k);
+                            index_temp.insert(index_temp.end(), beg, itr);
+                            index_temp.emplace_back(k);
                             beg = itr;
                         }
-                    right_temp.insert(right_temp.end(), beg,
-                                      input_right.end());
-                    assert(left_temp.size() == edges.size());
-                    assert(right_temp.size() == edges.size());
-                    input_left.swap(left_temp);
-                    input_right.swap(right_temp);
+                    index_temp.insert(index_temp.end(), beg,
+                                      output_right.end());
+                    assert(index_temp.size() == edges.size());
+                    output_right.swap(index_temp);
                 }
             };
 
