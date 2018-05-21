@@ -461,11 +461,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
-            std::cerr << "generation = " << generation << '\n';
+            //std::cerr << "generation = " << generation << '\n';
             const auto N_next = popsizes[generation];
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
+            bool dynamic = false;
             if (generation && generation % 10 == 0.0)
                 {
                     tables.sort_tables(pop.mutations);
@@ -490,9 +491,11 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                             }),
                         tables.mutation_table.end());
                     first_parental_index = 0;
+                    tables.build_indexes();
                 }
             else
                 {
+                    dynamic = true;
                     tables.update_dynamic_indexes();
                     std::sort(tables.mutation_table.begin(),
                               tables.mutation_table.end(),
@@ -504,61 +507,36 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     pop.mcounts.resize(pop.mutations.size(), 0);
                     auto mtable_itr = tables.mutation_table.begin();
                     auto mtable_end = tables.mutation_table.end();
-                    auto mutation_counter
-                        = [&pop, &mtable_itr,
-                           mtable_end](const marginal_tree& marginal) {
-                              while (mtable_itr < mtable_end
-                                     && mtable_itr->pos < marginal.left)
-                                  {
-                                      ++mtable_itr;
-                                  }
-                              while (mtable_itr < mtable_end
-                                     && mtable_itr->pos < marginal.right)
-                                  {
-                                      assert(mtable_itr->pos >= marginal.left);
-                                      assert(mtable_itr->pos < marginal.right);
-                                      pop.mcounts[mtable_itr->key]
-                                          = marginal
-                                                .leaf_counts[mtable_itr->node];
-                                      ++mtable_itr;
-                                  }
-                          };
+                    auto mutation_counter = [&pop, &mtable_itr,
+                                             mtable_end](const marginal_tree&
+                                                             marginal) {
+                        while (mtable_itr < mtable_end
+                               && mtable_itr->pos < marginal.left)
+                            {
+                                ++mtable_itr;
+                            }
+                        while (mtable_itr < mtable_end
+                               && mtable_itr->pos < marginal.right)
+                            {
+                                assert(mtable_itr->pos >= marginal.left);
+                                assert(mtable_itr->pos < marginal.right);
+                                if (pop.mutations[mtable_itr->key].pos
+                                    == mtable_itr
+                                           ->pos) // guard against incrementing count for an extinct variant
+                                    {
+                                        pop.mcounts[mtable_itr->key]
+                                            = marginal.leaf_counts[mtable_itr
+                                                                       ->node];
+                                    }
+                                ++mtable_itr;
+                            }
+                    };
                     std::vector<std::int32_t> samples(2 * N_next);
                     std::iota(samples.begin(), samples.end(),
                               tables.num_nodes() - 2 * N_next);
                     algorithmL(tables.input_left, tables.output_right, samples,
                                tables.node_table.size(), tables.L,
                                mutation_counter);
-                    // We can semi-simplify the mutation table
-                    // by removing all variants not found in samples.
-                    tables.mutation_table.erase(
-                        std::remove_if(tables.mutation_table.begin(),
-                                       tables.mutation_table.end(),
-                                       [&pop](const mutation_record& mr) {
-                                           return pop.mcounts[mr.key] == 0;
-                                       }),
-                        tables.mutation_table.end());
-#ifndef NDEBUG
-
-                    std::vector<fwdpp::uint_t> mc2;
-                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
-                                                           pop.mutations, mc2);
-                    if (pop.mcounts != mc2)
-                        {
-                            std::cout << pop.mcounts.size() << ' '
-                                      << mc2.size() << '\n';
-                            for (std::size_t i = 0; i < pop.mcounts.size();
-                                 ++i)
-                                {
-                                    std::cout << pop.mcounts[i] << ' '
-                                              << mc2[i];
-                                    if (pop.mcounts[i] != mc2[i])
-                                        std::cout << " *";
-                                    std::cout << '\n';
-                                }
-                        }
-                    assert(pop.mcounts == mc2);
-#endif
                     first_parental_index = tables.num_nodes() - 2 * N_next;
                 }
             next_index = tables.num_nodes();
@@ -570,6 +548,44 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                     pop.fixation_times, pop.mut_lookup,
                                     pop.mcounts, generation,
                                     2 * pop.diploids.size());
+            if (dynamic)
+                {
+                    // We can semi-simplify the mutation table
+                    // by removing all variants not found in samples.
+                    // This is critical for avoiding conflicts w/mutation recycling.
+                    // TODO: allow policies to determine behavior re: fixations.
+                    tables.mutation_table.erase(
+                        std::remove_if(tables.mutation_table.begin(),
+                                       tables.mutation_table.end(),
+                                       [&pop](const mutation_record& mr) {
+                                           return pop.mcounts[mr.key] == 0;
+                                           //|| pop.mcounts[mr.key]
+                                           //       == 2 * pop.diploids.size();
+                                       }),
+                        tables.mutation_table.end());
+#ifndef NDEBUG
+                    std::vector<fwdpp::uint_t> mc2;
+                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
+                                                           pop.mutations, mc2);
+                    if (pop.mcounts != mc2)
+                        {
+                            std::cout << "oops: " << generation << ' '
+                                      << pop.mcounts.size() << ' '
+                                      << mc2.size() << '\n';
+                            for (std::size_t i = 0; i < pop.mcounts.size();
+                                 ++i)
+                                {
+                                    std::cout << pop.mcounts[i] << ' '
+                                              << mc2[i] << ' '
+                                              << pop.mutations[i].g;
+                                    if (pop.mcounts[i] != mc2[i])
+                                        std::cout << " *";
+                                    std::cout << '\n';
+                                }
+                        }
+                    assert(pop.mcounts == mc2);
+#endif
+                }
 
             //std::vector<std::int32_t> samples;
             //for (auto i = tables.num_nodes() - 2 * pop.diploids.size();

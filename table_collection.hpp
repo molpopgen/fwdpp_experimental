@@ -87,8 +87,6 @@ namespace fwdpp
                         }
                     right_temp.insert(right_temp.end(), beg,
                                       input_right.end());
-                    std::cerr << left_temp.size() << ' ' << right_temp.size()
-                              << ' ' << edges.size() << '\n';
                     assert(left_temp.size() == edges.size());
                     assert(right_temp.size() == edges.size());
                     input_left.swap(left_temp);
@@ -152,11 +150,12 @@ namespace fwdpp
             // newly-added nodes.
             // TODO: move to table_collection
             std::ptrdiff_t edge_offset;
+            std::size_t num_edges_recorded; //used for dynamic indexing
             const double L;
             table_collection(const double maxpos)
                 : temp_edges{}, recorder{}, node_table{}, edge_table{},
                   mutation_table{}, input_left{}, output_right{},
-                  edge_offset{ 0 }, L{ maxpos }
+                  edge_offset{ 0 }, num_edges_recorded{0}, L{ maxpos }
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -171,7 +170,7 @@ namespace fwdpp
                              const double maxpos)
                 : temp_edges{}, recorder{}, node_table{}, edge_table{},
                   mutation_table{}, input_left{}, output_right{},
-                  edge_offset{ 0 }, L{ maxpos }
+                  edge_offset{ 0 },num_edges_recorded{0},  L{ maxpos }
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -316,14 +315,14 @@ namespace fwdpp
                 else
                     {
                         recorder(input_left, output_right, node_table,
-                                 edge_table, edge_offset);
+                                 edge_table, num_edges_recorded);
                     }
                 // Use of edge_offset is incorrect, because
                 // it is used elsewhere to track where to start
                 // sorting the edge table.
                 // We need a separate book-keeper that 
                 // tracks the edge-table size.
-                edge_offset = edge_table.size(); //TODO: do we want this here?
+                num_edges_recorded = edge_table.size(); //TODO: do we want this here?
             }
 
             void
@@ -347,6 +346,7 @@ namespace fwdpp
                     }
                 std::sort(input_left.begin(), input_left.end());
                 std::sort(output_right.begin(), output_right.end());
+                num_edges_recorded = edge_table.size();
             }
 
             template <typename mcont_t>
