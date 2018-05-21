@@ -244,8 +244,7 @@ namespace fwdpp
                 std::sort(mutation_table.begin(), mutation_table.end(),
                           [&mutations](const mutation_record& a,
                                        const mutation_record& b) {
-                              return mutations[a.key].pos
-                                     < mutations[b.key].pos;
+                              return a.pos < b.pos;
                           });
             }
 
@@ -340,11 +339,13 @@ namespace fwdpp
                 std::sort(output_right.begin(), output_right.end());
             }
 
+            template<typename mcont_t>
             void
             add_offspring_data(
                 const std::int32_t next_index,
                 const std::vector<double>& breakpoints,
                 const std::vector<std::uint32_t>& new_mutations,
+                const mcont_t & mutations,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
             //TODO: this must move to table_collection
@@ -356,7 +357,7 @@ namespace fwdpp
                 for (auto& m : new_mutations)
                     {
                         mutation_table.emplace_back(
-                            mutation_record{ next_index, m });
+                            mutation_record{ next_index, m, mutations[m].pos });
                         assert(mutation_table.back().node == next_index);
                         assert(mutation_table.back().key == m);
                     }
