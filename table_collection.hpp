@@ -7,6 +7,7 @@
 #include <cmath>
 #include <tuple>
 #include <algorithm>
+#include <numeric>
 #include <cassert>
 #include <cstddef>
 #include <stdexcept>
@@ -25,7 +26,74 @@ namespace fwdpp
         struct table_collection
         {
           private:
-            edge_vector temp_edges; //used for sorting
+            struct index_recorder
+            {
+                index_vector left_temp, right_temp;
+                inline void
+                operator()(index_vector& input_left, index_vector& input_right,
+                           const node_vector& nodes, const edge_vector& edges,
+                           const size_t last_et_size)
+                {
+                    std::vector<std::size_t> L(edges.size() - last_et_size);
+                    std::iota(L.begin(), L.end(), last_et_size);
+                    auto R(L);
+                    std::sort(L.begin(), L.end(),
+                              [&edges, &nodes](size_t a, size_t b) {
+                                  auto t = -nodes[edges[a].parent].generation,
+                                       tb = -nodes[edges[b].parent].generation;
+                                  return std::tie(edges[a].left, t)
+                                         < std::tie(edges[b].left, tb);
+                              });
+                    std::sort(
+                        R.begin(), R.end(),
+                        [&edges, &nodes](size_t a, size_t b) {
+                            return std::tie(edges[a].right,
+                                            nodes[edges[a].parent].generation)
+                                   < std::tie(
+                                         edges[b].right,
+                                         nodes[edges[b].parent].generation);
+                        });
+                    left_temp.clear();
+                    right_temp.clear();
+                    auto beg = input_left.begin();
+                    for (auto& l : L)
+                        {
+                            index_key k{ edges[l].left,
+                                         -nodes[edges[l].parent].generation,
+                                         edges[l].parent, edges[l].child };
+                            auto itr
+                                = std::upper_bound(beg, input_left.end(), k);
+                            if (itr < input_left.end())
+                                {
+                                    assert(itr->first > k);
+                                }
+                            left_temp.insert(left_temp.end(), beg, itr);
+                            left_temp.emplace_back(k);
+                            beg = itr;
+                        }
+                    left_temp.insert(left_temp.end(), beg, input_left.end());
+
+                    beg = input_right.begin();
+                    for (auto& r : R)
+                        {
+                            index_key k{ edges[r].right,
+                                         nodes[edges[r].parent].generation,
+                                         edges[r].parent, edges[r].child };
+                            auto itr
+                                = std::upper_bound(beg, input_right.end(), k);
+                            right_temp.insert(right_temp.end(), beg, itr);
+                            right_temp.emplace_back(k);
+                            beg = itr;
+                        }
+                    right_temp.insert(right_temp.end(), beg,
+                                      input_right.end());
+                    assert(left_temp.size() == edges.size());
+                    assert(right_temp.size() == edges.size());
+                    input_left.swap(left_temp);
+                    input_right.swap(right_temp);
+                }
+            };
+
             void
             split_breakpoints(
                 const std::vector<double>& breakpoints,
@@ -66,10 +134,11 @@ namespace fwdpp
                                     a, b, std::get<1>(parents), next_index);
                             }
                     }
-            out:
-                return;
             }
 
+            edge_vector temp_edges; //used for sorting
+            index_recorder
+                recorder; //used for dynamic indexing, which is used for mutation counting
           public:
             node_vector node_table;
             edge_vector edge_table;
@@ -83,27 +152,30 @@ namespace fwdpp
             std::ptrdiff_t edge_offset;
             const double L;
             table_collection(const double maxpos)
-                : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
-                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
+                : temp_edges{}, recorder{}, node_table{}, edge_table{},
+                  mutation_table{}, input_left{}, output_right{},
+                  edge_offset{ 0 }, L{ maxpos }
             {
-                if(maxpos < 0 || !std::isfinite(maxpos))
-                {
-                    throw std::invalid_argument("maxpos must be > 0 and finite");
-                }
+                if (maxpos < 0 || !std::isfinite(maxpos))
+                    {
+                        throw std::invalid_argument(
+                            "maxpos must be > 0 and finite");
+                    }
                 //TODO assert maxpos is > 0 and finite
-                
             }
 
             table_collection(const std::int32_t num_initial_nodes,
                              const double initial_time, std::int32_t pop,
                              const double maxpos)
-                : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
-                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
+                : temp_edges{}, recorder{}, node_table{}, edge_table{},
+                  mutation_table{}, input_left{}, output_right{},
+                  edge_offset{ 0 }, L{ maxpos }
             {
-                if(maxpos < 0 || !std::isfinite(maxpos))
-                {
-                    throw std::invalid_argument("maxpos must be > 0 and finite");
-                }
+                if (maxpos < 0 || !std::isfinite(maxpos))
+                    {
+                        throw std::invalid_argument(
+                            "maxpos must be > 0 and finite");
+                    }
                 //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
@@ -118,25 +190,24 @@ namespace fwdpp
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
             {
-                std::sort(
-                    edge_table.begin() + edge_offset, edge_table.end(),
-                    [this](const edge& a, const edge& b) {
-                        auto ga = this->node_table[a.parent].generation;
-                        auto gb = this->node_table[b.parent].generation;
-                        if (ga == gb)
-                            {
-                                if (a.parent == b.parent)
-                                    {
-                                        if (a.child == b.child)
-                                            {
-                                                return a.left < b.left;
-                                            }
-                                        return a.child < b.child;
-                                    }
-                                return a.parent < b.parent;
-                            }
-                        return ga > gb;
-                    });
+                std::sort(edge_table.begin() + edge_offset, edge_table.end(),
+                          [this](const edge& a, const edge& b) {
+                              auto ga = this->node_table[a.parent].generation;
+                              auto gb = this->node_table[b.parent].generation;
+                              if (ga == gb)
+                                  {
+                                      if (a.parent == b.parent)
+                                          {
+                                              if (a.child == b.child)
+                                                  {
+                                                      return a.left < b.left;
+                                                  }
+                                              return a.child < b.child;
+                                          }
+                                      return a.parent < b.parent;
+                                  }
+                              return ga > gb;
+                          });
                 if (edge_offset > 0)
                     {
                         temp_edges.reserve(edge_table.size());
@@ -165,7 +236,7 @@ namespace fwdpp
             void
             sort_tables(const mutation_container& mutations)
             /// Sorts the tables
-            /// Note that mutations can be mocked via any struct 
+            /// Note that mutations can be mocked via any struct
             /// containing double pos
             {
                 sort_edges();
@@ -235,6 +306,18 @@ namespace fwdpp
             }
 
             void
+            update_dynamic_indexes()
+            {
+                if (input_left.empty())
+                    {
+                        build_indexes();
+                    }
+                recorder(input_left, output_right, node_table, edge_table,
+                         edge_offset);
+                edge_offset = edge_table.size(); //TODO: do we want this here?
+            }
+
+            void
             build_indexes()
             /// Generates the index vectors referred to
             /// as I and O in Kelleher et al. (2016)
@@ -291,7 +374,7 @@ namespace fwdpp
                 edge_offset = edge_table.size();
             }
         };
-    } // namespace ancestry
+    } // namespace ts
 } // namespace fwdpp
 
 #endif
