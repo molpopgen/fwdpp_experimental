@@ -318,6 +318,11 @@ namespace fwdpp
                         recorder(input_left, output_right, node_table,
                                  edge_table, edge_offset);
                     }
+                // Use of edge_offset is incorrect, because
+                // it is used elsewhere to track where to start
+                // sorting the edge table.
+                // We need a separate book-keeper that 
+                // tracks the edge-table size.
                 edge_offset = edge_table.size(); //TODO: do we want this here?
             }
 
