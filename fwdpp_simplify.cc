@@ -304,7 +304,7 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
         }
     auto nedges = tables.edge_table.size();
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
-                              parent_nodes, generation);
+                              pop.mutations, parent_nodes, generation);
 #ifndef NDEBUG
     //debug_new_edges(new_mutations, breakpoints, nedges, parent_nodes,
     //                next_index, offspring_gamete, parent_g1, parent_g2, pop,
@@ -354,10 +354,10 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             auto p1id = get_parent_ids(first_parental_index, p1, swap1);
             auto p2id = get_parent_ids(first_parental_index, p2, swap2);
 
-            assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            //assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            //assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
+            //assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
+            //assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
 
             next_index_local = generate_offspring(
                 rng, recmodel, mmodel, mu, p1, p1g1, p1g2, p1id, generation,
@@ -417,29 +417,6 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
            == next_index + 2 * static_cast<std::int32_t>(N_next));
     // This is constant-time
     pop.diploids.swap(offspring);
-    tables.sort_tables(pop.mutations);
-    std::vector<std::int32_t> samples(2 * pop.diploids.size());
-    std::iota(samples.begin(), samples.end(),
-              tables.num_nodes() - 2 * pop.diploids.size());
-    auto idmap
-        = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
-#ifndef NDEBUG
-    decltype(pop.mcounts) mc;
-    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
-    assert(pop.mcounts == mc);
-#endif
-    tables.mutation_table.erase(
-        std::remove_if(
-            tables.mutation_table.begin(), tables.mutation_table.end(),
-            [&pop](const fwdpp::ts::mutation_record& mr) {
-                return pop.mcounts[mr.key] == 2 * pop.diploids.size();
-            }),
-        tables.mutation_table.end());
-    fwdpp::fwdpp_internal::gamete_cleaner(
-        pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
-    fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
-                            pop.mut_lookup, pop.mcounts, generation,
-                            2 * pop.diploids.size());
 }
 
 table_collection
@@ -484,10 +461,115 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
+            std::cerr << "generation = " << generation << '\n';
             const auto N_next = popsizes[generation];
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
+            if (generation && generation % 10 == 0.0)
+                {
+                    tables.sort_tables(pop.mutations);
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+                    std::iota(samples.begin(), samples.end(),
+                              tables.num_nodes() - 2 * pop.diploids.size());
+                    auto idmap = simplifier.simplify(
+                        tables, samples, pop.mutations, pop.mcounts);
+#ifndef NDEBUG
+                    decltype(pop.mcounts) mc;
+                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
+                                                           pop.mutations, mc);
+                    assert(pop.mcounts == mc);
+#endif
+                    tables.mutation_table.erase(
+                        std::remove_if(
+                            tables.mutation_table.begin(),
+                            tables.mutation_table.end(),
+                            [&pop](const fwdpp::ts::mutation_record& mr) {
+                                return pop.mcounts[mr.key]
+                                       == 2 * pop.diploids.size();
+                            }),
+                        tables.mutation_table.end());
+                    first_parental_index = 0;
+                }
+            else
+                {
+                    tables.update_dynamic_indexes();
+                    std::sort(tables.mutation_table.begin(),
+                              tables.mutation_table.end(),
+                              [](const mutation_record& a,
+                                 const mutation_record& b) {
+                                  return a.pos < b.pos;
+                              });
+                    std::fill(pop.mcounts.begin(), pop.mcounts.end(), 0);
+                    pop.mcounts.resize(pop.mutations.size(), 0);
+                    auto mtable_itr = tables.mutation_table.begin();
+                    auto mtable_end = tables.mutation_table.end();
+                    auto mutation_counter
+                        = [&pop, &mtable_itr,
+                           mtable_end](const marginal_tree& marginal) {
+                              while (mtable_itr < mtable_end
+                                     && mtable_itr->pos < marginal.left)
+                                  {
+                                      ++mtable_itr;
+                                  }
+                              while (mtable_itr < mtable_end
+                                     && mtable_itr->pos < marginal.right)
+                                  {
+                                      assert(mtable_itr->pos >= marginal.left);
+                                      assert(mtable_itr->pos < marginal.right);
+                                      pop.mcounts[mtable_itr->key]
+                                          = marginal
+                                                .leaf_counts[mtable_itr->node];
+                                      ++mtable_itr;
+                                  }
+                          };
+                    std::vector<std::int32_t> samples(2 * N_next);
+                    std::iota(samples.begin(), samples.end(),
+                              tables.num_nodes() - 2 * N_next);
+                    algorithmL(tables.input_left, tables.output_right, samples,
+                               tables.node_table.size(), tables.L,
+                               mutation_counter);
+                    // We can semi-simplify the mutation table
+                    // by removing all variants not found in samples.
+                    tables.mutation_table.erase(
+                        std::remove_if(tables.mutation_table.begin(),
+                                       tables.mutation_table.end(),
+                                       [&pop](const mutation_record& mr) {
+                                           return pop.mcounts[mr.key] == 0;
+                                       }),
+                        tables.mutation_table.end());
+#ifndef NDEBUG
+
+                    std::vector<fwdpp::uint_t> mc2;
+                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
+                                                           pop.mutations, mc2);
+                    if (pop.mcounts != mc2)
+                        {
+                            std::cout << pop.mcounts.size() << ' '
+                                      << mc2.size() << '\n';
+                            for (std::size_t i = 0; i < pop.mcounts.size();
+                                 ++i)
+                                {
+                                    std::cout << pop.mcounts[i] << ' '
+                                              << mc2[i];
+                                    if (pop.mcounts[i] != mc2[i])
+                                        std::cout << " *";
+                                    std::cout << '\n';
+                                }
+                        }
+                    assert(pop.mcounts == mc2);
+#endif
+                    first_parental_index = tables.num_nodes() - 2 * N_next;
+                }
+            next_index = tables.num_nodes();
+
+            fwdpp::fwdpp_internal::gamete_cleaner(pop.gametes, pop.mutations,
+                                                  pop.mcounts, 2 * N_next,
+                                                  std::true_type());
+            fwdpp::update_mutations(pop.mutations, pop.fixations,
+                                    pop.fixation_times, pop.mut_lookup,
+                                    pop.mcounts, generation,
+                                    2 * pop.diploids.size());
 
             //std::vector<std::int32_t> samples;
             //for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
@@ -662,8 +744,6 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //             }
             //         std::exit(0);
             //     }
-            next_index = tables.num_nodes();
-            first_parental_index = 0;
         }
     return tables;
 }

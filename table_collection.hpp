@@ -65,7 +65,7 @@ namespace fwdpp
                                 = std::upper_bound(beg, input_left.end(), k);
                             if (itr < input_left.end())
                                 {
-                                    assert(itr->first > k);
+                                    assert(k < *itr);
                                 }
                             left_temp.insert(left_temp.end(), beg, itr);
                             left_temp.emplace_back(k);
@@ -87,6 +87,8 @@ namespace fwdpp
                         }
                     right_temp.insert(right_temp.end(), beg,
                                       input_right.end());
+                    std::cerr << left_temp.size() << ' ' << right_temp.size()
+                              << ' ' << edges.size() << '\n';
                     assert(left_temp.size() == edges.size());
                     assert(right_temp.size() == edges.size());
                     input_left.swap(left_temp);
@@ -311,8 +313,11 @@ namespace fwdpp
                     {
                         build_indexes();
                     }
-                recorder(input_left, output_right, node_table, edge_table,
-                         edge_offset);
+                else
+                    {
+                        recorder(input_left, output_right, node_table,
+                                 edge_table, edge_offset);
+                    }
                 edge_offset = edge_table.size(); //TODO: do we want this here?
             }
 
@@ -339,13 +344,13 @@ namespace fwdpp
                 std::sort(output_right.begin(), output_right.end());
             }
 
-            template<typename mcont_t>
+            template <typename mcont_t>
             void
             add_offspring_data(
                 const std::int32_t next_index,
                 const std::vector<double>& breakpoints,
                 const std::vector<std::uint32_t>& new_mutations,
-                const mcont_t & mutations,
+                const mcont_t& mutations,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
             //TODO: this must move to table_collection
@@ -356,8 +361,8 @@ namespace fwdpp
                 split_breakpoints(breakpoints, parents, next_index);
                 for (auto& m : new_mutations)
                     {
-                        mutation_table.emplace_back(
-                            mutation_record{ next_index, m, mutations[m].pos });
+                        mutation_table.emplace_back(mutation_record{
+                            next_index, m, mutations[m].pos });
                         assert(mutation_table.back().node == next_index);
                         assert(mutation_table.back().key == m);
                     }
