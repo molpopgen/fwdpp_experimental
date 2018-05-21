@@ -155,7 +155,7 @@ namespace fwdpp
             table_collection(const double maxpos)
                 : temp_edges{}, recorder{}, node_table{}, edge_table{},
                   mutation_table{}, input_left{}, output_right{},
-                  edge_offset{ 0 }, num_edges_recorded{0}, L{ maxpos }
+                  edge_offset{ 0 }, num_edges_recorded{ 0 }, L{ maxpos }
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -170,7 +170,7 @@ namespace fwdpp
                              const double maxpos)
                 : temp_edges{}, recorder{}, node_table{}, edge_table{},
                   mutation_table{}, input_left{}, output_right{},
-                  edge_offset{ 0 },num_edges_recorded{0},  L{ maxpos }
+                  edge_offset{ 0 }, num_edges_recorded{ 0 }, L{ maxpos }
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -185,7 +185,7 @@ namespace fwdpp
             }
 
             void
-            sort_edges() noexcept
+            sort_edge_table() noexcept
             /// Sort the edge table.  On PARENT birth times.
             /// The sorting differs from msprime here. The difference
             /// is that we  assume that birth times are recorded forward in
@@ -235,18 +235,25 @@ namespace fwdpp
 
             template <typename mutation_container>
             void
-            sort_tables(const mutation_container& mutations)
-            /// Sorts the tables
-            /// Note that mutations can be mocked via any struct
-            /// containing double pos
+            sort_mutation_table(const mutation_container& mutations)
             {
-                sort_edges();
                 //mutations are sorted by increasing position
                 std::sort(mutation_table.begin(), mutation_table.end(),
                           [&mutations](const mutation_record& a,
                                        const mutation_record& b) {
                               return a.pos < b.pos;
                           });
+            }
+
+            template <typename mutation_container>
+            void
+            sort_tables(const mutation_container& mutations)
+            /// Sorts the tables
+            /// Note that mutations can be mocked via any struct
+            /// containing double pos
+            {
+                sort_edge_table();
+                sort_mutation_table(mutations);
             }
 
             bool
@@ -320,9 +327,10 @@ namespace fwdpp
                 // Use of edge_offset is incorrect, because
                 // it is used elsewhere to track where to start
                 // sorting the edge table.
-                // We need a separate book-keeper that 
+                // We need a separate book-keeper that
                 // tracks the edge-table size.
-                num_edges_recorded = edge_table.size(); //TODO: do we want this here?
+                num_edges_recorded
+                    = edge_table.size(); //TODO: do we want this here?
             }
 
             void

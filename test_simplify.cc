@@ -130,7 +130,7 @@ main(int argc, char** argv)
             samples.push_back(i);
         }
     start = std::chrono::steady_clock::now();
-    tables.sort_edges();
+    tables.sort_edge_table();
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr

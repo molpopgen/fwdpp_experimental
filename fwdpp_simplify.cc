@@ -497,12 +497,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     dynamic = true;
                     tables.update_dynamic_indexes();
-                    std::sort(tables.mutation_table.begin(),
-                              tables.mutation_table.end(),
-                              [](const mutation_record& a,
-                                 const mutation_record& b) {
-                                  return a.pos < b.pos;
-                              });
+                    tables.sort_mutation_table(pop.mutations);
                     std::fill(pop.mcounts.begin(), pop.mcounts.end(), 0);
                     pop.mcounts.resize(pop.mutations.size(), 0);
                     auto mtable_itr = tables.mutation_table.begin();
