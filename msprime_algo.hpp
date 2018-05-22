@@ -126,7 +126,7 @@ namespace fwdpp
         algorithmL(const std::vector<index_key>& input_left,
                    const std::vector<index_key>& output_right,
                    const std::vector<std::int32_t>& sample_indexes,
-                   const std::int32_t nnodes, const double maxpos, visitor v)
+                   const std::int32_t nnodes, const double maxpos,const visitor & v)
         {
             auto j = input_left.begin(), jM = input_left.end(),
                  k = output_right.begin(), kM = output_right.end();

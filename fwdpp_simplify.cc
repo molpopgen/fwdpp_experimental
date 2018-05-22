@@ -419,6 +419,37 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     pop.diploids.swap(offspring);
 }
 
+template <typename poptype>
+void
+count_mutations(poptype& pop, table_collection& tables)
+{
+    tables.update_dynamic_indexes();
+    tables.sort_mutation_table(pop.mutations);
+    std::fill(pop.mcounts.begin(), pop.mcounts.end(), 0);
+    pop.mcounts.resize(pop.mutations.size(), 0);
+    auto mtable_itr = tables.mutation_table.begin();
+    auto mtable_end = tables.mutation_table.end();
+    auto mutation_counter = [&pop, &mtable_itr,
+                             mtable_end](const marginal_tree& marginal) {
+        while (mtable_itr < mtable_end && mtable_itr->pos < marginal.left)
+            {
+                ++mtable_itr;
+            }
+        while (mtable_itr < mtable_end && mtable_itr->pos < marginal.right)
+            {
+                assert(mtable_itr->pos >= marginal.left);
+                assert(mtable_itr->pos < marginal.right);
+                pop.mcounts[mtable_itr->key]
+                    = marginal.leaf_counts[mtable_itr->node];
+                ++mtable_itr;
+            }
+    };
+    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+    std::iota(samples.begin(), samples.end(), tables.num_nodes() - 2 * pop.diploids.size());
+    algorithmL(tables.input_left, tables.output_right, samples,
+               tables.node_table.size(), tables.L, mutation_counter);
+}
+
 table_collection
 evolve(const GSLrng_t& rng, slocuspop_t& pop,
        const std::vector<std::uint32_t>& popsizes, const double mu_neutral,
@@ -467,7 +498,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                               mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
             bool dynamic = false;
-            if (generation && generation % 10 == 0.0)
+            if (generation && generation % 1 == 0.0)
                 {
                     tables.sort_tables(pop.mutations);
                     std::vector<std::int32_t> samples(2 * pop.diploids.size());
@@ -496,42 +527,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             else
                 {
                     dynamic = true;
-                    tables.update_dynamic_indexes();
-                    tables.sort_mutation_table(pop.mutations);
-                    std::fill(pop.mcounts.begin(), pop.mcounts.end(), 0);
-                    pop.mcounts.resize(pop.mutations.size(), 0);
-                    auto mtable_itr = tables.mutation_table.begin();
-                    auto mtable_end = tables.mutation_table.end();
-                    auto mutation_counter = [&pop, &mtable_itr,
-                                             mtable_end](const marginal_tree&
-                                                             marginal) {
-                        while (mtable_itr < mtable_end
-                               && mtable_itr->pos < marginal.left)
-                            {
-                                ++mtable_itr;
-                            }
-                        while (mtable_itr < mtable_end
-                               && mtable_itr->pos < marginal.right)
-                            {
-                                assert(mtable_itr->pos >= marginal.left);
-                                assert(mtable_itr->pos < marginal.right);
-                                if (pop.mutations[mtable_itr->key].pos
-                                    == mtable_itr
-                                           ->pos) // guard against incrementing count for an extinct variant
-                                    {
-                                        pop.mcounts[mtable_itr->key]
-                                            = marginal.leaf_counts[mtable_itr
-                                                                       ->node];
-                                    }
-                                ++mtable_itr;
-                            }
-                    };
-                    std::vector<std::int32_t> samples(2 * N_next);
-                    std::iota(samples.begin(), samples.end(),
-                              tables.num_nodes() - 2 * N_next);
-                    algorithmL(tables.input_left, tables.output_right, samples,
-                               tables.node_table.size(), tables.L,
-                               mutation_counter);
+                    count_mutations(pop, tables);
                     first_parental_index = tables.num_nodes() - 2 * N_next;
                 }
             next_index = tables.num_nodes();
@@ -756,6 +752,25 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //         std::exit(0);
             //     }
         }
+    std::cout << tables.edge_table.size() << ' ' << tables.edge_offset << '\n';
+    if (tables.edge_table.size() > tables.edge_offset)
+        {
+            std::cout << "final simplify...\n";
+            tables.sort_tables(pop.mutations);
+            std::vector<std::int32_t> samples(2 * pop.diploids.size());
+            std::iota(samples.begin(), samples.end(),
+                      tables.num_nodes() - 2 * pop.diploids.size());
+            auto idmap = simplifier.simplify(tables, samples, pop.mutations,
+                                             pop.mcounts);
+            tables.mutation_table.erase(
+                std::remove_if(
+                    tables.mutation_table.begin(), tables.mutation_table.end(),
+                    [&pop](const fwdpp::ts::mutation_record& mr) {
+                        return pop.mcounts[mr.key] == 2 * pop.diploids.size();
+                    }),
+                tables.mutation_table.end());
+        }
+    std::cout << tables.edge_table.size() << ' ' << tables.edge_offset << '\n';
     return tables;
 }
 
