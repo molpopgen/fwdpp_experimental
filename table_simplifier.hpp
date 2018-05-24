@@ -490,10 +490,11 @@ namespace fwdpp
                 : new_edge_table{}, new_node_table{},
                   segment_queue{}, X{}, Ancestry{}, E{}, L{ maxpos }
             {
-                if(maxpos < 0 || !std::isfinite(maxpos))
-                {
-                    throw std::invalid_argument("maxpos must be > 0 and finite");
-                }
+                if (maxpos < 0 || !std::isfinite(maxpos))
+                    {
+                        throw std::invalid_argument(
+                            "maxpos must be > 0 and finite");
+                    }
             }
 
             template <typename mutation_container>
@@ -503,7 +504,7 @@ namespace fwdpp
                      const mutation_container& mutations,
                      std::vector<std::uint32_t>& mcounts)
             /// Set theoretic simplify.
-            /// TODO: compare against current msprime, 
+            /// TODO: compare against current msprime,
             /// which has streamlined some steps
             {
                 Ancestry.resize(tables.node_table.size());
@@ -566,7 +567,7 @@ namespace fwdpp
                 return idmap;
             }
         };
-    } // namespace ancestry
+    } // namespace ts
 } // namespace fwdpp
 
 #endif

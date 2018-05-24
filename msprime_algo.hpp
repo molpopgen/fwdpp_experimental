@@ -184,6 +184,6 @@ namespace fwdpp
                     x = right;
                 }
         }
-    } // namespace ancestry
+    } // namespace ts
 } // namespace fwdpp
 #endif
