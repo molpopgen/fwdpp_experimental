@@ -64,6 +64,7 @@ get_parent_ids(const std::int32_t first_parental_index,
             + !did_swap);
 }
 
+#ifndef NDEBUG
 void
 debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
                 const std::vector<double>& breakpoints,
@@ -268,6 +269,7 @@ debug_new_edges(std::vector<fwdpp::uint_t>& new_mutations,
                 }
         }
 }
+#endif
 
 // Wow, that's a lot of stuff needed:
 template <typename breakpoint_function, typename mutation_model,
@@ -302,7 +304,6 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
         {
             assert(offspring_gamete != parent_g1);
         }
-    auto nedges = tables.edge_table.size();
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
                               parent_nodes, generation);
 #ifndef NDEBUG

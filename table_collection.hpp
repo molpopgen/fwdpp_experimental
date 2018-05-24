@@ -66,8 +66,6 @@ namespace fwdpp
                                     a, b, std::get<1>(parents), next_index);
                             }
                     }
-            out:
-                return;
             }
 
           public:
@@ -86,12 +84,12 @@ namespace fwdpp
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
-                if(maxpos < 0 || !std::isfinite(maxpos))
-                {
-                    throw std::invalid_argument("maxpos must be > 0 and finite");
-                }
+                if (maxpos < 0 || !std::isfinite(maxpos))
+                    {
+                        throw std::invalid_argument(
+                            "maxpos must be > 0 and finite");
+                    }
                 //TODO assert maxpos is > 0 and finite
-                
             }
 
             table_collection(const std::int32_t num_initial_nodes,
@@ -100,10 +98,11 @@ namespace fwdpp
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
             {
-                if(maxpos < 0 || !std::isfinite(maxpos))
-                {
-                    throw std::invalid_argument("maxpos must be > 0 and finite");
-                }
+                if (maxpos < 0 || !std::isfinite(maxpos))
+                    {
+                        throw std::invalid_argument(
+                            "maxpos must be > 0 and finite");
+                    }
                 //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
@@ -118,29 +117,30 @@ namespace fwdpp
             /// is that we  assume that birth times are recorded forward in
             /// time rather than backwards.
             {
-                std::sort(
-                    edge_table.begin() + edge_offset, edge_table.end(),
-                    [this](const edge& a, const edge& b) {
-                        auto ga = this->node_table[a.parent].generation;
-                        auto gb = this->node_table[b.parent].generation;
-                        if (ga == gb)
-                            {
-                                if (a.parent == b.parent)
-                                    {
-                                        if (a.child == b.child)
-                                            {
-                                                return a.left < b.left;
-                                            }
-                                        return a.child < b.child;
-                                    }
-                                return a.parent < b.parent;
-                            }
-                        return ga > gb;
-                    });
+                std::sort(edge_table.begin() + edge_offset, edge_table.end(),
+                          [this](const edge& a, const edge& b) {
+                              auto ga = this->node_table[a.parent].generation;
+                              auto gb = this->node_table[b.parent].generation;
+                              if (ga == gb)
+                                  {
+                                      if (a.parent == b.parent)
+                                          {
+                                              if (a.child == b.child)
+                                                  {
+                                                      return a.left < b.left;
+                                                  }
+                                              return a.child < b.child;
+                                          }
+                                      return a.parent < b.parent;
+                                  }
+                              return ga > gb;
+                          });
                 if (edge_offset > 0)
                     {
                         temp_edges.reserve(edge_table.size());
+#ifndef NDEBUG
                         auto size = edge_table.size();
+#endif
                         temp_edges.clear();
                         temp_edges.insert(
                             temp_edges.end(),
@@ -165,7 +165,7 @@ namespace fwdpp
             void
             sort_tables(const mutation_container& mutations)
             /// Sorts the tables
-            /// Note that mutations can be mocked via any struct 
+            /// Note that mutations can be mocked via any struct
             /// containing double pos
             {
                 sort_edges();
@@ -291,7 +291,7 @@ namespace fwdpp
                 edge_offset = edge_table.size();
             }
         };
-    } // namespace ancestry
+    } // namespace ts
 } // namespace fwdpp
 
 #endif
