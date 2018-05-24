@@ -476,13 +476,13 @@ namespace fwdpp
                 // 3. Remove any elements from table with count == 0
                 // TODO: this has to be updated to handle fixations
                 // and losses in one pass!
-                tables.mutation_table.erase(
-                    std::remove_if(tables.mutation_table.begin(),
-                                   tables.mutation_table.end(),
-                                   [&mcounts](const mutation_record& mr) {
-                                       return mcounts[mr.key] == 0;
-                                   }),
-                    tables.mutation_table.end());
+                //tables.mutation_table.erase(
+                //    std::remove_if(tables.mutation_table.begin(),
+                //                   tables.mutation_table.end(),
+                //                   [&mcounts](const mutation_record& mr) {
+                //                       return mcounts[mr.key] == 0;
+                //                   }),
+                //    tables.mutation_table.end());
             }
 
           public:
