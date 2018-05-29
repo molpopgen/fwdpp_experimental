@@ -297,9 +297,16 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
             assert(std::distance(itr.first, itr.second) == 1);
         }
 #endif
+    // We will only add selected mutations into offspring gametes.
+    auto end_of_neutral
+        = std::stable_partition(new_mutations.begin(), new_mutations.end(),
+                                [&pop](const fwdpp::uint_t key) {
+                                    return pop.mutations[key].neutral == true;
+                                });
     offspring_gamete = fwdpp::mutate_recombine(
-        new_mutations, breakpoints, parent_g1, parent_g2, pop.gametes,
-        pop.mutations, gamete_recycling_bin, pop.neutral, pop.selected);
+        decltype(new_mutations)(end_of_neutral, new_mutations.end()),
+        breakpoints, parent_g1, parent_g2, pop.gametes, pop.mutations,
+        gamete_recycling_bin, pop.neutral, pop.selected);
     if (!new_mutations.empty() || !breakpoints.empty())
         {
             assert(offspring_gamete != parent_g1);
