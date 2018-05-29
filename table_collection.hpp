@@ -267,15 +267,23 @@ namespace fwdpp
             add_offspring_data(
                 const std::int32_t next_index,
                 const std::vector<double>& breakpoints,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const double generation)
+            {
+                emplace_back_node(0, generation + 1);
+                split_breakpoints(breakpoints, parents, next_index);
+            }
+
+            void
+            add_offspring_data(
+                const std::int32_t next_index,
+                const std::vector<double>& breakpoints,
                 const std::vector<std::uint32_t>& new_mutations,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const double generation)
-            //TODO: this must move to table_collection
             {
-                // TODO document why this is generation + 1
-                emplace_back_node(0, generation + 1);
-                // auto split =
-                split_breakpoints(breakpoints, parents, next_index);
+                add_offspring_data(next_index, breakpoints, parents,
+                                   generation);
                 for (auto& m : new_mutations)
                     {
                         mutation_table.emplace_back(
