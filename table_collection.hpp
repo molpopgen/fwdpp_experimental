@@ -163,12 +163,8 @@ namespace fwdpp
 
             template <typename mutation_container>
             void
-            sort_tables(const mutation_container& mutations)
-            /// Sorts the tables
-            /// Note that mutations can be mocked via any struct
-            /// containing double pos
+            sort_mutations(const mutation_container& mutations)
             {
-                sort_edges();
                 //mutations are sorted by increasing position
                 std::sort(mutation_table.begin(), mutation_table.end(),
                           [&mutations](const mutation_record& a,
@@ -176,6 +172,17 @@ namespace fwdpp
                               return mutations[a.key].pos
                                      < mutations[b.key].pos;
                           });
+            }
+
+            template <typename mutation_container>
+            void
+            sort_tables(const mutation_container& mutations)
+            /// Sorts the tables
+            /// Note that mutations can be mocked via any struct
+            /// containing double pos
+            {
+                sort_edges();
+                sort_mutations(mutations);
             }
 
             bool
@@ -266,7 +273,7 @@ namespace fwdpp
             //TODO: this must move to table_collection
             {
                 // TODO document why this is generation + 1
-                emplace_back_node( 0, generation + 1);
+                emplace_back_node(0, generation + 1);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
                 for (auto& m : new_mutations)
