@@ -12,7 +12,6 @@ namespace fwdpp
     {
         struct node
         {
-            std::int32_t id;
             std::int32_t population;
             double generation;
         };

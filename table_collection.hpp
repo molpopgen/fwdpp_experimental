@@ -106,7 +106,7 @@ namespace fwdpp
                 //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
-                        node_table.push_back(node{ i, pop, initial_time });
+                        node_table.push_back(node{ pop, initial_time });
                     }
             }
 
@@ -207,10 +207,9 @@ namespace fwdpp
             }
 
             void
-            push_back_node(std::int32_t id, double generation,
-                           std::int32_t pop)
+            push_back_node(double generation, std::int32_t pop)
             {
-                node_table.push_back(node{ id, pop, generation });
+                node_table.push_back(node{ pop, generation });
             }
 
             template <typename... args>
@@ -267,7 +266,7 @@ namespace fwdpp
             //TODO: this must move to table_collection
             {
                 // TODO document why this is generation + 1
-                emplace_back_node(next_index, 0, generation + 1);
+                emplace_back_node( 0, generation + 1);
                 // auto split =
                 split_breakpoints(breakpoints, parents, next_index);
                 for (auto& m : new_mutations)

@@ -61,7 +61,7 @@ struct table_collection
                 nodes.write(reinterpret_cast<char*>(&i), sizeof(decltype(i)));
                 nodes.write(reinterpret_cast<const char*>(&initial_time),
                             sizeof(decltype(initial_time)));
-                node_table.push_back(node{ i, 0, initial_time });
+                node_table.push_back(node{ 0, initial_time });
             }
     }
 
@@ -151,7 +151,7 @@ struct table_collection
 
         for (auto& s : samples)
             {
-                No.push_back(node{ s, 0, node_table[s].generation });
+                No.push_back(node{ 0, node_table[s].generation });
                 Ancestry[s].push_back(
                     segment(0, 1, static_cast<std::int32_t>(No.size() - 1)));
             }
@@ -214,8 +214,6 @@ struct table_collection
                                 if (v == -1)
                                     {
                                         No.push_back(node{
-                                            static_cast<std::int32_t>(
-                                                No.size()),
                                             0, node_table[u].generation });
                                         v = No.size() - 1;
                                     }
@@ -402,13 +400,14 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         = fwdpp::recbinder(fwdpp::poisson_xover(recrate, 0., 1.), rng.get());
 
     unsigned generation = 0;
-    const auto mmodel = [&pop, &rng, &generation](
-        std::queue<std::size_t>& recbin, slocuspop_t::mcont_t& mutations) {
-        return fwdpp::infsites_popgenmut(
-            recbin, mutations, rng.get(), pop.mut_lookup, generation, 0.0,
-            [&rng]() { return gsl_rng_uniform(rng.get()); }, []() { return 0.0; },
-            []() { return 0.0; });
-    };
+    const auto mmodel
+        = [&pop, &rng, &generation](std::queue<std::size_t>& recbin,
+                                    slocuspop_t::mcont_t& mutations) {
+              return fwdpp::infsites_popgenmut(
+                  recbin, mutations, rng.get(), pop.mut_lookup, generation,
+                  0.0, [&rng]() { return gsl_rng_uniform(rng.get()); },
+                  []() { return 0.0; }, []() { return 0.0; });
+          };
 
     table_collection tables(2 * pop.diploids.size(), 0.0);
     std::int32_t first_parental_index = 0,

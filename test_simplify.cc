@@ -97,7 +97,7 @@ main(int argc, char** argv)
                 break;
             in.read(reinterpret_cast<char*>(&x), sizeof(decltype(x)));
             // in >> a >> x >> std::ws;
-            tables.emplace_back_node(a, 0, x);
+            tables.emplace_back_node(0, x);
         }
     // for(auto & n : nodes)
     //{
@@ -152,7 +152,7 @@ main(int argc, char** argv)
     std::ofstream out(nodeoutfile.c_str());
     for (auto& n : tables.node_table)
         {
-            out << n.id << ' ' << n.generation << '\n';
+            out << n.generation << '\n';
         }
     out.close();
     out.open(edgeoutfile.c_str());

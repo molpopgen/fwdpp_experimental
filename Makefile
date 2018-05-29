@@ -1,5 +1,5 @@
 DEBUG=-DNDEBUG
-#DEBUG=
+DEBUG=
 OPT=-O2
 #OPT=
 CXXFLAGS=-std=c++11 $(OPT) -Wall -W $(DEBUG) -g

@@ -203,8 +203,6 @@ namespace fwdpp
                                         // thus
                                         // a new node. Step S6.
                                         new_node_table.emplace_back(node{
-                                            static_cast<std::int32_t>(
-                                                new_node_table.size()),
                                             input_node_table[parent_input_id]
                                                 .population,
                                             input_node_table[parent_input_id]
@@ -521,10 +519,9 @@ namespace fwdpp
                 // a segment on [0,L).
                 for (const auto& s : samples)
                     {
-                        new_node_table.emplace_back(node{
-                            static_cast<std::int32_t>(new_node_table.size()),
-                            tables.node_table[s].population,
-                            tables.node_table[s].generation });
+                        new_node_table.emplace_back(
+                            node{ tables.node_table[s].population,
+                                  tables.node_table[s].generation });
                         Ancestry[s].emplace_back(
                             0, L,
                             static_cast<std::int32_t>(new_node_table.size()

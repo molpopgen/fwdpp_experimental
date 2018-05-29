@@ -25,7 +25,7 @@ main(int argc, char** argv)
     for (int i = 0; i < nrecords; ++i)
         {
             in.read(reinterpret_cast<char*>(&time), sizeof(double));
-            tables.push_back_node(i, time, 0);
+            tables.push_back_node(time, 0);
             mtime = max(mtime, time);
         }
     for (auto& n : tables.node_table)
@@ -70,7 +70,8 @@ main(int argc, char** argv)
             in.read(reinterpret_cast<char*>(&p), sizeof(int32_t));
             in.read(reinterpret_cast<char*>(&l), sizeof(double));
             mutations.emplace_back(fake_mut{ l });
-            tables.mutation_table.emplace_back(mutation_record{ p, static_cast<std::size_t>(i) });
+            tables.mutation_table.emplace_back(
+                mutation_record{ p, static_cast<std::size_t>(i) });
         }
 
     tables.sort_tables(mutations);

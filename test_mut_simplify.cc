@@ -26,9 +26,9 @@ test1()
 
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
+        0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(1.0, 0);
 
     vector<fake_mut> mutations(1, fake_mut{ 0.5 }); // one mutation at pos 0.5
     tables.mutation_table.emplace_back(
@@ -62,10 +62,10 @@ test2()
     tables.emplace_back_edge(0., 0.4, 3, 0); //this one will have the mutations
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
-    tables.push_back_node(3, 0., 0); // Node that has the mut
+        0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(0., 0); // Node that has the mut
 
     vector<fake_mut> mutations(1, fake_mut{ 0.5 }); // one mutation at pos 0.5
     tables.mutation_table.emplace_back(
@@ -95,9 +95,9 @@ test3()
 
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
+        0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(0, 0);
+    tables.push_back_node(0, 0);
 
     vector<fake_mut> mutations(1, fake_mut{ 0.4 }); // one mutation at pos 0.4
     tables.mutation_table.emplace_back(
@@ -130,10 +130,10 @@ test4()
     tables.emplace_back_edge(0., 0.4, 3, 0); //this one will have the mutations
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
-    tables.push_back_node(3, 0., 0); // Node that has the mut
+        0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(0, 0);
+    tables.push_back_node(0, 0);
+    tables.push_back_node(0., 0); // Node that has the mut
 
     vector<fake_mut> mutations(1, fake_mut{ 0.4 }); // one mutation at pos 0.4
     tables.mutation_table.emplace_back(
@@ -168,10 +168,10 @@ test5()
                              0); //this one will have the mutations
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
-    tables.push_back_node(3, 0., 0); // Node that has the mut
+        0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(0., 0); // Node that has the mut
 
     vector<fake_mut> mutations(1, fake_mut{ 0.6 }); // one mutation at pos 0.6
     tables.mutation_table.emplace_back(
@@ -213,10 +213,10 @@ test6()
                              0); //this one will have the mutations
     // We measure time forwards, not backwards
     tables.push_back_node(
-        0, 0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
-    tables.push_back_node(1, 1.0, 0);
-    tables.push_back_node(2, 1.0, 0);
-    tables.push_back_node(3, 0., 0); // Node that has the mut
+        0.0, 0); // node id, time, pop.  Yes, the ID is redundant...
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(1.0, 0);
+    tables.push_back_node(0., 0); // Node that has the mut
 
     vector<fake_mut> mutations(1, fake_mut{ 0.4 }); // one mutation at pos 0.4
     tables.mutation_table.emplace_back(
