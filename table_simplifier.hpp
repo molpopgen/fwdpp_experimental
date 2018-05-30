@@ -369,12 +369,17 @@ namespace fwdpp
                                table_collection& tables,
                                mutation_map_t& mutation_map) const
             {
-                // Simplify mutations
+                if (tables.mutation_table.empty())
+                    // This skips index building, which
+                    // is expensive an un-necessary if there's
+                    // nothing to simplify...
+                    {
+                        return;
+                    }
 
                 // 0. Remap mutation input node ids.  To do this, we use
                 // the data stored in Ancestry, which allows us to "push"
                 // mutation nodes down the tree.
-
                 for (auto& mr : tables.mutation_table)
                     {
                         mr.node = -1;
@@ -392,11 +397,6 @@ namespace fwdpp
                                     {
                                         assert(mut < mute);
                                         assert(mut->first < mutations.size());
-                                        //The following assert fails when
-                                        //processing "decaptitated" trees
-                                        //assert(
-                                        //    static_cast<std::size_t>(seg->node)
-                                        //    < new_edge_table.size());
                                         tables.mutation_table[mut->second].node
                                             = seg->node;
                                         ++mut;
@@ -461,7 +461,7 @@ namespace fwdpp
                         }
                 };
 
-                tables.build_indexes();
+                tables.build_indexes(); // Expensive!!!
                 std::vector<std::int32_t> remapped_samples(samples.size());
                 for (std::size_t i = 0; i < samples.size(); ++i)
                     {
@@ -470,17 +470,6 @@ namespace fwdpp
                 algorithmL(tables.input_left, tables.output_right,
                            remapped_samples, tables.node_table.size(),
                            tables.L, mutation_counter);
-
-                // 3. Remove any elements from table with count == 0
-                // TODO: this has to be updated to handle fixations
-                // and losses in one pass!
-                //tables.mutation_table.erase(
-                //    std::remove_if(tables.mutation_table.begin(),
-                //                   tables.mutation_table.end(),
-                //                   [&mcounts](const mutation_record& mr) {
-                //                       return mcounts[mr.key] == 0;
-                //                   }),
-                //    tables.mutation_table.end());
             }
 
           public:
