@@ -49,55 +49,6 @@ namespace fwdpp
 
         using index_vector = std::vector<index_key>;
 
-        void
-        algorithmT(const index_vector& input_left,
-                   const index_vector& output_right, const std::size_t nnodes,
-                   const double maxpos)
-        // TODO: needs to take a visitor as argument
-        // TODO: needs to be cleaned up a la Alg L below.
-        // Assumes tables are not empty.  Probably unsafe.
-        {
-            std::vector<std::int32_t> pi(nnodes, -1);
-
-            auto j = input_left.begin(), jM = input_left.end(),
-                 k = output_right.begin(), kM = output_right.end();
-            double x = 0.0;
-            // TODO: replace .at with []
-            while (j != jM || x < maxpos)
-                {
-                    while (k != kM && k->pos == x) // T4
-                        {
-                            pi[k->child] = -1;
-                            ++k;
-                        }
-                    while (j != jM && j->pos == x) // Step T2
-                        {
-                            // The entry for the child refers to
-                            // the parent's location in the node table.
-                            pi[j->child] = j->parent;
-                            ++j;
-                        }
-                    double right = maxpos;
-                    if (j != jM)
-                        {
-                            right = std::min(right, j->pos);
-                        }
-                    if (k != kM)
-                        {
-                            right = std::min(right, k->pos);
-                        }
-                    // At this point, pi refers to the marginal tree
-                    // beginning at x for all pi[i] != -1
-                    // The useful thing to do here would
-                    // be to define a "visitor function",
-                    // taking pi, x, and right as arguments.
-                    // The i-th element in pi indexes its
-                    // parent in the node table.
-
-                    x = right;
-                }
-        }
-
         struct marginal_tree
         {
             std::vector<std::int32_t> parents, leaf_counts;
@@ -119,7 +70,59 @@ namespace fwdpp
                         leaf_counts[s] = 1;
                     }
             }
+            marginal_tree(std::int32_t nnodes)
+                : parents(nnodes, -1), leaf_counts{},
+                  left{ std::numeric_limits<double>::quiet_NaN() }, right{
+                      std::numeric_limits<double>::quiet_NaN()
+                  }
+            {
+            }
         };
+
+        template <typename visitor>
+        void
+        algorithmT(const index_vector& input_left,
+                   const index_vector& output_right, const std::size_t nnodes,
+                   const double maxpos, visitor v)
+        {
+            marginal_tree marginal(nnodes);
+            auto j = input_left.begin(), jM = input_left.end(),
+                 k = output_right.begin(), kM = output_right.end();
+            double x = 0.0;
+            // TODO: replace .at with []
+            while (j < jM || x < maxpos)
+                {
+                    while (k < kM && k->pos == x) // T4
+                        {
+                            marginal.parents[k->child] = -1;
+                            ++k;
+                        }
+                    while (j < jM && j->pos == x) // Step T2
+                        {
+                            // The entry for the child refers to
+                            // the parent's location in the node table.
+                            marginal.parents[j->child] = j->parent;
+                            ++j;
+                        }
+                    double right = maxpos;
+                    if (j < jM)
+                        {
+                            right = std::min(right, j->pos);
+                        }
+                    if (k < kM)
+                        {
+                            right = std::min(right, k->pos);
+                        }
+                    x = right;
+                    marginal.left = x;
+                    marginal.right = right;
+                    //This "yields"
+                    //the data for this tree
+                    //to the visitor
+                    v(marginal);
+                    x = right;
+                }
+        }
 
         template <typename visitor>
         void
