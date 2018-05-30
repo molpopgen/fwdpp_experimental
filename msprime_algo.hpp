@@ -113,7 +113,6 @@ namespace fwdpp
                         {
                             right = std::min(right, k->pos);
                         }
-                    x = right;
                     marginal.left = x;
                     marginal.right = right;
                     //This "yields"
