@@ -471,7 +471,7 @@ main(int argc, char** argv)
     fwdpp::uint_t N = atoi(argv[argn++]);
     double theta = atof(argv[argn++]);
     double rho = atof(argv[argn++]);
-    double pdel = atof(argv[argn++]);
+    double mudel = atof(argv[argn++]);
     unsigned seed = atoi(argv[argn++]);
 
     slocuspop_t pop(N);
@@ -479,7 +479,6 @@ main(int argc, char** argv)
     GSLrng_t rng(seed);
     double mu = theta / (4. * static_cast<double>(N));
     double recrate = rho / (4. * static_cast<double>(N));
-    double mudel = mu * pdel;
 
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
     std::cout << "finished without error " << pop.mutations.size() << ' '
