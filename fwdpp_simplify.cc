@@ -96,6 +96,13 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
                                 [&pop](const fwdpp::uint_t key) {
                                     return pop.mutations[key].neutral == true;
                                 });
+    //if (!std::is_sorted(end_of_neutral, new_mutations.end(),
+    //                    [&pop](const std::size_t a, const std::size_t b) {
+    //                        return pop.mutations[a].pos < pop.mutations[b].pos;
+    //                    }))
+    //    {
+    //        throw std::runtime_error("bad");
+    //    }
     offspring_gamete = fwdpp::mutate_recombine(
         decltype(new_mutations)(end_of_neutral, new_mutations.end()),
         breakpoints, parent_g1, parent_g2, pop.gametes, pop.mutations,
@@ -125,7 +132,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     auto mutation_recycling_bin
         = fwdpp::fwdpp_internal::make_mut_queue(pop.mcounts);
 
-    auto lookup = w(pop, fwdpp::additive_diploid());
+    auto lookup = w(pop, fwdpp::multiplicative_diploid());
     decltype(pop.diploids) offspring(N_next);
 
     // Generate the offspring
@@ -265,14 +272,22 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
         = fwdpp::recbinder(fwdpp::poisson_xover(recrate, 0., 1.), rng.get());
     unsigned generation = 0;
 
-    const auto mmodel
-        = [&pop, &rng, &generation](std::queue<std::size_t>& recbin,
-                                    slocuspop_t::mcont_t& mutations) {
-              return fwdpp::infsites_popgenmut(
-                  recbin, mutations, rng.get(), pop.mut_lookup, generation,
-                  0.0, [&rng]() { return gsl_rng_uniform(rng.get()); },
-                  []() { return 0.0; }, []() { return 0.0; });
-          };
+    // With selection, 2Ns ~ Gamma with mean -5 and shape = 1.
+    // Fitness will be 1, 1+sh, 1+s, and we will model additive effects
+    // at a site, and multiplicative across
+    const double twoN = 2 * pop.diploids.size();
+    const double pdeleterious = mu_selected / (mu_selected + mu_neutral);
+    const auto mmodel = [&pop, &rng, &generation, pdeleterious,
+                         twoN](std::queue<std::size_t>& recbin,
+                               slocuspop_t::mcont_t& mutations) {
+        return fwdpp::infsites_popgenmut(
+            recbin, mutations, rng.get(), pop.mut_lookup, generation,
+            pdeleterious, [&rng]() { return gsl_rng_uniform(rng.get()); },
+            [&rng, twoN]() {
+                return gsl_ran_gamma(rng.get(), 1., -5.) / twoN;
+            },
+            []() { return 0.5; });
+    };
 
     table_simplifier simplifier(1.0);
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
@@ -471,7 +486,7 @@ main(int argc, char** argv)
     fwdpp::uint_t N = atoi(argv[argn++]);
     double theta = atof(argv[argn++]);
     double rho = atof(argv[argn++]);
-    double mudel = atof(argv[argn++]);
+    double pdel = atof(argv[argn++]);
     unsigned seed = atoi(argv[argn++]);
 
     slocuspop_t pop(N);
@@ -479,7 +494,7 @@ main(int argc, char** argv)
     GSLrng_t rng(seed);
     double mu = theta / (4. * static_cast<double>(N));
     double recrate = rho / (4. * static_cast<double>(N));
-
+    const double mudel = pdel * mu;
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
     std::cout << "finished without error " << pop.mutations.size() << ' '
               << tables.node_table.size() << ' ' << tables.edge_table.size()
