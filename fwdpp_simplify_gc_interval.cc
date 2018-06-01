@@ -124,15 +124,18 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
                   const fwdpp::uint_t generation, table_collection& tables,
-                  table_simplifier& simplifier,
-                  std::int32_t first_parental_index, std::int32_t next_index, const int gc)
+                  const bool did_gc, std::int32_t first_parental_index,
+                  std::int32_t next_index)
 {
-
     auto gamete_recycling_bin
         = fwdpp::fwdpp_internal::make_gamete_queue(pop.gametes);
-    auto mutation_recycling_bin
-        = fwdpp::fwdpp_internal::make_mut_queue(pop.mcounts);
-
+    decltype(fwdpp::fwdpp_internal::make_mut_queue(
+        pop.mcounts)) mutation_recycling_bin;
+    if (did_gc)
+        {
+            mutation_recycling_bin
+                = fwdpp::fwdpp_internal::make_mut_queue(pop.mcounts);
+        }
     auto lookup = w(pop, fwdpp::multiplicative_diploid());
     decltype(pop.diploids) offspring(N_next);
 
@@ -157,11 +160,6 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
 
             auto p1id = get_parent_ids(first_parental_index, p1, swap1);
             auto p2id = get_parent_ids(first_parental_index, p2, swap2);
-
-            assert(std::get<0>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p1id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<0>(p2id) < 2 * static_cast<std::int32_t>(N_next));
-            assert(std::get<1>(p2id) < 2 * static_cast<std::int32_t>(N_next));
 
             next_index_local = generate_offspring(
                 rng, recmodel, mmodel, mu, p1, p1g1, p1g2, p1id, generation,
@@ -221,6 +219,12 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
            == next_index + 2 * static_cast<std::int32_t>(N_next));
     // This is constant-time
     pop.diploids.swap(offspring);
+}
+
+void
+apply_simplifier(slocuspop_t& pop, table_collection& tables,
+                 table_simplifier& simplifier, const int generation)
+{
     tables.sort_tables(pop.mutations);
     std::vector<std::int32_t> samples(2 * pop.diploids.size());
     std::iota(samples.begin(), samples.end(),
@@ -239,21 +243,12 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 return pop.mcounts[mr.key] == 2 * pop.diploids.size();
             }),
         tables.mutation_table.end());
-    fwdpp::fwdpp_internal::gamete_cleaner(
-        pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
+    fwdpp::fwdpp_internal::gamete_cleaner(pop.gametes, pop.mutations,
+                                          pop.mcounts, 2 * pop.diploids.size(),
+                                          std::true_type());
     fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
                             pop.mut_lookup, pop.mcounts, generation,
                             2 * pop.diploids.size());
-    if (generation && generation % 100 == 0.0)
-        {
-            auto new_mut_indexes = fwdpp::compact_mutations(pop);
-            // Mutation compacting re-orders the data, so we need to
-            // re-index our mutation table
-            for (auto& mr : tables.mutation_table)
-                {
-                    mr.key = new_mut_indexes[mr.key];
-                }
-        }
 }
 
 table_collection
@@ -306,10 +301,35 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                  next_index = 2 * pop.diploids.size();
     for (; generation < generations; ++generation)
         {
+            bool did_gc = false;
+            if (generation && generation % gc == 0.0)
+                {
+                    apply_simplifier(pop, tables, simplifier, generation);
+                    next_index = tables.num_nodes();
+                    first_parental_index = 0;
+                    did_gc = true;
+                }
+            else
+                {
+                    next_index = tables.num_nodes();
+                    first_parental_index
+                        = next_index - 2 * pop.diploids.size();
+                }
+            //if (generation && generation % 100 == 0.0)
+            //    {
+            //        auto new_mut_indexes = fwdpp::compact_mutations(pop);
+            //        // Mutation compacting re-orders the data, so we need to
+            //        // re-index our mutation table
+            //        for (auto& mr : tables.mutation_table)
+            //            {
+            //                mr.key = new_mut_indexes[mr.key];
+            //            }
+            //    }
+
             const auto N_next = popsizes[generation];
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
-                              mmodel, recmap, generation, tables, simplifier,
-                              first_parental_index, next_index, gc);
+                              mmodel, recmap, generation, tables, did_gc,
+                              first_parental_index, next_index);
 
             //std::vector<std::int32_t> samples;
             //for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
@@ -484,8 +504,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             //             }
             //         std::exit(0);
             //     }
-            next_index = tables.num_nodes();
-            first_parental_index = 0;
+            //next_index = tables.num_nodes();
+            //first_parental_index = 0;
+        }
+    if (tables.edge_table.size() > tables.edge_offset)
+        {
+            apply_simplifier(pop, tables, simplifier, generation);
         }
     return tables;
 }
