@@ -54,6 +54,92 @@ w(slocuspop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
+std::unordered_map<std::size_t, std::vector<std::int32_t>>
+neutral_genotypes(const slocuspop_t& pop,
+                  const std::vector<std::int32_t>& samples,
+                  const table_collection& tables)
+/// Requires the table be indexed
+{
+    // Maps mutation keys to samples
+    std::unordered_map<std::size_t, std::vector<std::int32_t>> mutmap;
+    auto mtable_itr = tables.mutation_table.begin();
+    auto mtable_end = tables.mutation_table.end();
+    auto fill_map = [&pop, &samples, &mtable_itr, &mutmap,
+                     mtable_end](const marginal_tree& marginal) {
+        while (mtable_itr < mtable_end
+               && pop.mutations[mtable_itr->key].pos < marginal.left)
+            {
+                ++mtable_itr;
+            }
+        std::vector<std::pair<std::int32_t, std::size_t>>
+            mut_nodes_on_marginal;
+        while (mtable_itr < mtable_end
+               && pop.mutations[mtable_itr->key].pos < marginal.right)
+            {
+                assert(pop.mutations[mtable_itr->key].pos >= marginal.left);
+                assert(pop.mutations[mtable_itr->key].pos < marginal.right);
+                mut_nodes_on_marginal.emplace_back(mtable_itr->node,
+                                                   mtable_itr->key);
+                ++mtable_itr;
+            }
+        //Only proceed if there are mutations on this tree
+        if (!mut_nodes_on_marginal.empty())
+            {
+                std::sort(mut_nodes_on_marginal.begin(),
+                          mut_nodes_on_marginal.end(),
+                          [](const std::pair<std::int32_t, std::size_t>& a,
+                             const std::pair<std::int32_t, std::size_t>& b) {
+                              return a.first < b.first;
+                          });
+
+                for (auto& s : samples)
+                    {
+                        auto r = std::equal_range(
+                            mut_nodes_on_marginal.begin(),
+                            mut_nodes_on_marginal.end(),
+                            std::make_pair(s, std::size_t(0)), //TODO: HACK!!
+                            [](const std::pair<std::int32_t, std::size_t>& a,
+                               const std::pair<std::int32_t, std::size_t>& b) {
+                                return a.first < b.first;
+                            });
+                        for (auto i = r.first; i < r.second; ++i)
+                            {
+                                if (i->first == s)
+                                    {
+                                        mutmap[i->second].push_back(s);
+                                    }
+                            }
+                        auto p = marginal.parents[s];
+                        while (p != -1)
+                            {
+                                r = std::equal_range(
+                                    mut_nodes_on_marginal.begin(),
+                                    mut_nodes_on_marginal.end(),
+                                    std::make_pair(
+                                        p, std::size_t(0)), //TODO: HACK!!
+                                    [](const std::pair<std::int32_t,
+                                                       std::size_t>& a,
+                                       const std::pair<std::int32_t,
+                                                       std::size_t>& b) {
+                                        return a.first < b.first;
+                                    });
+                                for (auto i = r.first; i < r.second; ++i)
+                                    {
+                                        if (i->first == p)
+                                            {
+                                                mutmap[i->second].push_back(s);
+                                            }
+                                    }
+                                p = marginal.parents[p];
+                            }
+                    }
+            }
+    };
+    algorithmT(tables.input_left, tables.output_right,
+               tables.node_table.size(), tables.L, fill_map);
+    return mutmap;
+}
+
 std::tuple<std::int32_t, std::int32_t>
 get_parent_ids(const std::int32_t first_parental_index,
                const std::uint32_t parent, const int did_swap)
@@ -310,7 +396,27 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
             evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
                               mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
-
+            if (generation && generation % 10 == 0.0)
+                {
+                    std::vector<std::int32_t> nodes(2 * pop.diploids.size());
+                    std::iota(nodes.begin(), nodes.end(), 0);
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size()
+                                                      / 10);
+                    gsl_ran_choose(rng.get(), samples.data(), samples.size(),
+                                   nodes.data(), nodes.size(),
+                                   sizeof(int32_t));
+                    auto m = neutral_genotypes(pop, samples, tables);
+                    //for (auto& mm : m)
+                    //    {
+                    //        std::cout << mm.first << " -> ";
+                    //        for (auto i : mm.second)
+                    //            {
+                    //                std::cout << i << ' ';
+                    //            }
+                    //        std::cout << '\n';
+                    //    }
+                    //std::cout << "//\n";
+                }
             //std::vector<std::int32_t> samples;
             //for (auto i = tables.num_nodes() - 2 * pop.diploids.size();
             //     i < tables.num_nodes(); ++i)
