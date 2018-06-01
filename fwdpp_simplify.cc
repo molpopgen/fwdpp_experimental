@@ -507,7 +507,16 @@ main(int argc, char** argv)
     double recrate = rho / (4. * static_cast<double>(N));
     const double mudel = pdel * mu;
     auto tables = evolve(rng, pop, popsizes, mu, mudel, recrate);
+    auto nselected = 0;
+    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
+        {
+            if (pop.mcounts[i] && !pop.mutations[i].neutral)
+                {
+                    ++nselected;
+                }
+        }
     std::cout << "finished without error " << pop.mutations.size() << ' '
               << tables.node_table.size() << ' ' << tables.edge_table.size()
-              << ' ' << tables.mutation_table.size() << '\n';
+              << ' ' << tables.mutation_table.size() << ' ' << nselected
+              << '\n';
 }
