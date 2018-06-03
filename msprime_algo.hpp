@@ -189,7 +189,7 @@ namespace fwdpp
         {
             marginal_tree marginal(nnodes);
             iterate_marginal_trees(do_nothing(), input_left, output_right,
-                                   marginal, v);
+                                   maxpos, marginal, v);
         }
 
         template <typename visitor>
