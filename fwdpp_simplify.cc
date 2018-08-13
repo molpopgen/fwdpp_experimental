@@ -54,7 +54,6 @@ w(slocuspop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
-//std::unordered_map<std::size_t, std::vector<std::int32_t>>
 std::vector<std::pair<std::size_t, std::int32_t>>
 neutral_genotypes(const slocuspop_t& pop,
                   const std::vector<std::int32_t>& samples,
@@ -80,8 +79,11 @@ neutral_genotypes(const slocuspop_t& pop,
             {
                 assert(pop.mutations[mtable_itr->key].pos >= marginal.left);
                 assert(pop.mutations[mtable_itr->key].pos < marginal.right);
-                mut_nodes_on_marginal.emplace_back(mtable_itr->node,
-                                                   mtable_itr->key);
+                if (pop.mutations[mtable_itr->key].neutral == true)
+                    {
+                        mut_nodes_on_marginal.emplace_back(mtable_itr->node,
+                                                           mtable_itr->key);
+                    }
                 ++mtable_itr;
             }
         //Only proceed if there are mutations on this tree
@@ -97,50 +99,33 @@ neutral_genotypes(const slocuspop_t& pop,
                 for (auto& s : samples)
                     {
                         auto b = mut_nodes_on_marginal.begin();
-                        auto r = std::equal_range(
-                            b, mut_nodes_on_marginal.end(),
-                            std::make_pair(s, std::size_t(0)), //TODO: HACK!!
+                        auto itr = std::lower_bound(
+                            b, mut_nodes_on_marginal.end(), s,
                             [](const std::pair<std::int32_t, std::size_t>& a,
-                               const std::pair<std::int32_t, std::size_t>& b) {
-                                return a.first < b.first;
-                            });
-                        for (auto i = r.first; i < r.second; ++i)
+                               const std::int32_t s) { return a.first < s; });
+                        while (itr < mut_nodes_on_marginal.end()
+                               && itr->first == s)
                             {
-                                if (i->first == s)
-                                    {
-                                        mutmap.emplace_back(i->second, s);
-                                        //mutmap[i->second].push_back(s);
-                                    }
-                            }
-                        if (r.first != mut_nodes_on_marginal.end())
-                            {
-                                b = r.second;
+                                mutmap.emplace_back(itr->second, s);
+                                ++itr;
+                                ++b;
                             }
                         auto p = marginal.parents[s];
-                        while (p != -1)
+                        while (p != -1 && b < mut_nodes_on_marginal.end())
                             {
-                                r = std::equal_range(
-                                    b, mut_nodes_on_marginal.end(),
-                                    std::make_pair(
-                                        p, std::size_t(0)), //TODO: HACK!!
+                                itr = std::lower_bound(
+                                    b, mut_nodes_on_marginal.end(), p,
                                     [](const std::pair<std::int32_t,
                                                        std::size_t>& a,
-                                       const std::pair<std::int32_t,
-                                                       std::size_t>& b) {
-                                        return a.first < b.first;
+                                       const std::int32_t s) {
+                                        return a.first < s;
                                     });
-                                for (auto i = r.first; i < r.second; ++i)
+                                while (itr < mut_nodes_on_marginal.end()
+                                       && itr->first == p)
                                     {
-                                        if (i->first == p)
-                                            {
-                                                mutmap.emplace_back(i->second,
-                                                                    s);
-                                                //        mutmap[i->second].push_back(s);
-                                            }
-                                    }
-                                if (r.first != mut_nodes_on_marginal.end())
-                                    {
-                                        b = r.second;
+                                        mutmap.emplace_back(itr->second, s);
+                                        ++itr;
+                                        ++b;
                                     }
                                 p = marginal.parents[p];
                             }
@@ -427,6 +412,26 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto m = neutral_genotypes(pop, samples, tables);
+                    //std::sort(
+                    //    m.begin(), m.end(),
+                    //    [&pop](const std::pair<std::size_t, std::int32_t>& a,
+                    //           const std::pair<std::size_t, std::int32_t>& b) {
+                    //        return pop.mutations[a.first].pos
+                    //               < pop.mutations[b.first].pos;
+                    //    });
+                    //auto mb = m.begin();
+                    //while (mb < m.end())
+                    //    {
+                    //        auto key = mb->first;
+                    //        unsigned c = 0;
+                    //        while (mb<m.end() && mb->first == key)
+                    //            {
+                    //                ++c;
+                    //                ++mb;
+                    //            }
+                    //        std::cout << c << ' ' <<pop.mcounts[key]<<'\n';
+                    //        assert(c == pop.mcounts[key]);
+                    //    }
                     //for (auto& mi : m)
                     //    {
                     //        assert(mi.second.size() == pop.mcounts[mi.first]);
