@@ -54,14 +54,16 @@ w(slocuspop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
-std::unordered_map<std::size_t, std::vector<std::int32_t>>
+//std::unordered_map<std::size_t, std::vector<std::int32_t>>
+std::vector<std::pair<std::size_t, std::int32_t>>
 neutral_genotypes(const slocuspop_t& pop,
                   const std::vector<std::int32_t>& samples,
                   const table_collection& tables)
 /// Requires the table be indexed
 {
     // Maps mutation keys to samples
-    std::unordered_map<std::size_t, std::vector<std::int32_t>> mutmap;
+    std::vector<std::pair<std::size_t, std::int32_t>> mutmap;
+    mutmap.reserve(pop.mutations.size());
     auto mtable_itr = tables.mutation_table.begin();
     auto mtable_end = tables.mutation_table.end();
     auto fill_map = [&pop, &samples, &mtable_itr, &mutmap,
@@ -106,7 +108,8 @@ neutral_genotypes(const slocuspop_t& pop,
                             {
                                 if (i->first == s)
                                     {
-                                        mutmap[i->second].push_back(s);
+                                        mutmap.emplace_back(i->second, s);
+                                        //mutmap[i->second].push_back(s);
                                     }
                             }
                         if (r.first != mut_nodes_on_marginal.end())
@@ -130,7 +133,9 @@ neutral_genotypes(const slocuspop_t& pop,
                                     {
                                         if (i->first == p)
                                             {
-                                                mutmap[i->second].push_back(s);
+                                                mutmap.emplace_back(i->second,
+                                                                    s);
+                                                //        mutmap[i->second].push_back(s);
                                             }
                                     }
                                 if (r.first != mut_nodes_on_marginal.end())
@@ -414,18 +419,18 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     std::vector<std::int32_t> nodes(2 * pop.diploids.size());
                     std::iota(nodes.begin(), nodes.end(), 0);
-                    //std::vector<std::int32_t> samples(2 * pop.diploids.size()
-                    //                                  / 10);
-                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
-                    
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size()
+                                                      / 10);
+                    //std::vector<std::int32_t> samples(2 * pop.diploids.size());
+                    //
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto m = neutral_genotypes(pop, samples, tables);
-                    for (auto& mi : m)
-                        {
-                            assert(mi.second.size() == pop.mcounts[mi.first]);
-                        }
+                    //for (auto& mi : m)
+                    //    {
+                    //        assert(mi.second.size() == pop.mcounts[mi.first]);
+                    //    }
                     //for (auto& mm : m)
                     //    {
                     //        std::cout << mm.first << " -> ";
