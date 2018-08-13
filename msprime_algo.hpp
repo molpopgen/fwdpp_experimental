@@ -47,6 +47,14 @@ namespace fwdpp
             }
         };
 
+        struct do_nothing
+        {
+        };
+
+        struct count_leaves
+        {
+        };
+
         using index_vector = std::vector<index_key>;
 
         struct marginal_tree
@@ -79,13 +87,60 @@ namespace fwdpp
             }
         };
 
-        template <typename visitor>
         void
-        algorithmT(const index_vector& input_left,
-                   const index_vector& output_right, const std::size_t nnodes,
-                   const double maxpos, visitor v)
+        outgoing_leaf_counts(marginal_tree&, const std::int32_t,
+                             const std::int32_t, const do_nothing)
+        // TODO: internal namespace
         {
-            marginal_tree marginal(nnodes);
+        }
+
+        inline void
+        incoming_leaf_counts(marginal_tree&, const std::int32_t,
+                             const std::int32_t, const do_nothing)
+        // TODO: internal namespace
+        {
+        }
+
+        inline void
+        outgoing_leaf_counts(marginal_tree& marginal,
+                             const std::int32_t parent,
+                             const std::int32_t child, const count_leaves)
+        // TODO: internal namespace
+        {
+            auto p = parent;
+            auto lc = marginal.leaf_counts[child];
+            while (p != -1)
+                {
+                    marginal.leaf_counts[p] -= lc;
+                    assert(marginal.leaf_counts[p] >= 0);
+                    p = marginal.parents[p];
+                }
+        }
+
+        inline void
+        incoming_leaf_counts(marginal_tree& marginal,
+                             const std::int32_t parent,
+                             const std::int32_t child, const count_leaves)
+        // TODO: internal namespace
+        {
+            auto p = parent;
+            auto lc = marginal.leaf_counts[child];
+            while (p != -1)
+                {
+                    marginal.leaf_counts[p] += lc;
+                    p = marginal.parents[p];
+                }
+        }
+
+        template <typename visitor, typename leaf_policy>
+        inline void
+        iterate_marginal_trees(const leaf_policy lp,
+                               const index_vector& input_left,
+                               const index_vector& output_right,
+                               const double maxpos, marginal_tree& marginal,
+                               visitor v)
+        // TODO: internal namespace
+        {
             auto j = input_left.begin(), jM = input_left.end(),
                  k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
@@ -95,6 +150,8 @@ namespace fwdpp
                     while (k < kM && k->pos == x) // T4
                         {
                             marginal.parents[k->child] = -1;
+                            outgoing_leaf_counts(marginal, k->parent, k->child,
+                                                 lp);
                             ++k;
                         }
                     while (j < jM && j->pos == x) // Step T2
@@ -102,6 +159,8 @@ namespace fwdpp
                             // The entry for the child refers to
                             // the parent's location in the node table.
                             marginal.parents[j->child] = j->parent;
+                            incoming_leaf_counts(marginal, j->parent, j->child,
+                                                 lp);
                             ++j;
                         }
                     double right = maxpos;
@@ -122,6 +181,16 @@ namespace fwdpp
                     x = right;
                 }
         }
+        template <typename visitor>
+        void
+        algorithmT(const std::vector<index_key>& input_left,
+                   const std::vector<index_key>& output_right,
+                   const std::int32_t nnodes, const double maxpos, visitor v)
+        {
+            marginal_tree marginal(nnodes);
+            iterate_marginal_trees(do_nothing(), input_left, output_right,
+                                   maxpos, marginal, v);
+        }
 
         template <typename visitor>
         void
@@ -130,61 +199,9 @@ namespace fwdpp
                    const std::vector<std::int32_t>& sample_indexes,
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
-            auto j = input_left.begin(), jM = input_left.end(),
-                 k = output_right.begin(), kM = output_right.end();
-            double x = 0.0;
             marginal_tree marginal(nnodes, sample_indexes);
-            while (j < jM || x < maxpos)
-                {
-                    // TODO: this asserts may be incorrect
-                    //assert(j < jM);
-                    assert(k < kM);
-                    while (k < kM && k->pos == x) // T4
-                        {
-                            marginal.parents[k->child] = -1;
-                            // Decrement leaf counts for outgoing nodes
-                            auto p = k->parent;
-                            auto lc = marginal.leaf_counts[k->child];
-                            while (p != -1)
-                                {
-                                    marginal.leaf_counts[p] -= lc;
-                                    assert(marginal.leaf_counts[p] >= 0);
-                                    p = marginal.parents[p];
-                                }
-                            ++k;
-                        }
-                    while (j < jM && j->pos == x) // Step T2
-                        {
-                            // The entry for the child refers to
-                            // the parent's location in the node table.
-                            marginal.parents[j->child] = j->parent;
-                            // Increment leaf counts for incoming nodes
-                            auto p = j->parent;
-                            auto lc = marginal.leaf_counts[j->child];
-                            while (p != -1)
-                                {
-                                    marginal.leaf_counts[p] += lc;
-                                    p = marginal.parents[p];
-                                }
-                            ++j;
-                        }
-                    double right = maxpos;
-                    if (j != jM)
-                        {
-                            right = std::min(right, j->pos);
-                        }
-                    if (k != kM)
-                        {
-                            right = std::min(right, k->pos);
-                        }
-                    marginal.left = x;
-                    marginal.right = right;
-                    //This "yields"
-                    //the data for this tree
-                    //to the visitor
-                    v(marginal);
-                    x = right;
-                }
+            iterate_marginal_trees(count_leaves(), input_left, output_right,
+                                   maxpos, marginal, v);
         }
     } // namespace ts
 } // namespace fwdpp
