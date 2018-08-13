@@ -194,10 +194,10 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
         decltype(new_mutations)(end_of_neutral, new_mutations.end()),
         breakpoints, parent_g1, parent_g2, pop.gametes, pop.mutations,
         gamete_recycling_bin, pop.neutral, pop.selected);
-    if (!new_mutations.empty() || !breakpoints.empty())
-        {
-            assert(offspring_gamete != parent_g1);
-        }
+    //if (!new_mutations.empty() || !breakpoints.empty())
+    //    {
+    //        assert(offspring_gamete != parent_g1);
+    //    }
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
                               parent_nodes, generation);
     return next_index + 1;
@@ -316,7 +316,14 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
 #ifndef NDEBUG
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
-    assert(pop.mcounts == mc);
+    //assert(pop.mcounts == mc);
+    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
+        {
+            if (!pop.mutations[i].neutral)
+                {
+                    assert(pop.mcounts[i] == mc[i]);
+                }
+        }
 #endif
     tables.mutation_table.erase(
         std::remove_if(
@@ -406,6 +413,10 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto m = neutral_genotypes(pop, samples, tables);
+                    //for (auto& mi : m)
+                    //    {
+                    //        assert(mi.second.size() == pop.mcounts[mi.first]);
+                    //    }
                     //for (auto& mm : m)
                     //    {
                     //        std::cout << mm.first << " -> ";
