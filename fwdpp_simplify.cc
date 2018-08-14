@@ -54,6 +54,15 @@ w(slocuspop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
+/* Idea for a faster implementation:
+ * We should probably simply iterate over
+ * all mutations in the mutation table
+ * and represent a variant as an array
+ * of int8_t. Then, iff any sample is
+ * nonzero in that array, that variant
+ * exists in the sample and gets
+ * added to a data_matrix-like thing
+ */
 std::vector<std::pair<std::size_t, std::int32_t>>
 neutral_genotypes(const slocuspop_t& pop,
                   const std::vector<std::int32_t>& samples,
