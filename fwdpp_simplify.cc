@@ -78,31 +78,13 @@ neutral_genotypes(const slocuspop_t& pop,
     mutmap.reserve(pop.mutations.size());
     auto mtable_itr = tables.mutation_table.begin();
     auto mtable_end = tables.mutation_table.end();
-    const auto is_desc
-        = [](const marginal_tree& marginal, const std::int32_t sample,
-             const std::int32_t node) {
-              if (sample == node)
-                  return true;
-              auto p = marginal.parents[sample];
-              while (p != -1 && p <= node)
-                  {
-                      if (p == node)
-                          {
-                              return true;
-                          }
-                      p = marginal.parents[p];
-                  }
-              return false;
-          };
-    auto fill_map = [&pop, &samples, &mtable_itr, &mutmap, mtable_end,
-                     is_desc](const marginal_tree& marginal) {
+    auto fill_map = [&pop, &mtable_itr, &mutmap,
+                     mtable_end](const marginal_tree& marginal) {
         while (mtable_itr < mtable_end
                && pop.mutations[mtable_itr->key].pos < marginal.left)
             {
                 ++mtable_itr;
             }
-        //std::vector<std::pair<std::int32_t, std::size_t>>
-        //    mut_nodes_on_marginal;
         while (mtable_itr < mtable_end
                && pop.mutations[mtable_itr->key].pos < marginal.right)
             {
@@ -110,66 +92,16 @@ neutral_genotypes(const slocuspop_t& pop,
                 assert(pop.mutations[mtable_itr->key].pos < marginal.right);
                 if (pop.mutations[mtable_itr->key].neutral == true)
                     {
-                        //mut_nodes_on_marginal.emplace_back(mtable_itr->node,
-                        //                                   mtable_itr->key);
-                        for (auto s : samples)
+                        for (auto desc :
+                             marginal.descendants[mtable_itr->node])
                             {
-                                if (is_desc(marginal, s, mtable_itr->node))
-                                    {
-                                        mutmap.emplace_back(mtable_itr->key,
-                                                            s);
-                                    }
+                                mutmap.emplace_back(mtable_itr->key, desc);
                             }
                     }
                 ++mtable_itr;
             }
-        //Only proceed if there are mutations on this tree
-        //if (!mut_nodes_on_marginal.empty())
-        //    {
-        //        std::sort(mut_nodes_on_marginal.begin(),
-        //                  mut_nodes_on_marginal.end(),
-        //                  [](const std::pair<std::int32_t, std::size_t>& a,
-        //                     const std::pair<std::int32_t, std::size_t>& b) {
-        //                      return a.first < b.first;
-        //                  });
-
-        //        for (auto& s : samples)
-        //            {
-        //                auto b = mut_nodes_on_marginal.begin();
-        //                auto itr = std::lower_bound(
-        //                    b, mut_nodes_on_marginal.end(), s,
-        //                    [](const std::pair<std::int32_t, std::size_t>& a,
-        //                       const std::int32_t s) { return a.first < s; });
-        //                while (itr < mut_nodes_on_marginal.end()
-        //                       && itr->first == s)
-        //                    {
-        //                        mutmap.emplace_back(itr->second, s);
-        //                        ++itr;
-        //                        ++b;
-        //                    }
-        //                auto p = marginal.parents[s];
-        //                while (p != -1 && b < mut_nodes_on_marginal.end())
-        //                    {
-        //                        itr = std::lower_bound(
-        //                            b, mut_nodes_on_marginal.end(), p,
-        //                            [](const std::pair<std::int32_t,
-        //                                               std::size_t>& a,
-        //                               const std::int32_t s) {
-        //                                return a.first < s;
-        //                            });
-        //                        while (itr < mut_nodes_on_marginal.end()
-        //                               && itr->first == p)
-        //                            {
-        //                                mutmap.emplace_back(itr->second, s);
-        //                                ++itr;
-        //                                ++b;
-        //                            }
-        //                        p = marginal.parents[p];
-        //                    }
-        //            }
-        //    }
     };
-    algorithmT(tables.input_left, tables.output_right,
+    algorithmS(tables.input_left, tables.output_right, samples,
                tables.node_table.size(), tables.L, fill_map);
     return mutmap;
 }
@@ -441,10 +373,10 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     std::vector<std::int32_t> nodes(2 * pop.diploids.size());
                     std::iota(nodes.begin(), nodes.end(), 0);
-                    std::vector<std::int32_t> samples(2 * pop.diploids.size()
-                                                      / 10);
-                    //std::vector<std::int32_t> samples(2 * pop.diploids.size());
-                    //
+                    //std::vector<std::int32_t> samples(2 * pop.diploids.size()
+                    //                                  / 10);
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
@@ -461,13 +393,16 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     //    {
                     //        auto key = mb->first;
                     //        unsigned c = 0;
-                    //        while (mb<m.end() && mb->first == key)
+                    //        while (mb < m.end() && mb->first == key)
                     //            {
                     //                ++c;
                     //                ++mb;
                     //            }
-                    //        std::cout << c << ' ' <<pop.mcounts[key]<<'\n';
-                    //        assert(c == pop.mcounts[key]);
+                    //        //std::cout << c << ' ' <<pop.mcounts[key]<<'\n';
+                    //        if (c != pop.mcounts[key])
+                    //            {
+                    //                throw std::runtime_error("count failure");
+                    //            }
                     //    }
                     //for (auto& mi : m)
                     //    {
