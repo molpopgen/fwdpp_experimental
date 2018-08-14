@@ -62,6 +62,10 @@ w(slocuspop_t& pop, const fitness_function& ff)
  * nonzero in that array, that variant
  * exists in the sample and gets
  * added to a data_matrix-like thing
+ *
+ * Another alternative is to not rely 
+ * on the msprime algorithms so heavily,
+ * and mannually iterate trees as needed.
  */
 std::vector<std::pair<std::size_t, std::int32_t>>
 neutral_genotypes(const slocuspop_t& pop,
