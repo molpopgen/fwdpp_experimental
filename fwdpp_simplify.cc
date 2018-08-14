@@ -78,15 +78,31 @@ neutral_genotypes(const slocuspop_t& pop,
     mutmap.reserve(pop.mutations.size());
     auto mtable_itr = tables.mutation_table.begin();
     auto mtable_end = tables.mutation_table.end();
-    auto fill_map = [&pop, &samples, &mtable_itr, &mutmap,
-                     mtable_end](const marginal_tree& marginal) {
+    const auto is_desc
+        = [](const marginal_tree& marginal, const std::int32_t sample,
+             const std::int32_t node) {
+              if (sample == node)
+                  return true;
+              auto p = marginal.parents[sample];
+              while (p != -1 && p <= node)
+                  {
+                      if (p == node)
+                          {
+                              return true;
+                          }
+                      p = marginal.parents[p];
+                  }
+              return false;
+          };
+    auto fill_map = [&pop, &samples, &mtable_itr, &mutmap, mtable_end,
+                     is_desc](const marginal_tree& marginal) {
         while (mtable_itr < mtable_end
                && pop.mutations[mtable_itr->key].pos < marginal.left)
             {
                 ++mtable_itr;
             }
-        std::vector<std::pair<std::int32_t, std::size_t>>
-            mut_nodes_on_marginal;
+        //std::vector<std::pair<std::int32_t, std::size_t>>
+        //    mut_nodes_on_marginal;
         while (mtable_itr < mtable_end
                && pop.mutations[mtable_itr->key].pos < marginal.right)
             {
@@ -94,56 +110,64 @@ neutral_genotypes(const slocuspop_t& pop,
                 assert(pop.mutations[mtable_itr->key].pos < marginal.right);
                 if (pop.mutations[mtable_itr->key].neutral == true)
                     {
-                        mut_nodes_on_marginal.emplace_back(mtable_itr->node,
-                                                           mtable_itr->key);
+                        //mut_nodes_on_marginal.emplace_back(mtable_itr->node,
+                        //                                   mtable_itr->key);
+                        for (auto s : samples)
+                            {
+                                if (is_desc(marginal, s, mtable_itr->node))
+                                    {
+                                        mutmap.emplace_back(mtable_itr->key,
+                                                            s);
+                                    }
+                            }
                     }
                 ++mtable_itr;
             }
         //Only proceed if there are mutations on this tree
-        if (!mut_nodes_on_marginal.empty())
-            {
-                std::sort(mut_nodes_on_marginal.begin(),
-                          mut_nodes_on_marginal.end(),
-                          [](const std::pair<std::int32_t, std::size_t>& a,
-                             const std::pair<std::int32_t, std::size_t>& b) {
-                              return a.first < b.first;
-                          });
+        //if (!mut_nodes_on_marginal.empty())
+        //    {
+        //        std::sort(mut_nodes_on_marginal.begin(),
+        //                  mut_nodes_on_marginal.end(),
+        //                  [](const std::pair<std::int32_t, std::size_t>& a,
+        //                     const std::pair<std::int32_t, std::size_t>& b) {
+        //                      return a.first < b.first;
+        //                  });
 
-                for (auto& s : samples)
-                    {
-                        auto b = mut_nodes_on_marginal.begin();
-                        auto itr = std::lower_bound(
-                            b, mut_nodes_on_marginal.end(), s,
-                            [](const std::pair<std::int32_t, std::size_t>& a,
-                               const std::int32_t s) { return a.first < s; });
-                        while (itr < mut_nodes_on_marginal.end()
-                               && itr->first == s)
-                            {
-                                mutmap.emplace_back(itr->second, s);
-                                ++itr;
-                                ++b;
-                            }
-                        auto p = marginal.parents[s];
-                        while (p != -1 && b < mut_nodes_on_marginal.end())
-                            {
-                                itr = std::lower_bound(
-                                    b, mut_nodes_on_marginal.end(), p,
-                                    [](const std::pair<std::int32_t,
-                                                       std::size_t>& a,
-                                       const std::int32_t s) {
-                                        return a.first < s;
-                                    });
-                                while (itr < mut_nodes_on_marginal.end()
-                                       && itr->first == p)
-                                    {
-                                        mutmap.emplace_back(itr->second, s);
-                                        ++itr;
-                                        ++b;
-                                    }
-                                p = marginal.parents[p];
-                            }
-                    }
-            }
+        //        for (auto& s : samples)
+        //            {
+        //                auto b = mut_nodes_on_marginal.begin();
+        //                auto itr = std::lower_bound(
+        //                    b, mut_nodes_on_marginal.end(), s,
+        //                    [](const std::pair<std::int32_t, std::size_t>& a,
+        //                       const std::int32_t s) { return a.first < s; });
+        //                while (itr < mut_nodes_on_marginal.end()
+        //                       && itr->first == s)
+        //                    {
+        //                        mutmap.emplace_back(itr->second, s);
+        //                        ++itr;
+        //                        ++b;
+        //                    }
+        //                auto p = marginal.parents[s];
+        //                while (p != -1 && b < mut_nodes_on_marginal.end())
+        //                    {
+        //                        itr = std::lower_bound(
+        //                            b, mut_nodes_on_marginal.end(), p,
+        //                            [](const std::pair<std::int32_t,
+        //                                               std::size_t>& a,
+        //                               const std::int32_t s) {
+        //                                return a.first < s;
+        //                            });
+        //                        while (itr < mut_nodes_on_marginal.end()
+        //                               && itr->first == p)
+        //                            {
+        //                                mutmap.emplace_back(itr->second, s);
+        //                                ++itr;
+        //                                ++b;
+        //                            }
+        //                        p = marginal.parents[p];
+        //                    }
+        //            }
+        //    }
     };
     algorithmT(tables.input_left, tables.output_right,
                tables.node_table.size(), tables.L, fill_map);
