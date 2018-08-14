@@ -55,18 +55,24 @@ namespace fwdpp
         {
         };
 
+        struct track_descendants
+        {
+        };
+
         using index_vector = std::vector<index_key>;
 
         struct marginal_tree
         {
             //TODO separate leaf_counts from this type,
             //and require the visitor to take a const &
-            //as an arg.
-            std::vector<std::int32_t> parents, leaf_counts;
+            //as an arg>
+            std::vector<std::int32_t> parents, leaf_counts, temp;
+            std::vector<std::vector<std::int32_t>> descendants;
             double left, right;
             marginal_tree(std::int32_t nnodes,
                           const std::vector<std::int32_t>& samples)
-                : parents(nnodes, -1), leaf_counts(nnodes, 0),
+                : parents(nnodes, -1), leaf_counts(nnodes, 0), temp(),
+                  descendants(nnodes),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
                   }
@@ -82,7 +88,8 @@ namespace fwdpp
                     }
             }
             marginal_tree(std::int32_t nnodes)
-                : parents(nnodes, -1), leaf_counts{},
+                : parents(nnodes, -1), leaf_counts{}, temp{},
+                  descendants(nnodes),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
                   }
@@ -131,6 +138,54 @@ namespace fwdpp
             while (p != -1)
                 {
                     marginal.leaf_counts[p] += lc;
+                    p = marginal.parents[p];
+                }
+        }
+
+        inline void
+        outgoing_leaf_counts(marginal_tree& marginal,
+                             const std::int32_t parent,
+                             const std::int32_t child, const track_descendants)
+        // TODO: internal namespace
+        {
+            auto p = parent;
+            assert(std::is_sorted(marginal.descendants[child].begin(),
+                                  marginal.descendants[child].end()));
+            while (p != -1)
+                {
+                    assert(std::is_sorted(marginal.descendants[p].begin(),
+                                          marginal.descendants[p].end()));
+                    marginal.temp.clear();
+                    std::set_difference(marginal.descendants[p].begin(),
+                                        marginal.descendants[p].end(),
+                                        marginal.descendants[child].begin(),
+                                        marginal.descendants[child].end(),
+                                        std::back_inserter(marginal.temp));
+                    marginal.temp.swap(marginal.descendants[p]);
+                    marginal.temp.clear();
+                    p = marginal.parents[p];
+                }
+        }
+
+        inline void
+        incoming_leaf_counts(marginal_tree& marginal,
+                             const std::int32_t parent,
+                             const std::int32_t child, const track_descendants)
+        // TODO: internal namespace
+        {
+            auto p = parent;
+            //auto lc = marginal.leaf_counts[child];
+            marginal.temp.clear();
+            while (p != -1)
+                {
+                    //marginal.leaf_counts[p] += lc;
+                    std::set_union(marginal.descendants[p].begin(),
+                                   marginal.descendants[p].end(),
+                                   marginal.descendants[child].begin(),
+                                   marginal.descendants[child].end(),
+                                   std::back_inserter(marginal.temp));
+                    marginal.temp.swap(marginal.descendants[p]);
+                    marginal.temp.clear();
                     p = marginal.parents[p];
                 }
         }
@@ -205,6 +260,22 @@ namespace fwdpp
             marginal_tree marginal(nnodes, sample_indexes);
             iterate_marginal_trees(count_leaves(), input_left, output_right,
                                    maxpos, marginal, v);
+        }
+
+        template <typename visitor>
+        void
+        algorithmS(const std::vector<index_key>& input_left,
+                   const std::vector<index_key>& output_right,
+                   const std::vector<std::int32_t>& sample_indexes,
+                   const std::int32_t nnodes, const double maxpos, visitor v)
+        {
+            marginal_tree marginal(nnodes);
+            for (auto s : sample_indexes)
+                {
+                    marginal.descendants[s].push_back(s);
+                }
+            iterate_marginal_trees(track_descendants(), input_left,
+                                   output_right, maxpos, marginal, v);
         }
     } // namespace ts
 } // namespace fwdpp
