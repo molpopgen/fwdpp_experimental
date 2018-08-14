@@ -59,6 +59,9 @@ namespace fwdpp
 
         struct marginal_tree
         {
+            //TODO separate leaf_counts from this type,
+            //and require the visitor to take a const &
+            //as an arg.
             std::vector<std::int32_t> parents, leaf_counts;
             double left, right;
             marginal_tree(std::int32_t nnodes,
