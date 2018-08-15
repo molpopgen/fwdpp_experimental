@@ -108,10 +108,10 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
         decltype(new_mutations)(end_of_neutral, new_mutations.end()),
         breakpoints, parent_g1, parent_g2, pop.gametes, pop.mutations,
         gamete_recycling_bin, pop.neutral, pop.selected);
-    if (!new_mutations.empty() || !breakpoints.empty())
-        {
-            assert(offspring_gamete != parent_g1);
-        }
+    //if (!new_mutations.empty() || !breakpoints.empty())
+    //    {
+    //        assert(offspring_gamete != parent_g1);
+    //    }
     tables.add_offspring_data(next_index, breakpoints, new_mutations,
                               parent_nodes, generation);
     return next_index + 1;
@@ -234,7 +234,13 @@ apply_simplifier(slocuspop_t& pop, table_collection& tables,
 #ifndef NDEBUG
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
-    assert(pop.mcounts == mc);
+    for (std::size_t i = 0; i < mc.size(); ++i)
+        {
+            if (!pop.mutations[i].neutral)
+                {
+                    assert(mc[i] == pop.mcounts[i]);
+                }
+        }
 #endif
     tables.mutation_table.erase(
         std::remove_if(
