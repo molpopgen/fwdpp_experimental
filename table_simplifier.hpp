@@ -105,12 +105,6 @@ namespace fwdpp
                         // minimal
                         // overlap to our queue.
                         // This is Step S3.
-                        // TODO: the data here are sorted in ascending
-                        // order by left, meaning we can process these
-                        // data using binary searches if we had an
-                        // interval
-                        // tree data structure instead of a straight
-                        // vector.
                         for (auto& seg : Ancestry[edge_ptr->child])
                             {
                                 if (seg.right > edge_ptr->left
@@ -136,6 +130,7 @@ namespace fwdpp
                             const std::int32_t parent_input_id,
                             std::vector<std::int32_t>& idmap)
             // TODO: will have to be made aware of sample labels.
+            // in order to handle ancient samples.
             {
                 std::int32_t anode, znode = -1;
                 double aleft, aright, zright = 0;

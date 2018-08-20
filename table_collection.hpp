@@ -44,6 +44,11 @@ namespace fwdpp
                         this->push_back_edge(0., breakpoints.front(),
                                              std::get<0>(parents), next_index);
                     }
+                // TODO: decide how to handle identical positions.
+                // If a breakpoint is repeated 2x, if has no effect
+                // on the genealogy, as it is a double x-over.  But,
+                // if there are an odd number, then it does have an effect.
+                // The iteration here needs to be updated to handle this.
                 for (unsigned j = 1; j < breakpoints.size(); ++j)
                     {
                         double a = breakpoints[j - 1];
@@ -77,7 +82,6 @@ namespace fwdpp
             // tables.edge_table after last simplification.
             // It can be used to make sure we only sort
             // newly-added nodes.
-            // TODO: move to table_collection
             std::ptrdiff_t edge_offset;
             const double L;
             table_collection(const double maxpos)
@@ -89,7 +93,6 @@ namespace fwdpp
                         throw std::invalid_argument(
                             "maxpos must be > 0 and finite");
                     }
-                //TODO assert maxpos is > 0 and finite
             }
 
             table_collection(const std::int32_t num_initial_nodes,
@@ -103,7 +106,6 @@ namespace fwdpp
                         throw std::invalid_argument(
                             "maxpos must be > 0 and finite");
                     }
-                //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
                         node_table.push_back(node{ pop, initial_time });

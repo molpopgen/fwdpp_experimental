@@ -156,6 +156,7 @@ namespace fwdpp
                              const std::int32_t parent,
                              const std::int32_t child, const track_descendants)
         // TODO: internal namespace
+        // TODO: make this a standalone function rather than an updating policy
         {
             for (auto n = parent; n != -1; n = marginal.parents[n])
                 {
@@ -211,6 +212,9 @@ namespace fwdpp
                                const double maxpos, marginal_tree& marginal,
                                visitor v)
         // TODO: internal namespace
+        // TODO: separate this out from the various policies a bit better. For example,
+        // the way that samples are tracked here is a bit silly, as the
+        // incoming_leaf_counts calls outgoing_leaf_counts for that policy.
         {
             auto j = input_left.begin(), jM = input_left.end(),
                  k = output_right.begin(), kM = output_right.end();
