@@ -404,29 +404,29 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto m = neutral_genotypes(pop, samples, tables);
-                    std::sort(
-                        m.begin(), m.end(),
-                        [&pop](const std::pair<std::size_t, std::int32_t>& a,
-                               const std::pair<std::size_t, std::int32_t>& b) {
-                            return pop.mutations[a.first].pos
-                                   < pop.mutations[b.first].pos;
-                        });
-                    auto mb = m.begin();
-                    while (mb < m.end())
-                        {
-                            auto key = mb->first;
-                            unsigned c = 0;
-                            while (mb < m.end() && mb->first == key)
-                                {
-                                    ++c;
-                                    ++mb;
-                                }
-                            //std::cout << c << ' ' << pop.mcounts[key] << '\n';
-                            if (c != pop.mcounts[key])
-                                {
-                                    throw std::runtime_error("count failure");
-                                }
-                        }
+                    //std::sort(
+                    //    m.begin(), m.end(),
+                    //    [&pop](const std::pair<std::size_t, std::int32_t>& a,
+                    //           const std::pair<std::size_t, std::int32_t>& b) {
+                    //        return pop.mutations[a.first].pos
+                    //               < pop.mutations[b.first].pos;
+                    //    });
+                    //auto mb = m.begin();
+                    //while (mb < m.end())
+                    //    {
+                    //        auto key = mb->first;
+                    //        unsigned c = 0;
+                    //        while (mb < m.end() && mb->first == key)
+                    //            {
+                    //                ++c;
+                    //                ++mb;
+                    //            }
+                    //        //std::cout << c << ' ' << pop.mcounts[key] << '\n';
+                    //        if (c != pop.mcounts[key])
+                    //            {
+                    //                throw std::runtime_error("count failure");
+                    //            }
+                    //    }
                     //for (auto& mi : m)
                     //    {
                     //        assert(mi.second.size() == pop.mcounts[mi.first]);

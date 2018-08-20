@@ -68,8 +68,7 @@ namespace fwdpp
             //as an arg>
             std::vector<std::int32_t> parents, leaf_counts, left_sib,
                 right_sib, left_child, right_child, left_sample, right_sample,
-                next_sample, is_sample, temp;
-            std::vector<std::vector<std::int32_t>> descendants;
+                next_sample, is_sample;
             double left, right;
             marginal_tree(std::int32_t nnodes,
                           const std::vector<std::int32_t>& samples)
@@ -77,8 +76,7 @@ namespace fwdpp
                   left_sib(nnodes, -1), right_sib(nnodes, -1),
                   left_child(nnodes, -1), right_child(nnodes, -1),
                   left_sample(nnodes, -1), right_sample(nnodes, -1),
-                  next_sample(nnodes, -1), is_sample(nnodes, 0), temp(),
-                  descendants(nnodes),
+                  next_sample(nnodes, -1), is_sample(nnodes, 0),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
                   }
@@ -100,7 +98,7 @@ namespace fwdpp
                   right_sib(nnodes, -1), left_child(nnodes, -1),
                   right_child(nnodes, -1), left_sample(nnodes, -1),
                   right_sample(nnodes, -1), next_sample(nnodes, -1),
-                  is_sample(nnodes, 0), temp{}, descendants(nnodes),
+                  is_sample(nnodes, 0),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
                   }
@@ -274,23 +272,23 @@ namespace fwdpp
                                                  lp);
                             ++j;
                         }
-//#ifndef NDEBUG
-//                    for (std::size_t i = 0; i < marginal.left_sib.size(); ++i)
-//                        {
-//                            if (marginal.left_sib[i] != -1)
-//                                {
-//                                    auto pi = marginal.parents[i];
-//                                    auto rs
-//                                        = marginal
-//                                              .right_sib[marginal.left_sib[i]];
-//                                    auto pj
-//                                        = marginal
-//                                              .parents[marginal.left_sib[i]];
-//                                    assert(pi == pj);
-//                                    assert(rs == i);
-//                                }
-//                        }
-//#endif
+                    //#ifndef NDEBUG
+                    //                    for (std::size_t i = 0; i < marginal.left_sib.size(); ++i)
+                    //                        {
+                    //                            if (marginal.left_sib[i] != -1)
+                    //                                {
+                    //                                    auto pi = marginal.parents[i];
+                    //                                    auto rs
+                    //                                        = marginal
+                    //                                              .right_sib[marginal.left_sib[i]];
+                    //                                    auto pj
+                    //                                        = marginal
+                    //                                              .parents[marginal.left_sib[i]];
+                    //                                    assert(pi == pj);
+                    //                                    assert(rs == i);
+                    //                                }
+                    //                        }
+                    //#endif
 
                     double right = maxpos;
                     if (j < jM)
@@ -341,10 +339,6 @@ namespace fwdpp
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
             marginal_tree marginal(nnodes, sample_indexes);
-            for (auto s : sample_indexes)
-                {
-                    marginal.descendants[s].push_back(s);
-                }
             iterate_marginal_trees(track_descendants(), input_left,
                                    output_right, maxpos, marginal, v);
         }
