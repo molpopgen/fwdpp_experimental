@@ -1,5 +1,5 @@
-#ifndef FWDPP_MSPRIME_ALGO_HPP__
-#define FWDPP_MSPRIME_ALGO_HPP__
+#ifndef FWDPP_MSPRIME_ALGO_HPP
+#define FWDPP_MSPRIME_ALGO_HPP
 
 /// Implements Algorithms T and L from
 /// Kelleher et al., 2016, aka "the msprime

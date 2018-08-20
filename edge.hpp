@@ -1,8 +1,8 @@
 //Copied from fwdpy11_arg_example.
 //Author: KRT
 //License: GPL3+
-#ifndef FWDPP_ANCESTRY_EDGE_HPP__
-#define FWDPP_ANCESTRY_EDGE_HPP__
+#ifndef FWDPP_ANCESTRY_EDGE_HPP
+#define FWDPP_ANCESTRY_EDGE_HPP
 
 #include <cstdint>
 
