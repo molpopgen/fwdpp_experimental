@@ -13,7 +13,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "mutation_record.hpp"
-#include "msprime_algo.hpp" //TODO: create fewer header dependencies
+#include "indexed_edge.hpp" //TODO: create fewer header dependencies
 
 namespace fwdpp
 {
@@ -77,7 +77,7 @@ namespace fwdpp
             node_vector node_table;
             edge_vector edge_table;
             mutation_key_vector mutation_table;
-            index_vector input_left, output_right;
+            indexed_edge_container input_left, output_right;
             // This reflects the length of
             // tables.edge_table after last simplification.
             // It can be used to make sure we only sort

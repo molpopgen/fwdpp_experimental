@@ -21,32 +21,12 @@
 #include <cstdint>
 #include <tuple>
 #include <limits>
-#include "table_collection.hpp"
+#include "indexed_edge.hpp"
 
 namespace fwdpp
 {
     namespace ts
     {
-        struct index_key
-        {
-            double pos, time;
-            std::int32_t parent, child;
-            explicit index_key(double pos_, double t, std::int32_t p,
-                               std::int32_t c)
-                : pos{ pos_ }, time{ t }, parent{ p }, child{ c }
-            {
-            }
-            inline bool
-            operator<(const index_key& rhs) const
-            {
-                if (pos == rhs.pos)
-                    {
-                        return time < rhs.time;
-                    }
-                return pos < rhs.pos;
-            }
-        };
-
         struct do_nothing
         {
         };
@@ -58,8 +38,6 @@ namespace fwdpp
         struct track_descendants
         {
         };
-
-        using index_vector = std::vector<index_key>;
 
         struct marginal_tree
         {
@@ -207,8 +185,8 @@ namespace fwdpp
         template <typename visitor, typename leaf_policy>
         inline void
         iterate_marginal_trees(const leaf_policy lp,
-                               const index_vector& input_left,
-                               const index_vector& output_right,
+                               const indexed_edge_container& input_left,
+                               const indexed_edge_container& output_right,
                                const double maxpos, marginal_tree& marginal,
                                visitor v)
         // TODO: internal namespace
@@ -314,8 +292,8 @@ namespace fwdpp
         }
         template <typename visitor>
         void
-        algorithmT(const std::vector<index_key>& input_left,
-                   const std::vector<index_key>& output_right,
+        algorithmT(const indexed_edge_container& input_left,
+                   const indexed_edge_container& output_right,
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
             marginal_tree marginal(nnodes);
@@ -325,8 +303,8 @@ namespace fwdpp
 
         template <typename visitor>
         void
-        algorithmL(const std::vector<index_key>& input_left,
-                   const std::vector<index_key>& output_right,
+        algorithmL(const indexed_edge_container& input_left,
+                   const indexed_edge_container& output_right,
                    const std::vector<std::int32_t>& sample_indexes,
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
@@ -337,8 +315,8 @@ namespace fwdpp
 
         template <typename visitor>
         void
-        algorithmS(const std::vector<index_key>& input_left,
-                   const std::vector<index_key>& output_right,
+        algorithmS(const indexed_edge_container& input_left,
+                   const indexed_edge_container& output_right,
                    const std::vector<std::int32_t>& sample_indexes,
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
