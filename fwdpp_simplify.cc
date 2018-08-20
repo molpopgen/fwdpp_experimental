@@ -92,11 +92,34 @@ neutral_genotypes(const slocuspop_t& pop,
                 assert(pop.mutations[mtable_itr->key].pos < marginal.right);
                 if (pop.mutations[mtable_itr->key].neutral == true)
                     {
-                        for (auto desc :
-                             marginal.descendants[mtable_itr->node])
+                        //std::cout
+                        //    << marginal.left_sample[mtable_itr->node] << ' '
+                        //    << marginal.right_sample[mtable_itr->node] << ": ";
+                        if (marginal.left_sample[mtable_itr->node]
+                            == marginal.right_sample[mtable_itr->node])
                             {
-                                mutmap.emplace_back(mtable_itr->key, desc);
+                                mutmap.emplace_back(
+                                    mtable_itr->key,
+                                    marginal.left_sample[mtable_itr->node]);
                             }
+                        else
+                            {
+                                for (
+                                    auto i
+                                    = marginal.left_sample[mtable_itr->node];
+                                    i
+                                    != -1;
+                                    i = marginal.next_sample[i])
+                                    {
+                                        //std::cout << i << ", "
+                                        //          << marginal.next_sample[i]
+                                        //          << "| ";
+                                        mutmap.emplace_back(mtable_itr->key,
+                                                            i);
+                                        if(i == marginal.right_sample[mtable_itr->node]){break;}
+                                    }
+                            }
+                        //std::cout << '\n';
                     }
                 ++mtable_itr;
             }
@@ -381,29 +404,29 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto m = neutral_genotypes(pop, samples, tables);
-                    //std::sort(
-                    //    m.begin(), m.end(),
-                    //    [&pop](const std::pair<std::size_t, std::int32_t>& a,
-                    //           const std::pair<std::size_t, std::int32_t>& b) {
-                    //        return pop.mutations[a.first].pos
-                    //               < pop.mutations[b.first].pos;
-                    //    });
-                    //auto mb = m.begin();
-                    //while (mb < m.end())
-                    //    {
-                    //        auto key = mb->first;
-                    //        unsigned c = 0;
-                    //        while (mb < m.end() && mb->first == key)
-                    //            {
-                    //                ++c;
-                    //                ++mb;
-                    //            }
-                    //        //std::cout << c << ' ' <<pop.mcounts[key]<<'\n';
-                    //        if (c != pop.mcounts[key])
-                    //            {
-                    //                throw std::runtime_error("count failure");
-                    //            }
-                    //    }
+                    std::sort(
+                        m.begin(), m.end(),
+                        [&pop](const std::pair<std::size_t, std::int32_t>& a,
+                               const std::pair<std::size_t, std::int32_t>& b) {
+                            return pop.mutations[a.first].pos
+                                   < pop.mutations[b.first].pos;
+                        });
+                    auto mb = m.begin();
+                    while (mb < m.end())
+                        {
+                            auto key = mb->first;
+                            unsigned c = 0;
+                            while (mb < m.end() && mb->first == key)
+                                {
+                                    ++c;
+                                    ++mb;
+                                }
+                            //std::cout << c << ' ' << pop.mcounts[key] << '\n';
+                            if (c != pop.mcounts[key])
+                                {
+                                    throw std::runtime_error("count failure");
+                                }
+                        }
                     //for (auto& mi : m)
                     //    {
                     //        assert(mi.second.size() == pop.mcounts[mi.first]);
