@@ -54,6 +54,7 @@ namespace fwdpp
             operator()(const marginal_tree& marginal, const std::int32_t node)
             /// Returns true if node leads to any samples, false otherwise
             {
+                //TODO need to compare this to an algorithmS-based version
                 if (node < 0
                     || static_cast<std::size_t>(node) >= sample_indexes.size())
                     {
