@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <queue>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_matrix_char.h>
 #include <fwdpp/forward_types.hpp>
 #include <fwdpp/fitness_models.hpp>
 #include <fwdpp/poisson_xover.hpp>
@@ -105,7 +106,8 @@ neutral_genotypes(const slocuspop_t& pop,
                         //    }
                         //else
                         //    {
-                        const auto right = marginal.right_sample[mtable_itr->node];
+                        const auto right
+                            = marginal.right_sample[mtable_itr->node];
                         for (auto i = marginal.left_sample[mtable_itr->node];
                              i != -1; i = marginal.next_sample[i])
                             {
@@ -396,24 +398,25 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     std::vector<std::int32_t> nodes(2 * pop.diploids.size());
                     std::iota(nodes.begin(), nodes.end(), 0);
-                    //std::vector<std::int32_t> samples(2 * pop.diploids.size()
-                    //                                  / 10);
-                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
-
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size()
+                                                      / 10);
+                    //std::vector<std::int32_t> samples(2 * pop.diploids.size());
+                    //
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
-                    auto x = fwdpp::ts::create_data_matrix(pop.mutations,tables,samples);
                     auto m = neutral_genotypes(pop, samples, tables);
+                    std::map<double, unsigned> counts;
                     std::sort(
                         m.begin(), m.end(),
+
                         [&pop](const std::pair<std::size_t, std::int32_t>& a,
                                const std::pair<std::size_t, std::int32_t>& b) {
                             return pop.mutations[a.first].pos
                                    < pop.mutations[b.first].pos;
                         });
                     auto mb = m.begin();
-                    unsigned nmuts=0;
+                    unsigned nmuts = 0;
                     while (mb < m.end())
                         {
                             auto key = mb->first;
@@ -427,7 +430,52 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                             //std::cout << c << ' ' << pop.mcounts[key] << '\n';
                             if (c != pop.mcounts[key])
                                 {
-                                    throw std::runtime_error("count failure");
+                                    //throw std::runtime_error("count failure");
+                                }
+                            counts[pop.mutations[key].pos] = c;
+                        }
+
+                    auto x = fwdpp::ts::create_data_matrix(pop.mutations,
+                                                           tables, samples);
+                    assert(std::is_sorted(x.second.begin(),x.second.end()));
+                    auto nrow = x.second.size();
+                    auto ncol = x.first.size() / nrow;
+                    assert(ncol == samples.size());
+                    for (std::size_t i = 0; i < nrow; ++i)
+                        {
+                            unsigned nd = 0;
+                            for (std::size_t j = i*ncol; j < i*ncol + ncol; ++j)
+                                {
+                                    if (x.first[j] == 1)
+                                        {
+                                            ++nd;
+                                        }
+                                }
+                            auto pos = x.second[i];
+                            for (std::size_t j = 0; j < pop.mcounts.size();
+                                 ++j)
+                                {
+                                    if (pop.mcounts[j] > 0
+                                        && pop.mutations[j].pos == pos)
+                                        {
+                                            //if (pop.mcounts[j] != nd)
+                                            if(nd != counts[pos])
+                                                {
+                                                    std::cout
+                                                        << generation << ' '
+                                                        << i << ' '
+                                                        << x.first.size()
+                                                        << ' ' << x.second.size() << ' '
+                                                        << ' ' << pos << ' '
+                                                        << nd << ' '
+                                                        << pop.mcounts[j]
+                                                        << ' ' << counts[pos]
+                                                        << std::endl;
+                                                    throw std::runtime_error(
+                                                        "bad counts from "
+                                                        "matrix");
+                                                }
+                                        }
                                 }
                         }
                     //std::cout << x.second.size() << ' ' << nmuts << '\n';
