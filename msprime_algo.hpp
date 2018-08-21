@@ -27,18 +27,6 @@ namespace fwdpp
 {
     namespace ts
     {
-        struct do_nothing
-        {
-        };
-
-        struct count_leaves
-        {
-        };
-
-        struct track_descendants
-        {
-        };
-
         struct marginal_tree
         {
             //TODO separate leaf_counts from this type,
@@ -86,14 +74,14 @@ namespace fwdpp
 
         void
         outgoing_leaf_counts(marginal_tree&, const std::int32_t,
-                             const std::int32_t, const do_nothing)
+                             const std::int32_t, const std::false_type)
         // TODO: internal namespace
         {
         }
 
         inline void
         incoming_leaf_counts(marginal_tree&, const std::int32_t,
-                             const std::int32_t, const do_nothing)
+                             const std::int32_t, const std::false_type)
         // TODO: internal namespace
         {
         }
@@ -101,7 +89,7 @@ namespace fwdpp
         inline void
         outgoing_leaf_counts(marginal_tree& marginal,
                              const std::int32_t parent,
-                             const std::int32_t child, const count_leaves)
+                             const std::int32_t child, const std::true_type)
         // TODO: internal namespace
         {
             auto p = parent;
@@ -117,7 +105,7 @@ namespace fwdpp
         inline void
         incoming_leaf_counts(marginal_tree& marginal,
                              const std::int32_t parent,
-                             const std::int32_t child, const count_leaves)
+                             const std::int32_t child, const std::true_type)
         // TODO: internal namespace
         {
             auto p = parent;
@@ -130,9 +118,8 @@ namespace fwdpp
         }
 
         inline void
-        outgoing_leaf_counts(marginal_tree& marginal,
-                             const std::int32_t parent,
-                             const std::int32_t child, const track_descendants)
+        update_sample_list(marginal_tree& marginal, const std::int32_t parent,
+                           const std::true_type)
         // TODO: internal namespace
         // TODO: make this a standalone function rather than an updating policy
         {
@@ -174,30 +161,26 @@ namespace fwdpp
         }
 
         inline void
-        incoming_leaf_counts(marginal_tree& marginal,
-                             const std::int32_t parent,
-                             const std::int32_t child, const track_descendants)
+        update_sample_list(marginal_tree&, const std::int32_t,
+                           const std::false_type)
         // TODO: internal namespace
         {
-            outgoing_leaf_counts(marginal, parent, child, track_descendants());
         }
 
-        template <typename visitor, typename leaf_policy>
+        template <typename visitor, typename leaf_policy,
+                  typename sample_list_policy>
         inline void
-        iterate_marginal_trees(const leaf_policy lp,
+        iterate_marginal_trees(marginal_tree& marginal,
                                const indexed_edge_container& input_left,
                                const indexed_edge_container& output_right,
-                               const double maxpos, marginal_tree& marginal,
-                               visitor v)
+                               const double maxpos, visitor v,
+                               const leaf_policy lp,
+                               const sample_list_policy slp)
         // TODO: internal namespace
-        // TODO: separate this out from the various policies a bit better. For example,
-        // the way that samples are tracked here is a bit silly, as the
-        // incoming_leaf_counts calls outgoing_leaf_counts for that policy.
         {
             auto j = input_left.begin(), jM = input_left.end(),
                  k = output_right.begin(), kM = output_right.end();
             double x = 0.0;
-            // TODO: replace .at with []
             while (j < jM || x < maxpos)
                 {
                     while (k < kM && k->pos == x) // T4
@@ -227,6 +210,7 @@ namespace fwdpp
                             marginal.right_sib[c] = -1;
                             outgoing_leaf_counts(marginal, k->parent, k->child,
                                                  lp);
+                            update_sample_list(marginal, k->parent, slp);
                             ++k;
                         }
                     while (j < jM && j->pos == x) // Step T2
@@ -252,6 +236,7 @@ namespace fwdpp
                             marginal.right_child[p] = c;
                             incoming_leaf_counts(marginal, j->parent, j->child,
                                                  lp);
+                            update_sample_list(marginal, j->parent, slp);
                             ++j;
                         }
                     //#ifndef NDEBUG
@@ -297,8 +282,8 @@ namespace fwdpp
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
             marginal_tree marginal(nnodes);
-            iterate_marginal_trees(do_nothing(), input_left, output_right,
-                                   maxpos, marginal, v);
+            iterate_marginal_trees(marginal, input_left, output_right, maxpos,
+                                   v, std::false_type(), std::false_type());
         }
 
         template <typename visitor>
@@ -309,8 +294,8 @@ namespace fwdpp
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
             marginal_tree marginal(nnodes, sample_indexes);
-            iterate_marginal_trees(count_leaves(), input_left, output_right,
-                                   maxpos, marginal, v);
+            iterate_marginal_trees(marginal, input_left, output_right, maxpos,
+                                   v, std::true_type(), std::false_type());
         }
 
         template <typename visitor>
@@ -321,8 +306,8 @@ namespace fwdpp
                    const std::int32_t nnodes, const double maxpos, visitor v)
         {
             marginal_tree marginal(nnodes, sample_indexes);
-            iterate_marginal_trees(track_descendants(), input_left,
-                                   output_right, maxpos, marginal, v);
+            iterate_marginal_trees(marginal, input_left, output_right, maxpos,
+                                   v, std::false_type(), std::true_type());
         }
     } // namespace ts
 } // namespace fwdpp
