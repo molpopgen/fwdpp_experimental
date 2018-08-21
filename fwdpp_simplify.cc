@@ -30,6 +30,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "table_simplifier.hpp"
+#include "data_matrix_generator.hpp"
 //#include "split_breakpoints.hpp"
 
 using namespace fwdpp::ts;
@@ -402,6 +403,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
+                    auto x = fwdpp::ts::create_data_matrix(pop.mutations,tables,samples);
                     auto m = neutral_genotypes(pop, samples, tables);
                     std::sort(
                         m.begin(), m.end(),
@@ -411,6 +413,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    < pop.mutations[b.first].pos;
                         });
                     auto mb = m.begin();
+                    unsigned nmuts=0;
                     while (mb < m.end())
                         {
                             auto key = mb->first;
@@ -420,12 +423,14 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                     ++c;
                                     ++mb;
                                 }
+                            ++nmuts;
                             //std::cout << c << ' ' << pop.mcounts[key] << '\n';
                             if (c != pop.mcounts[key])
                                 {
                                     throw std::runtime_error("count failure");
                                 }
                         }
+                    //std::cout << x.second.size() << ' ' << nmuts << '\n';
                     //for (auto& mi : m)
                     //    {
                     //        assert(mi.second.size() == pop.mcounts[mi.first]);
