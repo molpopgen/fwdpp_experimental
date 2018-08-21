@@ -95,30 +95,29 @@ neutral_genotypes(const slocuspop_t& pop,
                         //std::cout
                         //    << marginal.left_sample[mtable_itr->node] << ' '
                         //    << marginal.right_sample[mtable_itr->node] << ": ";
-                        if (marginal.left_sample[mtable_itr->node]
-                            == marginal.right_sample[mtable_itr->node])
+                        //if (marginal.left_sample[mtable_itr->node]
+                        //    == marginal.right_sample[mtable_itr->node])
+                        //    {
+                        //        mutmap.emplace_back(
+                        //            mtable_itr->key,
+                        //            marginal.left_sample[mtable_itr->node]);
+                        //    }
+                        //else
+                        //    {
+                        const auto right = marginal.right_sample[mtable_itr->node];
+                        for (auto i = marginal.left_sample[mtable_itr->node];
+                             i != -1; i = marginal.next_sample[i])
                             {
-                                mutmap.emplace_back(
-                                    mtable_itr->key,
-                                    marginal.left_sample[mtable_itr->node]);
-                            }
-                        else
-                            {
-                                for (
-                                    auto i
-                                    = marginal.left_sample[mtable_itr->node];
-                                    i
-                                    != -1;
-                                    i = marginal.next_sample[i])
+                                //std::cout << i << ", "
+                                //          << marginal.next_sample[i]
+                                //          << "| ";
+                                mutmap.emplace_back(mtable_itr->key, i);
+                                if (i == right)
                                     {
-                                        //std::cout << i << ", "
-                                        //          << marginal.next_sample[i]
-                                        //          << "| ";
-                                        mutmap.emplace_back(mtable_itr->key,
-                                                            i);
-                                        if(i == marginal.right_sample[mtable_itr->node]){break;}
+                                        break;
                                     }
                             }
+                        //    }
                         //std::cout << '\n';
                     }
                 ++mtable_itr;
