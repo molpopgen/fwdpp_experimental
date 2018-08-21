@@ -38,9 +38,11 @@ namespace fwdpp
                     {
                         if (mutations[beg->key].neutral == true)
                             {
-                                if (vf(marginal, beg->node))
+                                auto nv = vf(marginal,beg->node);
+                                if (nv)
                                     {
                                         auto d = vf.view_genotypes();
+                                        //assert(nv == std::count(d.first,d.first+d.second,1));
                                         genotypes.insert(genotypes.end(),
                                                          d.first,
                                                          d.first + d.second);
