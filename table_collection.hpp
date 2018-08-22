@@ -28,15 +28,35 @@ namespace fwdpp
             edge_vector temp_edges; //used for sorting
             void
             split_breakpoints(
-                const std::vector<double>& breakpoints,
+                const std::vector<double>& input_breakpoints,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const std::int32_t next_index)
             {
-                if (breakpoints.empty())
+                if (input_breakpoints.empty())
                     {
                         this->push_back_edge(0., L, std::get<0>(parents),
                                              next_index);
                         return;
+                    }
+                std::vector<double> breakpoints;
+                breakpoints.reserve(input_breakpoints.size());
+                for (std::size_t i = 0; i < input_breakpoints.size() ;)
+                    {
+                        int ci = 1; //count occurrences of breakpoint i
+                        for (std::size_t j = i + 1;
+                             j < input_breakpoints.size()
+                             && input_breakpoints[i] == input_breakpoints[j];
+                             ++j)
+                            {
+                                ++ci;
+                            }
+                        //double, quad, etc., x-overs cannot
+                        //affect the genealogy
+                        if (ci % 2 != 0.0)
+                            {
+                                breakpoints.push_back(input_breakpoints[i]);
+                            }
+                        i += ci;
                     }
                 if (breakpoints.front() != 0.0)
                     {
