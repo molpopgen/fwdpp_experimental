@@ -398,10 +398,10 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     std::vector<std::int32_t> nodes(2 * pop.diploids.size());
                     std::iota(nodes.begin(), nodes.end(), 0);
-                    std::vector<std::int32_t> samples(2 * pop.diploids.size()
-                                                      / 10);
-                    //std::vector<std::int32_t> samples(2 * pop.diploids.size());
-                    //
+                    //std::vector<std::int32_t> samples(2 * pop.diploids.size()
+                    //                                  / 10);
+                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+                    
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
@@ -437,14 +437,15 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
 
                     auto x = fwdpp::ts::create_data_matrix(pop.mutations,
                                                            tables, samples);
-                    assert(std::is_sorted(x.second.begin(),x.second.end()));
+                    assert(std::is_sorted(x.second.begin(), x.second.end()));
                     auto nrow = x.second.size();
                     auto ncol = x.first.size() / nrow;
                     assert(ncol == samples.size());
                     for (std::size_t i = 0; i < nrow; ++i)
                         {
                             unsigned nd = 0;
-                            for (std::size_t j = i*ncol; j < i*ncol + ncol; ++j)
+                            for (std::size_t j = i * ncol; j < i * ncol + ncol;
+                                 ++j)
                                 {
                                     if (x.first[j] == 1)
                                         {
@@ -459,15 +460,16 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                         && pop.mutations[j].pos == pos)
                                         {
                                             //if (pop.mcounts[j] != nd)
-                                            if(nd != counts[pos])
+                                            if (nd != counts[pos])
                                                 {
                                                     std::cout
                                                         << generation << ' '
                                                         << i << ' '
                                                         << x.first.size()
-                                                        << ' ' << x.second.size() << ' '
-                                                        << ' ' << pos << ' '
-                                                        << nd << ' '
+                                                        << ' '
+                                                        << x.second.size()
+                                                        << ' ' << ' ' << pos
+                                                        << ' ' << nd << ' '
                                                         << pop.mcounts[j]
                                                         << ' ' << counts[pos]
                                                         << std::endl;

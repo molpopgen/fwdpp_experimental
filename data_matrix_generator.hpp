@@ -9,7 +9,6 @@ namespace fwdpp
     namespace ts
     {
         //TODO: hide in internal namespace + separate
-        //header file.
         struct create_data_matrix_details
         {
             std::vector<std::int8_t> genotypes;
@@ -23,8 +22,8 @@ namespace fwdpp
                 const std::int32_t nnodes)
                 : genotypes(), positions(), vf(nnodes, samples), beg(b), end(e)
             {
-                positions.reserve(e-b);
-                genotypes.reserve((e-b)*samples.size());
+                positions.reserve(e - b);
+                genotypes.reserve((e - b) * samples.size());
             }
             template <typename mcont_t>
             inline void
@@ -38,7 +37,7 @@ namespace fwdpp
                     {
                         if (mutations[beg->key].neutral == true)
                             {
-                                auto nv = vf(marginal,beg->node);
+                                auto nv = vf(marginal, beg->node);
                                 if (nv)
                                     {
                                         auto d = vf.view_genotypes();
@@ -56,20 +55,19 @@ namespace fwdpp
         };
 
         //TODO: allow for better return value
-        //allowing neutral vs selected vs all.
         template <typename mcont_t>
         std::pair<std::vector<std::int8_t>, std::vector<double>>
         create_data_matrix(const mcont_t& mutations,
-                           const table_collection& tables,
-                           const std::vector<std::int32_t>& samples)
+                            const table_collection& tables,
+                            const std::vector<std::int32_t>& samples)
         {
             create_data_matrix_details d(tables.mutation_table.begin(),
-                                         tables.mutation_table.end(), samples,
-                                         tables.node_table.size());
+                                          tables.mutation_table.end(), samples,
+                                          tables.node_table.size());
             auto visitor = [&d, &mutations](const marginal_tree& marginal) {
                 d(marginal, mutations);
             };
-            algorithmT(tables.input_left, tables.output_right,
+            algorithmS(tables.input_left, tables.output_right, samples,
                        tables.node_table.size(), tables.L, visitor);
             return std::make_pair(std::move(d.genotypes),
                                   std::move(d.positions));

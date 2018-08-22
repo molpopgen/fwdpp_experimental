@@ -16,7 +16,7 @@ namespace fwdpp
         //is that samples are being tracked via top-2-bottom
         //traversal.
         //Best use of this type is probably composition
-        //of a "visitor" for algorithmT.
+        //of a "visitor" for algorithmS.
         class variant_filler
         /// \brief Fill 0/1 genotype array for a mutation.
         {
@@ -62,30 +62,22 @@ namespace fwdpp
                     }
                 std::uint32_t variant_in_samples = 0;
                 std::fill(std::begin(genotypes), std::end(genotypes), 0);
-                stack_top = 0;
-                node_stack[stack_top] = node;
-                while (stack_top >= 0)
+                const auto right = marginal.right_sample[node];
+                for (auto i = marginal.left_sample[node]; i != -1;
+                     i = marginal.next_sample[i])
                     {
-                        const auto top_node = node_stack[stack_top];
-                        assert(top_node!=-1);
-                        const auto sample_index = sample_indexes[top_node];
+                        auto sample_index = sample_indexes[i];
                         if (sample_index != -1)
                             {
                                 ++variant_in_samples;
-                                assert(genotypes[sample_index]==0);
                                 genotypes[sample_index] = 1;
                             }
-                        stack_top--;
-                        std::int32_t last = -1;
-                        for (auto c = marginal.left_child[top_node]; c != -1;
-                             c = marginal.right_sib[c])
+                        if (i == right)
                             {
-                                ++stack_top;
-                                node_stack[stack_top] = c;
-                                last = c;
+                                break;
                             }
-                        assert(last == marginal.right_child[top_node]);
                     }
+
                 return variant_in_samples;
             }
 
