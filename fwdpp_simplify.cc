@@ -349,31 +349,10 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                             ++nd;
                                         }
                                 }
-                            auto pos = x.positions[i];
-                            for (std::size_t j = 0; j < pop.mcounts.size();
-                                 ++j)
-                                {
-                                    if (pop.mcounts[j] > 0
-                                        && pop.mutations[j].pos == pos)
-                                        {
-                                            if (pop.mcounts[j] != nd)
-                                                {
-                                                    std::cout
-                                                        << generation << ' '
-                                                        << i << ' '
-                                                        << x.genotypes.size()
-                                                        << ' '
-                                                        << x.positions.size()
-                                                        << ' ' << ' ' << pos
-                                                        << ' ' << nd << ' '
-                                                        << pop.mcounts[j]
-                                                        << std::endl;
-                                                    throw std::runtime_error(
-                                                        "bad counts from "
-                                                        "matrix");
-                                                }
-                                        }
-                                }
+                            if(pop.mcounts[x.mut_indexes[i]] != nd)
+                            {
+                                throw std::runtime_error("bad counts from matrix");
+                            }
                         }
                     //std::cout << x.second.size() << ' ' << nmuts << '\n';
                     //for (auto& mi : m)
