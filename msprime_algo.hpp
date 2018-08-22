@@ -29,9 +29,6 @@ namespace fwdpp
     {
         struct marginal_tree
         {
-            //TODO separate leaf_counts from this type,
-            //and require the visitor to take a const &
-            //as an arg>
             std::vector<std::int32_t> parents, leaf_counts, left_sib,
                 right_sib, left_child, right_child, left_sample, right_sample,
                 next_sample, is_sample;
@@ -239,23 +236,6 @@ namespace fwdpp
                             update_sample_list(marginal, j->parent, slp);
                             ++j;
                         }
-                    //#ifndef NDEBUG
-                    //                    for (std::size_t i = 0; i < marginal.left_sib.size(); ++i)
-                    //                        {
-                    //                            if (marginal.left_sib[i] != -1)
-                    //                                {
-                    //                                    auto pi = marginal.parents[i];
-                    //                                    auto rs
-                    //                                        = marginal
-                    //                                              .right_sib[marginal.left_sib[i]];
-                    //                                    auto pj
-                    //                                        = marginal
-                    //                                              .parents[marginal.left_sib[i]];
-                    //                                    assert(pi == pj);
-                    //                                    assert(rs == i);
-                    //                                }
-                    //                        }
-                    //#endif
 
                     double right = maxpos;
                     if (j < jM)
