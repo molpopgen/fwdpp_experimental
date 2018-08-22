@@ -43,8 +43,7 @@ namespace fwdpp
                                         auto d = vf.view_genotypes();
                                         //assert(nv == std::count(d.first,d.first+d.second,1));
                                         genotypes.insert(genotypes.end(),
-                                                         d.first,
-                                                         d.first + d.second);
+                                                         d.first, d.second);
                                         positions.push_back(
                                             mutations[beg->key].pos);
                                     }
@@ -58,12 +57,12 @@ namespace fwdpp
         template <typename mcont_t>
         std::pair<std::vector<std::int8_t>, std::vector<double>>
         create_data_matrix(const mcont_t& mutations,
-                            const table_collection& tables,
-                            const std::vector<std::int32_t>& samples)
+                           const table_collection& tables,
+                           const std::vector<std::int32_t>& samples)
         {
             create_data_matrix_details d(tables.mutation_table.begin(),
-                                          tables.mutation_table.end(), samples,
-                                          tables.node_table.size());
+                                         tables.mutation_table.end(), samples,
+                                         tables.node_table.size());
             auto visitor = [&d, &mutations](const marginal_tree& marginal) {
                 d(marginal, mutations);
             };

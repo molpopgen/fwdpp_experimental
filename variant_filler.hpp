@@ -81,10 +81,10 @@ namespace fwdpp
                 return variant_in_samples;
             }
 
-            std::pair<const std::int8_t*, std::size_t>
+            std::pair<const std::int8_t*, const std::int8_t*>
             view_genotypes() const
             {
-                return std::make_pair(genotypes.data(), genotypes.size());
+                return std::make_pair(genotypes.data(), genotypes.data()+genotypes.size());
             }
         };
     } // namespace ts
