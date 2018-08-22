@@ -56,81 +56,6 @@ w(slocuspop_t& pop, const fitness_function& ff)
     return lookup;
 }
 
-/* Idea for a faster implementation:
- * We should probably simply iterate over
- * all mutations in the mutation table
- * and represent a variant as an array
- * of int8_t. Then, iff any sample is
- * nonzero in that array, that variant
- * exists in the sample and gets
- * added to a data_matrix-like thing
- *
- * Another alternative is to not rely 
- * on the msprime algorithms so heavily,
- * and mannually iterate trees as needed.
- */
-std::vector<std::pair<std::size_t, std::int32_t>>
-neutral_genotypes(const slocuspop_t& pop,
-                  const std::vector<std::int32_t>& samples,
-                  const table_collection& tables)
-/// Requires the table be indexed
-{
-    // Maps mutation keys to samples
-    std::vector<std::pair<std::size_t, std::int32_t>> mutmap;
-    mutmap.reserve(pop.mutations.size());
-    auto mtable_itr = tables.mutation_table.begin();
-    auto mtable_end = tables.mutation_table.end();
-    auto fill_map = [&pop, &mtable_itr, &mutmap,
-                     mtable_end](const marginal_tree& marginal) {
-        while (mtable_itr < mtable_end
-               && pop.mutations[mtable_itr->key].pos < marginal.left)
-            {
-                ++mtable_itr;
-            }
-        while (mtable_itr < mtable_end
-               && pop.mutations[mtable_itr->key].pos < marginal.right)
-            {
-                assert(pop.mutations[mtable_itr->key].pos >= marginal.left);
-                assert(pop.mutations[mtable_itr->key].pos < marginal.right);
-                if (pop.mutations[mtable_itr->key].neutral == true)
-                    {
-                        //std::cout
-                        //    << marginal.left_sample[mtable_itr->node] << ' '
-                        //    << marginal.right_sample[mtable_itr->node] << ": ";
-                        //if (marginal.left_sample[mtable_itr->node]
-                        //    == marginal.right_sample[mtable_itr->node])
-                        //    {
-                        //        mutmap.emplace_back(
-                        //            mtable_itr->key,
-                        //            marginal.left_sample[mtable_itr->node]);
-                        //    }
-                        //else
-                        //    {
-                        const auto right
-                            = marginal.right_sample[mtable_itr->node];
-                        for (auto i = marginal.left_sample[mtable_itr->node];
-                             i != -1; i = marginal.next_sample[i])
-                            {
-                                //std::cout << i << ", "
-                                //          << marginal.next_sample[i]
-                                //          << "| ";
-                                mutmap.emplace_back(mtable_itr->key, i);
-                                if (i == right)
-                                    {
-                                        break;
-                                    }
-                            }
-                        //    }
-                        //std::cout << '\n';
-                    }
-                ++mtable_itr;
-            }
-    };
-    algorithmS(tables.input_left, tables.output_right, samples,
-               tables.node_table.size(), tables.L, fill_map);
-    return mutmap;
-}
-
 std::tuple<std::int32_t, std::int32_t>
 get_parent_ids(const std::int32_t first_parental_index,
                const std::uint32_t parent, const int did_swap)
@@ -405,36 +330,6 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
-                    auto m = neutral_genotypes(pop, samples, tables);
-                    std::map<double, unsigned> counts;
-                    std::sort(
-                        m.begin(), m.end(),
-
-                        [&pop](const std::pair<std::size_t, std::int32_t>& a,
-                               const std::pair<std::size_t, std::int32_t>& b) {
-                            return pop.mutations[a.first].pos
-                                   < pop.mutations[b.first].pos;
-                        });
-                    auto mb = m.begin();
-                    unsigned nmuts = 0;
-                    while (mb < m.end())
-                        {
-                            auto key = mb->first;
-                            unsigned c = 0;
-                            while (mb < m.end() && mb->first == key)
-                                {
-                                    ++c;
-                                    ++mb;
-                                }
-                            ++nmuts;
-                            //std::cout << c << ' ' << pop.mcounts[key] << '\n';
-                            if (c != pop.mcounts[key])
-                                {
-                                    throw std::runtime_error("count failure");
-                                }
-                            counts[pop.mutations[key].pos] = c;
-                        }
-
                     auto gm = fwdpp::ts::create_data_matrix(
                         pop.mutations, tables, samples, true, false);
                     auto x = std::move(gm.first);
@@ -461,8 +356,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                     if (pop.mcounts[j] > 0
                                         && pop.mutations[j].pos == pos)
                                         {
-                                            //if (pop.mcounts[j] != nd)
-                                            if (nd != counts[pos])
+                                            if (pop.mcounts[j] != nd)
                                                 {
                                                     std::cout
                                                         << generation << ' '
@@ -473,7 +367,6 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                                         << ' ' << ' ' << pos
                                                         << ' ' << nd << ' '
                                                         << pop.mcounts[j]
-                                                        << ' ' << counts[pos]
                                                         << std::endl;
                                                     throw std::runtime_error(
                                                         "bad counts from "
