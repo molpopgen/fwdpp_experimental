@@ -401,7 +401,7 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     //std::vector<std::int32_t> samples(2 * pop.diploids.size()
                     //                                  / 10);
                     std::vector<std::int32_t> samples(2 * pop.diploids.size());
-                    
+
                     gsl_ran_choose(rng.get(), samples.data(), samples.size(),
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
@@ -430,16 +430,18 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                             //std::cout << c << ' ' << pop.mcounts[key] << '\n';
                             if (c != pop.mcounts[key])
                                 {
-                                    //throw std::runtime_error("count failure");
+                                    throw std::runtime_error("count failure");
                                 }
                             counts[pop.mutations[key].pos] = c;
                         }
 
-                    auto x = fwdpp::ts::create_data_matrix(pop.mutations,
-                                                           tables, samples);
-                    assert(std::is_sorted(x.second.begin(), x.second.end()));
-                    auto nrow = x.second.size();
-                    auto ncol = x.first.size() / nrow;
+                    auto gm = fwdpp::ts::create_data_matrix(
+                        pop.mutations, tables, samples, true, false);
+                    auto x = std::move(gm.first);
+                    assert(std::is_sorted(x.positions.begin(),
+                                          x.positions.end()));
+                    auto nrow = x.positions.size();
+                    auto ncol = x.genotypes.size() / nrow;
                     assert(ncol == samples.size());
                     for (std::size_t i = 0; i < nrow; ++i)
                         {
@@ -447,12 +449,12 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                             for (std::size_t j = i * ncol; j < i * ncol + ncol;
                                  ++j)
                                 {
-                                    if (x.first[j] == 1)
+                                    if (x.genotypes[j] == 1)
                                         {
                                             ++nd;
                                         }
                                 }
-                            auto pos = x.second[i];
+                            auto pos = x.positions[i];
                             for (std::size_t j = 0; j < pop.mcounts.size();
                                  ++j)
                                 {
@@ -465,9 +467,9 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                                     std::cout
                                                         << generation << ' '
                                                         << i << ' '
-                                                        << x.first.size()
+                                                        << x.genotypes.size()
                                                         << ' '
-                                                        << x.second.size()
+                                                        << x.positions.size()
                                                         << ' ' << ' ' << pos
                                                         << ' ' << nd << ' '
                                                         << pop.mcounts[j]
