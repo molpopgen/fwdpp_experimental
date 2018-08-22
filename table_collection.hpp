@@ -27,47 +27,16 @@ namespace fwdpp
           private:
             edge_vector temp_edges; //used for sorting
             void
-            split_breakpoints(
-                const std::vector<double>& input_breakpoints,
+            split_breakpoints_add_edges(
+                const std::vector<double>& breakpoints,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const std::int32_t next_index)
             {
-                if (input_breakpoints.empty())
-                    {
-                        this->push_back_edge(0., L, std::get<0>(parents),
-                                             next_index);
-                        return;
-                    }
-                std::vector<double> breakpoints;
-                breakpoints.reserve(input_breakpoints.size());
-                for (std::size_t i = 0; i < input_breakpoints.size() ;)
-                    {
-                        int ci = 1; //count occurrences of breakpoint i
-                        for (std::size_t j = i + 1;
-                             j < input_breakpoints.size()
-                             && input_breakpoints[i] == input_breakpoints[j];
-                             ++j)
-                            {
-                                ++ci;
-                            }
-                        //double, quad, etc., x-overs cannot
-                        //affect the genealogy
-                        if (ci % 2 != 0.0)
-                            {
-                                breakpoints.push_back(input_breakpoints[i]);
-                            }
-                        i += ci;
-                    }
                 if (breakpoints.front() != 0.0)
                     {
                         this->push_back_edge(0., breakpoints.front(),
                                              std::get<0>(parents), next_index);
                     }
-                // TODO: decide how to handle identical positions.
-                // If a breakpoint is repeated 2x, if has no effect
-                // on the genealogy, as it is a double x-over.  But,
-                // if there are an odd number, then it does have an effect.
-                // The iteration here needs to be updated to handle this.
                 for (unsigned j = 1; j < breakpoints.size(); ++j)
                     {
                         double a = breakpoints[j - 1];
@@ -89,6 +58,58 @@ namespace fwdpp
                                 this->push_back_edge(
                                     a, b, std::get<1>(parents), next_index);
                             }
+                    }
+            }
+
+            void
+            split_breakpoints(
+                const std::vector<double>& breakpoints,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::int32_t next_index)
+            {
+                if (breakpoints.empty())
+                    {
+                        this->push_back_edge(0., L, std::get<0>(parents),
+                                             next_index);
+                        return;
+                    }
+                auto itr = std::adjacent_find(std::begin(breakpoints),
+                                              std::end(breakpoints));
+                if (itr == std::end(breakpoints))
+                    {
+                        split_breakpoints_add_edges(breakpoints, parents,
+                                                    next_index);
+                    }
+                else
+                    {
+                        // Here, we need to reduce the input
+                        // breakpoints to only those seen
+                        // an odd number of times.
+                        // Even numbers of the same breakpoint
+                        // are "double x-overs" and thus 
+                        // cannot affect the genealogy.
+                        std::vector<double> odd_breakpoints;
+                        auto start = breakpoints.begin();
+                        while (itr < breakpoints.end())
+                            {
+                                auto not_equal
+                                    = std::find_if(itr, breakpoints.end(),
+                                                   [itr](const double d) {
+                                                       return d != *itr;
+                                                   });
+                                int even = (std::distance(itr, not_equal) % 2
+                                            == 0.0);
+                                odd_breakpoints.insert(odd_breakpoints.end(),
+                                                       start, itr + 1 - even);
+                                start = not_equal;
+                                itr = std::adjacent_find(
+                                    start,
+                                    std::end(breakpoints));
+                            }
+                        odd_breakpoints.insert(odd_breakpoints.end(),
+                                start,breakpoints.end());
+                        split_breakpoints_add_edges(odd_breakpoints, parents,
+                                                    next_index);
                     }
             }
 
