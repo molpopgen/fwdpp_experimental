@@ -32,7 +32,6 @@ namespace fwdpp
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const std::int32_t next_index)
             {
-                std::vector<std::pair<double, double>> r1, r2;
                 if (breakpoints.empty())
                     {
                         this->push_back_edge(0., L, std::get<0>(parents),
