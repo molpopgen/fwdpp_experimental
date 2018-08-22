@@ -1,8 +1,8 @@
 //Copied from fwdpy11_arg_example.
 //Author: KRT
 //License: GPL3+
-#ifndef SPLIT_BREAKPOINTS_HPP__
-#define SPLIT_BREAKPOINTS_HPP__
+#ifndef SPLIT_BREAKPOINTS_HPP
+#define SPLIT_BREAKPOINTS_HPP
 
 #include <utility>
 #include <vector>

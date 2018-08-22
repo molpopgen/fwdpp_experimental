@@ -1,5 +1,5 @@
-#ifndef FWDPP_ANCESTRY_TABLE_COLLECTION_HPP__
-#define FWDPP_ANCESTRY_TABLE_COLLECTION_HPP__
+#ifndef FWDPP_ANCESTRY_TABLE_COLLECTION_HPP
+#define FWDPP_ANCESTRY_TABLE_COLLECTION_HPP
 
 #include <vector>
 #include <utility>
@@ -13,7 +13,7 @@
 #include "node.hpp"
 #include "edge.hpp"
 #include "mutation_record.hpp"
-#include "msprime_algo.hpp" //TODO: create fewer header dependencies
+#include "indexed_edge.hpp" //TODO: create fewer header dependencies
 
 namespace fwdpp
 {
@@ -27,18 +27,11 @@ namespace fwdpp
           private:
             edge_vector temp_edges; //used for sorting
             void
-            split_breakpoints(
+            split_breakpoints_add_edges(
                 const std::vector<double>& breakpoints,
                 const std::tuple<std::int32_t, std::int32_t>& parents,
                 const std::int32_t next_index)
             {
-                std::vector<std::pair<double, double>> r1, r2;
-                if (breakpoints.empty())
-                    {
-                        this->push_back_edge(0., L, std::get<0>(parents),
-                                             next_index);
-                        return;
-                    }
                 if (breakpoints.front() != 0.0)
                     {
                         this->push_back_edge(0., breakpoints.front(),
@@ -68,16 +61,67 @@ namespace fwdpp
                     }
             }
 
+            void
+            split_breakpoints(
+                const std::vector<double>& breakpoints,
+                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::int32_t next_index)
+            {
+                if (breakpoints.empty())
+                    {
+                        this->push_back_edge(0., L, std::get<0>(parents),
+                                             next_index);
+                        return;
+                    }
+                auto itr = std::adjacent_find(std::begin(breakpoints),
+                                              std::end(breakpoints));
+                if (itr == std::end(breakpoints))
+                    {
+                        split_breakpoints_add_edges(breakpoints, parents,
+                                                    next_index);
+                    }
+                else
+                    {
+                        // Here, we need to reduce the input
+                        // breakpoints to only those seen
+                        // an odd number of times.
+                        // Even numbers of the same breakpoint
+                        // are "double x-overs" and thus 
+                        // cannot affect the genealogy.
+                        std::vector<double> odd_breakpoints;
+                        auto start = breakpoints.begin();
+                        while (itr < breakpoints.end())
+                            {
+                                auto not_equal
+                                    = std::find_if(itr, breakpoints.end(),
+                                                   [itr](const double d) {
+                                                       return d != *itr;
+                                                   });
+                                int even = (std::distance(itr, not_equal) % 2
+                                            == 0.0);
+                                odd_breakpoints.insert(odd_breakpoints.end(),
+                                                       start, itr + 1 - even);
+                                start = not_equal;
+                                itr = std::adjacent_find(
+                                    start,
+                                    std::end(breakpoints));
+                            }
+                        odd_breakpoints.insert(odd_breakpoints.end(),
+                                start,breakpoints.end());
+                        split_breakpoints_add_edges(odd_breakpoints, parents,
+                                                    next_index);
+                    }
+            }
+
           public:
             node_vector node_table;
             edge_vector edge_table;
             mutation_key_vector mutation_table;
-            index_vector input_left, output_right;
+            indexed_edge_container input_left, output_right;
             // This reflects the length of
             // tables.edge_table after last simplification.
             // It can be used to make sure we only sort
             // newly-added nodes.
-            // TODO: move to table_collection
             std::ptrdiff_t edge_offset;
             const double L;
             table_collection(const double maxpos)
@@ -89,7 +133,6 @@ namespace fwdpp
                         throw std::invalid_argument(
                             "maxpos must be > 0 and finite");
                     }
-                //TODO assert maxpos is > 0 and finite
             }
 
             table_collection(const std::int32_t num_initial_nodes,
@@ -103,7 +146,6 @@ namespace fwdpp
                         throw std::invalid_argument(
                             "maxpos must be > 0 and finite");
                     }
-                //TODO assert maxpos is > 0 and finite
                 for (std::int32_t i = 0; i < num_initial_nodes; ++i)
                     {
                         node_table.push_back(node{ pop, initial_time });
