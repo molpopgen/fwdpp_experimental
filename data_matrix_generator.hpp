@@ -53,6 +53,25 @@ namespace fwdpp
 
             template <typename mcont_t>
             inline void
+            update_data(const mcont_t& mutations,
+                        const marginal_tree& marginal, const std::int32_t node,
+                        const std::size_t key,
+                        std::vector<std::int8_t>& genotypes,
+                        std::vector<double>& positions,
+                        std::vector<std::size_t>& indexes)
+            {
+                auto nv = vf(marginal, node);
+                if (nv)
+                    {
+                        auto d = vf.view_genotypes();
+                        genotypes.insert(genotypes.end(), d.first, d.second);
+                        positions.push_back(mutations[key].pos);
+                        indexes.push_back(key);
+                    }
+            }
+
+            template <typename mcont_t>
+            inline void
             operator()(const marginal_tree& marginal, const mcont_t& mutations,
                        const bool record_neutral, const bool record_selected)
             {
@@ -62,30 +81,20 @@ namespace fwdpp
                     }
                 while (beg < end && mutations[beg->key].pos < marginal.right)
                     {
-                        auto nv = vf(marginal, beg->node);
-                        if (nv)
+                        bool n = mutations[beg->key].neutral;
+                        if (n && record_neutral)
                             {
-                                auto d = vf.view_genotypes();
-                                //assert(nv == std::count(d.first,d.first+d.second,1));
-                                bool n = mutations[beg->key].neutral;
-                                if (n && record_neutral)
-                                    {
-                                        neutral_genotypes.insert(
-                                            neutral_genotypes.end(), d.first,
-                                            d.second);
-                                        neutral_positions.push_back(
-                                            mutations[beg->key].pos);
-                                        neutral_indexes.push_back(beg->key);
-                                    }
-                                else if (!n && record_selected)
-                                    {
-                                        selected_genotypes.insert(
-                                            selected_genotypes.end(), d.first,
-                                            d.second);
-                                        selected_positions.push_back(
-                                            mutations[beg->key].pos);
-                                        selected_indexes.push_back(beg->key);
-                                    }
+                                update_data(mutations, marginal, beg->node,
+                                            beg->key, neutral_genotypes,
+                                            neutral_positions,
+                                            neutral_indexes);
+                            }
+                        else if (!n && record_selected)
+                            {
+                                update_data(mutations, marginal, beg->node,
+                                            beg->key, selected_genotypes,
+                                            selected_positions,
+                                            selected_indexes);
                             }
                         ++beg;
                     }
