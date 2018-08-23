@@ -333,29 +333,32 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                     auto gm = fwdpp::ts::create_data_matrix(
                         pop.mutations, tables, samples, false, true);
                     auto x = std::move(gm.second);
-                    assert(std::is_sorted(x.positions.begin(),
-                                          x.positions.end()));
-                    auto nrow = x.positions.size();
-                    auto ncol = x.genotypes.size() / nrow;
-                    assert(ncol == samples.size());
-                    decltype(pop.mcounts) mc;
-                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
-                                                           pop.mutations, mc);
-                    for (std::size_t i = 0; i < nrow; ++i)
+                    if (!x.positions.empty())
                         {
-                            unsigned nd = 0;
-                            for (std::size_t j = i * ncol; j < i * ncol + ncol;
-                                 ++j)
+                            assert(std::is_sorted(x.positions.begin(),
+                                                  x.positions.end()));
+                            auto nrow = x.positions.size();
+                            auto ncol = x.genotypes.size() / nrow;
+                            assert(ncol == samples.size());
+                            decltype(pop.mcounts) mc;
+                            fwdpp::fwdpp_internal::process_gametes(
+                                pop.gametes, pop.mutations, mc);
+                            for (std::size_t i = 0; i < nrow; ++i)
                                 {
-                                    if (x.genotypes[j] == 1)
+                                    unsigned nd = 0;
+                                    for (std::size_t j = i * ncol;
+                                         j < i * ncol + ncol; ++j)
                                         {
-                                            ++nd;
+                                            if (x.genotypes[j] == 1)
+                                                {
+                                                    ++nd;
+                                                }
                                         }
-                                }
-                            if (mc[x.mut_indexes[i]] != nd)
-                                {
-                                    throw std::runtime_error(
-                                        "bad counts from matrix");
+                                    if (mc[x.mut_indexes[i]] != nd)
+                                        {
+                                            throw std::runtime_error(
+                                                "bad counts from matrix");
+                                        }
                                 }
                         }
                     //std::cout << x.second.size() << ' ' << nmuts << '\n';
