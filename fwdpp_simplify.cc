@@ -331,13 +331,16 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                    nodes.data(), nodes.size(),
                                    sizeof(int32_t));
                     auto gm = fwdpp::ts::create_data_matrix(
-                        pop.mutations, tables, samples, true, false);
-                    auto x = std::move(gm.first);
+                        pop.mutations, tables, samples, false, true);
+                    auto x = std::move(gm.second);
                     assert(std::is_sorted(x.positions.begin(),
                                           x.positions.end()));
                     auto nrow = x.positions.size();
                     auto ncol = x.genotypes.size() / nrow;
                     assert(ncol == samples.size());
+                    decltype(pop.mcounts) mc;
+                    fwdpp::fwdpp_internal::process_gametes(pop.gametes,
+                                                           pop.mutations, mc);
                     for (std::size_t i = 0; i < nrow; ++i)
                         {
                             unsigned nd = 0;
@@ -349,10 +352,11 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                                             ++nd;
                                         }
                                 }
-                            if(pop.mcounts[x.mut_indexes[i]] != nd)
-                            {
-                                throw std::runtime_error("bad counts from matrix");
-                            }
+                            if (mc[x.mut_indexes[i]] != nd)
+                                {
+                                    throw std::runtime_error(
+                                        "bad counts from matrix");
+                                }
                         }
                     //std::cout << x.second.size() << ' ' << nmuts << '\n';
                     //for (auto& mi : m)
