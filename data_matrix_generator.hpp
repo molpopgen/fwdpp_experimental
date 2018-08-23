@@ -67,7 +67,8 @@ namespace fwdpp
                             {
                                 auto d = vf.view_genotypes();
                                 //assert(nv == std::count(d.first,d.first+d.second,1));
-                                if (mutations[beg->key].neutral&&record_neutral)
+                                bool n = mutations[beg->key].neutral;
+                                if (n && record_neutral)
                                     {
                                         neutral_genotypes.insert(
                                             neutral_genotypes.end(), d.first,
@@ -76,7 +77,7 @@ namespace fwdpp
                                             mutations[beg->key].pos);
                                         neutral_indexes.push_back(beg->key);
                                     }
-                                else if (record_selected)
+                                else if (!n && record_selected)
                                     {
                                         selected_genotypes.insert(
                                             selected_genotypes.end(), d.first,
