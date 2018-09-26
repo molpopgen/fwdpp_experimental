@@ -170,6 +170,7 @@ def verify():
 if __name__ == "__main__":
     # verify()
 
+    np.random.seed(42)
     # Generate initial TreeSequence
     ts = msprime.simulate(5000, recombination_rate=10, random_seed=1)
     nodes = ts.tables.nodes
@@ -185,14 +186,26 @@ if __name__ == "__main__":
                 edges[i].parent, edges[i].child, edges[i].left, edges[i].right))
 
     # Simplify nodes and edges with respect to the following samples:
-    sample = [0, 1, 2, 19, 33, 11, 12]
-    ts1 = simplify(sample, nodes, edges, ts.sequence_length)
+    # sample = [0, 1, 2, 19, 33, 11, 12, 5010, 6000]
+    sample = sorted(np.random.choice(len(ts.tables.nodes), 50, replace=False))
+    # key=lambda x: ts.tables.nodes.time[x])
 
+    # fc = np.array(ts.tables.nodes.flags,copy=True)
+    fc = np.zeros(len(ts.tables.nodes), dtype=np.uint32)
+    fc[sample] = 1
+    tt = ts.dump_tables()
+    tt.nodes.set_columns(flags=fc, time=ts.tables.nodes.time)
+    ts = ts.load_tables(tt)
+    print(sample)
+    print(ts.tables.nodes.flags[sample])
     msts = ts.simplify(sample)
 
+    ts1 = simplify(sample, nodes, edges, ts.sequence_length)
 
-    for i,j, in zip(msts.tables.edges, ts1.tables.edges):
-        assert i.parent == j.parent, "parent error {} {}".format(i.parent,j.parent)
+    for i, j, rec in zip(msts.tables.edges, ts1.tables.edges, range(len(ts1.tables.edges))):
+        print(rec)
+        assert i.parent == j.parent, "parent error {} {} {}".format(
+            i.parent, j.parent, rec)
         assert i.child == j.child, "child error"
         assert i.left == j.left, "left error"
         assert i.right == j.right, "right error"
