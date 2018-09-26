@@ -54,23 +54,35 @@ def simplify(S, Ni, Ei, L):
         assert(v == len(No)-1)
         A[u] = [Segment(0, L, v)]
 
-    for u in S:
-        print(u, A[u])
-    print("ancient nodes = ", ancient_nodes)
+    # for u in S:
+    #     print(u, A[u])
+    # print("ancient nodes = ", ancient_nodes)
 
     # These changes make sure that
     # we collect edges for merging
     # in proper time order.
-    inodes = [i for i in range(len(Ni))]
-    inodes = sorted(inodes,key=lambda x:Ni.time[x])
-    #for u in range(len(Ni)):
-    for u in inodes:
-        for e in [e for e in Ei if e.parent == u]:
+    # inodes = [i for i in range(len(Ni))]
+    # inodes = sorted(inodes,key=lambda x:Ni.time[x])
+    # for u in range(len(Ni)):
+    # for u in inodes:
+    #     for e in [e for e in Ei if e.parent == u]:
+    #         for x in A[e.child]:
+    #             if x.right > e.left and e.right > x.left:
+    #                 y = Segment(max(x.left, e.left), min(
+    #                     x.right, e.right), x.node)
+    #                 heapq.heappush(Q, y)
+    ei = 0
+    while ei < len(Ei):
+        u = Ei.parent[ei]
+        while ei < len(Ei) and Ei.parent[ei] == u:
+            e = Ei[ei]
             for x in A[e.child]:
                 if x.right > e.left and e.right > x.left:
                     y = Segment(max(x.left, e.left), min(
                         x.right, e.right), x.node)
                     heapq.heappush(Q, y)
+            ei += 1
+
         v = -1
         while len(Q) > 0:
             l = Q[0].left
@@ -121,9 +133,9 @@ def simplify(S, Ni, Ei, L):
     j = len(E)
     Eo.add_row(E[start].left, E[j - 1].right, E[j - 1].parent, E[j - 1].child)
 
-    for i in Eo:
-        print(i.left, i.right, i.parent, i.child,
-              No.time[i.parent], No.time[i.child])
+    # for i in Eo:
+    #     print(i.left, i.right, i.parent, i.child,
+    #           No.time[i.parent], No.time[i.child])
     return msprime.load_tables(nodes=No, edges=Eo)
 
 
@@ -175,5 +187,15 @@ if __name__ == "__main__":
     # Simplify nodes and edges with respect to the following samples:
     sample = [0, 1, 2, 19, 33, 11, 12]
     ts1 = simplify(sample, nodes, edges, ts.sequence_length)
-    print(ts1.tables.nodes)
-    print(ts1.tables.edges)
+
+    msts = ts.simplify(sample)
+
+
+    for i,j, in zip(msts.tables.edges, ts1.tables.edges):
+        assert i.parent == j.parent, "parent error {} {}".format(i.parent,j.parent)
+        assert i.child == j.child, "child error"
+        assert i.left == j.left, "left error"
+        assert i.right == j.right, "right error"
+
+    # print(ts1.tables.nodes)
+    # print(ts1.tables.edges)
