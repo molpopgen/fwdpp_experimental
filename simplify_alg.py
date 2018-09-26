@@ -20,6 +20,7 @@ class Segment(object):
     An ancestral segment mapping a given node ID to a half-open genomic
     interval [left, right).
     """
+
     def __init__(self, left, right, node):
         assert left < right
         self.left = left
@@ -45,22 +46,31 @@ def simplify(S, Ni, Ei, L):
     A = [[] for _ in range(len(Ni))]
     Q = []
 
+    ancient_nodes = []
     for u in S:
         v = No.add_row(time=Ni.time[u], flags=1)
+        if Ni.time[u] != 0.0:
+            ancient_nodes.append(u)
         assert(v == len(No)-1)
         A[u] = [Segment(0, L, v)]
 
     for u in S:
-        print(u,A[u])
+        print(u, A[u])
+    print("ancient nodes = ", ancient_nodes)
 
-    for u in range(len(Ni)):
+    # These changes make sure that
+    # we collect edges for merging
+    # in proper time order.
+    inodes = [i for i in range(len(Ni))]
+    inodes = sorted(inodes,key=lambda x:Ni.time[x])
+    #for u in range(len(Ni)):
+    for u in inodes:
         for e in [e for e in Ei if e.parent == u]:
             for x in A[e.child]:
                 if x.right > e.left and e.right > x.left:
-                    y = Segment(max(x.left, e.left), min(x.right, e.right), x.node)
+                    y = Segment(max(x.left, e.left), min(
+                        x.right, e.right), x.node)
                     heapq.heappush(Q, y)
-        # if len(Q) >0:
-        #     print("Qsize: ",u,len(Q))
         v = -1
         while len(Q) > 0:
             l = Q[0].left
@@ -105,13 +115,16 @@ def simplify(S, Ni, Ei, L):
             E[j - 1].parent != E[j].parent or
             E[j - 1].child != E[j].child)
         if condition:
-            Eo.add_row(E[start].left, E[j - 1].right, E[j - 1].parent, E[j - 1].child)
+            Eo.add_row(E[start].left, E[j - 1].right,
+                       E[j - 1].parent, E[j - 1].child)
             start = j
     j = len(E)
     Eo.add_row(E[start].left, E[j - 1].right, E[j - 1].parent, E[j - 1].child)
 
+    for i in Eo:
+        print(i.left, i.right, i.parent, i.child,
+              No.time[i.parent], No.time[i.child])
     return msprime.load_tables(nodes=No, edges=Eo)
-
 
 
 def verify():
@@ -143,23 +156,24 @@ def verify():
 
 
 if __name__ == "__main__":
-    #verify()
+    # verify()
 
     # Generate initial TreeSequence
     ts = msprime.simulate(5000, recombination_rate=10, random_seed=1)
     nodes = ts.tables.nodes
     edges = ts.tables.edges
 
-    with open("test_nodes.txt","w") as f:
+    with open("test_nodes.txt", "w") as f:
         for i in range(len(nodes)):
-            f.write("{} {}\n".format(i,nodes[i].time))
+            f.write("{} {}\n".format(i, nodes[i].time))
 
-    with open("test_edges.txt","w") as f:
+    with open("test_edges.txt", "w") as f:
         for i in range(len(edges)):
-            f.write("{} {} {} {}\n".format(edges[i].parent, edges[i].child, edges[i].left, edges[i].right))
+            f.write("{} {} {} {}\n".format(
+                edges[i].parent, edges[i].child, edges[i].left, edges[i].right))
 
     # Simplify nodes and edges with respect to the following samples:
-    sample = [0, 1, 2,19,33,11,12]
-    ts1 = simplify(sample, nodes,edges, ts.sequence_length)
+    sample = [0, 1, 2, 19, 33, 11, 12]
+    ts1 = simplify(sample, nodes, edges, ts.sequence_length)
     print(ts1.tables.nodes)
     print(ts1.tables.edges)
