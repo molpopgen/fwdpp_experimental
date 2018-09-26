@@ -196,12 +196,12 @@ if __name__ == "__main__":
     tt = ts.dump_tables()
     tt.nodes.set_columns(flags=fc, time=ts.tables.nodes.time)
     ts = ts.load_tables(tt)
-    print(sample)
-    print(ts.tables.nodes.flags[sample])
     msts = ts.simplify(sample)
 
     ts1 = simplify(sample, nodes, edges, ts.sequence_length)
 
+    assert np.array_equal(msts.tables.nodes.time,
+                          ts1.tables.nodes.time), "time error"
     for i, j, rec in zip(msts.tables.edges, ts1.tables.edges, range(len(ts1.tables.edges))):
         print(rec)
         assert i.parent == j.parent, "parent error {} {} {}".format(
