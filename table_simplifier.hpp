@@ -47,16 +47,17 @@ namespace fwdpp
                 {
                     double tright = std::numeric_limits<double>::max();
                     auto b = overlapping.begin();
-                    for(auto i = overlapping.begin() ; i < overlapping_end; ++i)
-                    {
-                        if(i->right > left)
+                    for (auto i = overlapping.begin(); i < overlapping_end;
+                         ++i)
                         {
-                            *b = *i;
-                            tright = std::min(tright,b->right);
-                            ++b;
+                            if (i->right > left)
+                                {
+                                    *b = *i;
+                                    tright = std::min(tright, b->right);
+                                    ++b;
+                                }
                         }
-                    }
-                    overlapping_end=b;
+                    overlapping_end = b;
                     return tright;
                     //overlapping_end = std::stable_partition(
                     //    overlapping.begin(), overlapping_end,
@@ -101,7 +102,7 @@ namespace fwdpp
                                 }
                             while (sbeg < send && sbeg->left == left)
                                 {
-                                    tright=std::min(tright,sbeg->right);
+                                    tright = std::min(tright, sbeg->right);
                                     overlapping_end
                                         = overlapping.insert(overlapping_end,
                                                              *sbeg)
@@ -115,7 +116,7 @@ namespace fwdpp
                         {
                             left = right;
                             right = std::numeric_limits<double>::max();
-                            auto tright=set_partition();
+                            auto tright = set_partition();
                             if (num_overlaps() > 0)
                                 {
                                     right = tright;
@@ -136,9 +137,8 @@ namespace fwdpp
             edge_vector new_edge_table;
             node_vector new_node_table;
             // segment_queue mimics a min queue of segments w.r.to
-            // segment::left. X is a temporary container
-            // for storing segments during ancestry merging.
-            std::vector<segment> segment_queue, X;
+            // segment::left.
+            std::vector<segment> segment_queue;
             std::vector<std::vector<segment>> Ancestry;
             /// Temp container used for compacting edges
             edge_vector E;
@@ -401,8 +401,9 @@ namespace fwdpp
                                  [](const edge& a, const edge& b) {
                                      return a.child < b.child;
                                  });
-                new_edge_table.insert(
-                    new_edge_table.end(),buffered_edges.begin(),buffered_edges.end());
+                new_edge_table.insert(new_edge_table.end(),
+                                      buffered_edges.begin(),
+                                      buffered_edges.end());
                 return buffered_edges.size();
                 //for (auto& i : buffered_edges)
                 //    {
@@ -599,7 +600,7 @@ namespace fwdpp
           public:
             table_simplifier(const double maxpos)
                 : new_edge_table{}, new_node_table{},
-                  segment_queue{}, X{}, Ancestry{}, E{}, L{ maxpos }
+                  segment_queue{}, Ancestry{}, E{}, L{ maxpos }
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
