@@ -1,7 +1,6 @@
 #ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 #define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 
-#include <iostream>
 #include <cmath>
 #include <map>
 #include <vector>
@@ -59,23 +58,7 @@ namespace fwdpp
                         }
                     overlapping_end = b;
                     return tright;
-                    //overlapping_end = std::stable_partition(
-                    //    overlapping.begin(), overlapping_end,
-                    //    [this](const segment& seg) {
-                    //        return seg.right > left;
-                    //    });
                 }
-
-                //inline double
-                //min_right_overlap()
-                //{
-                //    return std::min_element(
-                //               overlapping.begin(), overlapping_end,
-                //               [](const segment& a, const segment& b) {
-                //                   return a.right < b.right;
-                //               })
-                //        ->right;
-                //}
 
               public:
                 std::vector<segment> overlapping;
@@ -125,6 +108,7 @@ namespace fwdpp
                         }
                     return rv;
                 }
+
                 std::int64_t
                 num_overlaps()
                 {
@@ -254,25 +238,6 @@ namespace fwdpp
                                     edge{ left, right, parent, child });
                             }
                     }
-                //auto itr = buffered_edges.find(child);
-                //if (itr == buffered_edges.end())
-                //    {
-                //        buffered_edges[child].emplace_back(
-                //            edge{ left, right, parent, child });
-                //    }
-                //else
-                //    {
-                //        auto& last = itr->second.back();
-                //        if (last.right == left)
-                //            {
-                //                last.right = right;
-                //            }
-                //        else
-                //            {
-                //                itr->second.emplace_back(
-                //                    edge{ left, right, parent, child });
-                //            }
-                //    }
             }
 
             void
@@ -281,7 +246,6 @@ namespace fwdpp
             {
                 if (Ancestry[input_id].empty())
                     {
-                        //assert(left < right);
                         Ancestry[input_id].emplace_back(left, right, node);
                     }
                 else
@@ -293,7 +257,6 @@ namespace fwdpp
                             }
                         else
                             {
-                                //assert(left < right);
                                 Ancestry[input_id].emplace_back(left, right,
                                                                 node);
                             }
@@ -316,8 +279,6 @@ namespace fwdpp
                 double previous_right = 0.0;
                 segment_overlapper o(segment_queue);
                 std::int32_t ancestry_node = -1;
-                //std::map<std::int32_t, std::vector<edge>> buffered_edges;
-                //std::vector<edge> buffered_edges;
                 E.clear();
                 while (o() == true)
                     {
@@ -354,16 +315,9 @@ namespace fwdpp
                             }
                         if (is_sample && o.left != previous_right)
                             {
-                                //assert(previous_right < o.left);
                                 add_ancestry(parent_input_id, previous_right,
                                              o.left, ancestry_node);
                             }
-                        if (!(o.left < o.right))
-                            {
-                                std::cerr << o.left << ' ' << o.right
-                                          << std::endl;
-                            }
-                        //assert(o.left < o.right);
                         add_ancestry(parent_input_id, o.left, o.right,
                                      ancestry_node);
                         previous_right = o.right;
@@ -375,7 +329,7 @@ namespace fwdpp
                     }
                 if (output_id != -1)
                     {
-                        auto n = squash_and_flush_edges(E);
+                        auto n = output_buffered_edges(E);
                         if (!n && !is_sample)
                             {
                                 new_node_table.erase(new_node_table.begin()
@@ -386,16 +340,9 @@ namespace fwdpp
                     }
             }
 
-            int
-            squash_and_flush_edges(
-                //const std::map<std::int32_t, std::vector<edge>>&
-                std::vector<edge>& buffered_edges)
-            // Implementation copied from msprime.
-            // Squashes identical edges on a per-parent
-            // basis and adds them to the output list of edges.
-            // Based on implementation found in msprime/lib/msprime.c
-            // by Jerome Kelleher, version 0.5.0 of that code.
-            // http://github.com/jeromekelleher/msprime.
+            std::size_t
+            output_buffered_edges(std::vector<edge>& buffered_edges)
+            /// Take our buffered edges and add them to the output edge table
             {
                 std::stable_sort(buffered_edges.begin(), buffered_edges.end(),
                                  [](const edge& a, const edge& b) {
@@ -405,51 +352,6 @@ namespace fwdpp
                                       buffered_edges.begin(),
                                       buffered_edges.end());
                 return buffered_edges.size();
-                //for (auto& i : buffered_edges)
-                //    {
-                //        for (auto& e : i.second)
-                //            {
-                //                new_edge_table.emplace_back(std::move(e));
-                //                ++n;
-                //            }
-                //    }
-                //return n;
-            }
-
-            void
-            defragment(std::vector<segment>& ancestry_segment) noexcept
-            /// This implementation is based on Jerome Kelleher's
-            /// implementation in msprime/lib/table.c, which is found at
-            /// http://github.com/jeromekelleher/msprime.
-            {
-                assert(std::is_sorted(ancestry_segment.begin(),
-                                      ancestry_segment.end(),
-                                      [](const segment& a, const segment& b) {
-                                          return std::tie(a.left, a.right)
-                                                 < std::tie(b.left, b.right);
-                                      }));
-                auto prev_seg = ancestry_segment.begin();
-                auto next_seg = prev_seg + 1;
-                while (next_seg < ancestry_segment.end())
-                    {
-                        assert(prev_seg->node != -1);
-                        if (prev_seg->node == next_seg->node
-                            && prev_seg->right == next_seg->left)
-                            {
-                                prev_seg->right = next_seg->right;
-                                next_seg->node = -1;
-                                ++next_seg;
-                            }
-                        else
-                            {
-                                prev_seg = next_seg++;
-                            }
-                    }
-                ancestry_segment.erase(
-                    std::remove_if(
-                        ancestry_segment.begin(), ancestry_segment.end(),
-                        [](const segment& seg) { return seg.node == -1; }),
-                    ancestry_segment.end());
             }
 
             using mutation_map_t = std::unordered_map<
@@ -615,9 +517,8 @@ namespace fwdpp
                      const std::vector<std::int32_t>& samples,
                      const mutation_container& mutations,
                      std::vector<std::uint32_t>& mcounts)
-            /// Set theoretic simplify.
-            /// TODO: compare against current msprime,
-            /// which has streamlined some steps
+            /// Simplify algorithm is approximately the same
+            /// logic as used in msprime 0.6.0
             {
                 Ancestry.resize(tables.node_table.size());
 
