@@ -35,6 +35,84 @@ namespace fwdpp
                 }
             };
 
+            class segment_overlapper
+            {
+              private:
+                std::vector<segment>::const_iterator sbeg, send;
+
+                inline void
+                set_partition()
+                {
+                    overlapping_end = std::stable_partition(
+                        overlapping.begin(), overlapping_end,
+                        [this](const segment& seg) {
+                            return seg.right > left;
+                        });
+                }
+
+                inline double
+                min_right_overlap()
+                {
+                    return std::min_element(
+                               overlapping.begin(), overlapping_end,
+                               [](const segment& a, const segment& b) {
+                                   return a.right < b.right;
+                               })
+                        ->right;
+                }
+
+              public:
+                std::vector<segment> overlapping;
+                std::vector<segment>::iterator overlapping_end;
+                double left, right;
+                segment_overlapper(const std::vector<segment>& segs)
+                    // The - 1 for send assumes a "cap"/sentinel value.
+                    : sbeg(segs.begin()), send(segs.end() - 1), overlapping{},
+                      overlapping_end(overlapping.end()), left(0),
+                      right(std::numeric_limits<double>::max())
+                {
+                }
+                bool
+                operator()()
+                {
+                    bool rv = 0;
+                    if (sbeg < send)
+                        {
+                            left = right;
+                            set_partition();
+                            if (std::distance(overlapping.begin(),
+                                              overlapping_end)
+                                == 0)
+                                {
+                                    left = sbeg->left;
+                                }
+                            while (sbeg < send && sbeg->left == left)
+                                {
+                                    overlapping_end
+                                        = overlapping.insert(overlapping_end,
+                                                             *sbeg)
+                                          + 1;
+                                    ++sbeg;
+                                }
+                            right = sbeg->left;
+                            right = std::min(sbeg->left, min_right_overlap());
+                            rv = true;
+                        }
+                    else
+                        {
+                            left = right;
+                            right = std::numeric_limits<double>::max();
+                            set_partition();
+                            if (distance(overlapping.begin(), overlapping_end)
+                                > 0)
+                                {
+                                    right = min_right_overlap();
+                                    rv = true;
+                                }
+                        }
+                    return rv;
+                }
+            };
             // These are temp tables/buffer
             // for simplification.  We keep
             // their allocated memory persistent.
