@@ -1,5 +1,5 @@
 // Experimental integration of fwdpp engine
-// with simplification algorithm from Ralph et al.
+// with simplification algorithm from Kelleher et al.
 // This code starts by copy/pasting several data types
 // and functions from the fwdpy11-based example for that paper.
 
