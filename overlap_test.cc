@@ -19,11 +19,11 @@ calculate_overlaps(vector<segment>& segs, char* outfile)
 {
     sort(segs.begin(), segs.end(),
          [](segment& a, segment& b) { return a.left < b.left; });
-    // "cap" segs for convenienct
     size_t nsegs = segs.size();
-    size_t noverlapping = 0, index = 0, j;
+    size_t index = 0;
     vector<segment> overlapping;
     vector<segment>::iterator overlapping_end = overlapping.end();
+    // "cap" segs for convenienct
     segs.emplace_back(segment{ numeric_limits<double>::max(),
                                numeric_limits<double>::max(), 0 });
     double right = segs[0].left;
@@ -34,20 +34,16 @@ calculate_overlaps(vector<segment>& segs, char* outfile)
             overlapping_end = stable_partition(
                 overlapping.begin(), overlapping_end,
                 [left](const segment& seg) { return seg.right > left; });
-            noverlapping = distance(overlapping.begin(), overlapping_end);
-            if (noverlapping == 0)
+            if (distance(overlapping.begin(), overlapping_end) == 0)
                 {
                     left = segs[index].left;
                 }
             while (index < nsegs && segs[index].left == left)
                 {
                     overlapping_end
-                        = overlapping.insert(
-                              overlapping.begin() + noverlapping, segs[index])
-                          + 1;
+                        = overlapping.insert(overlapping_end, segs[index]) + 1;
                     ++index;
                 }
-            noverlapping = distance(overlapping.begin(), overlapping_end);
             right = min(segs[index].left,
                         min_element(overlapping.begin(), overlapping_end,
                                     [](const segment& a, const segment& b) {
@@ -56,10 +52,10 @@ calculate_overlaps(vector<segment>& segs, char* outfile)
                             ->right);
             assert(left < right);
             cout << left << ' ' << right << "-> ";
-            for (j = 0; j < noverlapping; ++j)
+            for (auto j = overlapping.begin(); j < overlapping_end; ++j)
                 {
-                    cout << overlapping[j].left << ',' << overlapping[j].right
-                         << ',' << overlapping[j].node << " | ";
+                    cout << j->left << ',' << j->right << ',' << j->node
+                         << " | ";
                 }
             cout << '\n';
         }
