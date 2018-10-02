@@ -216,11 +216,9 @@ namespace fwdpp
             }
 
             void
-            buffer_edge(
-                //std::map<std::int32_t, std::vector<edge>>& buffered_edges,
-                std::vector<edge>& buffered_edges, const double left,
-                const double right, const std::int32_t parent,
-                const std::int32_t child)
+            buffer_edge(std::vector<edge>& buffered_edges, const double left,
+                        const double right, const std::int32_t parent,
+                        const std::int32_t child)
             {
                 auto itr = std::find_if(
                     buffered_edges.rbegin(), buffered_edges.rend(),
