@@ -21,6 +21,7 @@ all: fwdpp_lite.o fwdpp_lite_intrusive.o fwdpp_simplify.o fwdpp_simplify_ancient
 fwdpp_dump_nodes_edges.o: node.hpp edge.hpp msprime_algo.hpp
 test_simplify.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp
 fwdpp_simplify.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp variant_filler.hpp data_matrix_generator.hpp indexed_edge.hpp
+fwdpp_simplify_ancient_samples.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp variant_filler.hpp data_matrix_generator.hpp indexed_edge.hpp
 fwdpp_simplify_gc_interval.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp
 test_mut_simplify.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp
 process_decap.o: node.hpp edge.hpp table_simplifier.hpp table_collection.hpp msprime_algo.hpp
