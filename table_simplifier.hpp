@@ -37,6 +37,10 @@ namespace fwdpp
             };
 
             class segment_overlapper
+            //TODO: this class should have an "init"
+            //function to reset all variables,
+            //allowing for memory to be re-used
+            //for each set of parental edges, etc.
             {
               private:
                 std::vector<segment>::const_iterator sbeg, send;
