@@ -21,8 +21,9 @@ calculate_overlaps(vector<segment>& segs, char* outfile)
          [](segment& a, segment& b) { return a.left < b.left; });
     // "cap" segs for convenienct
     size_t nsegs = segs.size();
-    size_t noverlapping = 0, index = 0, j, k;
-    vector<segment*> overlapping;
+    size_t noverlapping = 0, index = 0, j;
+    vector<segment> overlapping;
+    vector<segment>::iterator overlapping_end = overlapping.end();
     segs.emplace_back(segment{ numeric_limits<double>::max(),
                                numeric_limits<double>::max(), 0 });
     double right = segs[0].left;
@@ -30,68 +31,59 @@ calculate_overlaps(vector<segment>& segs, char* outfile)
     while (index < nsegs)
         {
             left = right;
-            k = 0;
-            for (j = 0; j < noverlapping; ++j)
-                {
-                    if (overlapping[j]->right > left)
-                        {
-                            overlapping[k] = overlapping[j];
-                            ++k;
-                        }
-                }
-            noverlapping = k;
-            if (k == 0)
+            overlapping_end = stable_partition(
+                overlapping.begin(), overlapping_end,
+                [left](const segment& seg) { return seg.right > left; });
+            noverlapping = distance(overlapping.begin(), overlapping_end);
+            if (noverlapping == 0)
                 {
                     left = segs[index].left;
                 }
             while (index < nsegs && segs[index].left == left)
                 {
-                    overlapping.insert(overlapping.begin() + noverlapping,
-                                       &segs[index]);
-                    ++noverlapping;
+                    overlapping_end
+                        = overlapping.insert(
+                              overlapping.begin() + noverlapping, segs[index])
+                          + 1;
                     ++index;
                 }
-            right = segs[index].left;
-            for (j = 0; j < noverlapping; ++j)
-                {
-                    right = min(right, overlapping[j]->right);
-                }
+            noverlapping = distance(overlapping.begin(), overlapping_end);
+            right = min(segs[index].left,
+                        min_element(overlapping.begin(), overlapping_end,
+                                    [](const segment& a, const segment& b) {
+                                        return a.right < b.right;
+                                    })
+                            ->right);
             assert(left < right);
             cout << left << ' ' << right << "-> ";
             for (j = 0; j < noverlapping; ++j)
                 {
-                    cout << overlapping[j]->left << ','
-                         << overlapping[j]->right << ','
-                         << overlapping[j]->node << " | ";
+                    cout << overlapping[j].left << ',' << overlapping[j].right
+                         << ',' << overlapping[j].node << " | ";
                 }
             cout << '\n';
         }
-    while (noverlapping > 0)
+    while (overlapping_end > overlapping.begin())
         {
             left = right;
-            k = 0;
-            for (j = 0; j < noverlapping; ++j)
+            overlapping_end = stable_partition(
+                overlapping.begin(), overlapping_end,
+                [left](const segment& seg) { return seg.right > left; });
+            if (overlapping_end > overlapping.begin())
                 {
-                    if (overlapping[j]->right > left)
-                        {
-                            overlapping[k] = overlapping[j];
-                            ++k;
-                        }
-                }
-            noverlapping = k;
-            if (noverlapping > 0)
-                {
-                    right = numeric_limits<double>::max();
-                    for (j = 0; j < noverlapping; ++j)
-                        {
-                            right = min(right, overlapping[j]->right);
-                        }
+                    right
+                        = min_element(overlapping.begin(), overlapping_end,
+                                      [](const segment& a, const segment& b) {
+                                          return a.right < b.right;
+                                      })
+                              ->right;
+
                     cout << left << ' ' << right << "-> ";
-                    for (j = 0; j < noverlapping; ++j)
+                    for (auto i = overlapping.begin(); i < overlapping_end;
+                         ++i)
                         {
-                            cout << overlapping[j]->left << ','
-                                 << overlapping[j]->right << ','
-                                 << overlapping[j]->node << " | ";
+                            cout << i->left << ',' << i->right << ','
+                                 << i->node << " | ";
                         }
                     cout << '\n';
                 }
