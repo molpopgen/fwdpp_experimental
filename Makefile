@@ -5,7 +5,7 @@ OPT=-O2
 CXXFLAGS=-std=c++11 $(OPT) -Wall -W $(DEBUG) -g
 
 all: fwdpp_lite.o fwdpp_lite_intrusive.o fwdpp_simplify.o split_breakpoints.o test_simplify.o fwdpp_dump_nodes_edges.o test_mut_simplify.o \
-	process_decap.o fwdpp_simplify_gc_interval.o
+	process_decap.o fwdpp_simplify_gc_interval.o overlap_test.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o fwdpp_lite fwdpp_lite.o  -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o fwdpp_lite_intrusive fwdpp_lite_intrusive.o  -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o fwdpp_simplify fwdpp_simplify.o -lgsl -lgslcblas $(LDFLAGS)
@@ -14,6 +14,7 @@ all: fwdpp_lite.o fwdpp_lite_intrusive.o fwdpp_simplify.o split_breakpoints.o te
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test_simplify test_simplify.o -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test_mut_simplify test_mut_simplify.o -lgsl -lgslcblas $(LDFLAGS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o process_decap process_decap.o -lgsl -lgslcblas $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o overlap_test overlap_test.o $(LDFLAGS)
 
 
 fwdpp_dump_nodes_edges.o: node.hpp edge.hpp msprime_algo.hpp
