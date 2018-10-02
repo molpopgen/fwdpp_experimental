@@ -1,7 +1,9 @@
 #ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 #define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 
+#include <iostream>
 #include <cmath>
+#include <map>
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -80,9 +82,7 @@ namespace fwdpp
                         {
                             left = right;
                             set_partition();
-                            if (std::distance(overlapping.begin(),
-                                              overlapping_end)
-                                == 0)
+                            if (num_overlaps() == 0)
                                 {
                                     left = sbeg->left;
                                 }
@@ -94,7 +94,6 @@ namespace fwdpp
                                           + 1;
                                     ++sbeg;
                                 }
-                            right = sbeg->left;
                             right = std::min(sbeg->left, min_right_overlap());
                             rv = true;
                         }
@@ -103,14 +102,18 @@ namespace fwdpp
                             left = right;
                             right = std::numeric_limits<double>::max();
                             set_partition();
-                            if (distance(overlapping.begin(), overlapping_end)
-                                > 0)
+                            if (num_overlaps() > 0)
                                 {
                                     right = min_right_overlap();
                                     rv = true;
                                 }
                         }
                     return rv;
+                }
+                std::int64_t
+                num_overlaps()
+                {
+                    return std::distance(overlapping.begin(), overlapping_end);
                 }
             };
             // These are temp tables/buffer
@@ -174,6 +177,7 @@ namespace fwdpp
             step_S3(edge_vector::const_iterator edge_ptr,
                     const edge_vector::const_iterator edge_end, std::int32_t u)
             {
+                segment_queue.clear();
                 for (; edge_ptr < edge_end && edge_ptr->parent == u;
                      ++edge_ptr)
                     {
@@ -196,11 +200,68 @@ namespace fwdpp
                                     }
                             }
                     }
-                if (!segment_queue.empty())
-                    {
-                        sort_queue(0);
-                    }
+                // Sort for processing via the overlapper
+                std::sort(segment_queue.begin(), segment_queue.end(),
+                          [](const segment& a, const segment& b) {
+                              return a.left < b.left;
+                          });
+                // Add sentinel
+                segment_queue.emplace_back(
+                    segment{ std::numeric_limits<double>::max()
+                                 / 2., //TODO fix this ugly hack
+                             std::numeric_limits<double>::max(), -1 });
                 return edge_ptr;
+            }
+            void
+            buffer_edge(
+                std::map<std::int32_t, std::vector<edge>>& buffered_edges,
+                const double left, const double right,
+                const std::int32_t parent, const std::int32_t child)
+            {
+                auto itr = buffered_edges.find(child);
+                if (itr == buffered_edges.end())
+                    {
+                        buffered_edges[child].emplace_back(
+                            edge{ left, right, parent, child });
+                    }
+                else
+                    {
+                        auto& last = itr->second.back();
+                        if (last.right == left)
+                            {
+                                last.right = right;
+                            }
+                        else
+                            {
+                                itr->second.emplace_back(
+                                    edge{ left, right, parent, child });
+                            }
+                    }
+            }
+
+            void
+            add_ancestry(std::int32_t input_id, double left, double right,
+                         std::int32_t node)
+            {
+                if (Ancestry[input_id].empty())
+                    {
+                        assert(left < right);
+                        Ancestry[input_id].emplace_back(left, right, node);
+                    }
+                else
+                    {
+                        auto& last = Ancestry[input_id].back();
+                        if (last.right == left && last.node == node)
+                            {
+                                last.right = right;
+                            }
+                        else
+                            {
+                                assert(left < right);
+                                Ancestry[input_id].emplace_back(left, right,
+                                                                node);
+                            }
+                    }
             }
 
             void
@@ -210,121 +271,89 @@ namespace fwdpp
             // TODO: will have to be made aware of sample labels.
             // in order to handle ancient samples.
             {
-                std::int32_t anode, znode = -1;
-                double aleft, aright, zright = 0;
-                std::int32_t v = -1;
-                bool defrag_required = false;
-                std::size_t current_queue_size = segment_queue.size();
-                bool added_to_queue = false;
-                E.clear();
-                while (!segment_queue.empty())
-                    // Steps S4 through S8 of the algorithm.
+                auto output_id = idmap[parent_input_id];
+                bool is_sample = (output_id != -1);
+                if (is_sample == true)
                     {
-                        X.clear();
-                        auto l = segment_queue.back().left;
-                        double r = L;
-                        while (!segment_queue.empty()
-                               && segment_queue.back().left == l)
-                            // This while loop is Step S4. This step
-                            // adds to X all segments with left == l
-                            // and also finds the minimum right for
-                            // all segs with left == l.
-                            // TODO: this can be done with reverse
-                            // iteration,
-                            // but testing on 0.5e9 edges didn't seem
-                            // to
-                            // make it worthwhile.
+                        Ancestry[parent_input_id].clear();
+                    }
+                double previous_right = 0.0;
+                segment_overlapper o(segment_queue);
+                std::int32_t ancestry_node = -1;
+                std::map<std::int32_t, std::vector<edge>> buffered_edges;
+                while (o() == true)
+                    {
+                        if (o.num_overlaps() == 1)
                             {
-                                r = std::min(r, segment_queue.back().right);
-                                X.emplace_back(
-                                    std::move(segment_queue.back()));
-                                assert(current_queue_size > 0);
-                                segment_queue.pop_back();
-                                --current_queue_size;
-                            }
-                        double next_left = 0.0;
-                        if (!segment_queue.empty())
-                            {
-                                next_left = segment_queue.back().left;
-                                r = std::min(r, next_left);
-                            }
-                        if (X.size() == 1)
-                            {
-                                if (!segment_queue.empty()
-                                    && next_left < X[0].right)
+                                ancestry_node = o.overlapping[0].node;
+                                if (is_sample)
                                     {
-                                        aleft = X[0].left;
-                                        aright = next_left;
-                                        anode = X[0].node;
-                                        X[0].left = next_left;
-                                        added_to_queue = add_to_queue(
-                                            next_left, X[0].right, X[0].node,
-                                            added_to_queue);
-                                    }
-                                else
-                                    {
-                                        aleft = X[0].left;
-                                        aright = X[0].right;
-                                        anode = X[0].node;
+                                        buffer_edge(buffered_edges, o.left,
+                                                    o.right, output_id,
+                                                    ancestry_node);
+                                        ancestry_node = output_id;
                                     }
                             }
                         else
                             {
-                                if (v == -1)
+                                if (output_id == -1)
                                     {
-                                        // Overlap/coalescence, and
-                                        // thus
-                                        // a new node. Step S6.
                                         new_node_table.emplace_back(node{
                                             input_node_table[parent_input_id]
                                                 .population,
                                             input_node_table[parent_input_id]
                                                 .generation });
-                                        v = new_node_table.size() - 1;
+                                        output_id = new_node_table.size() - 1;
                                         // update sample map
-                                        idmap[parent_input_id] = v;
+                                        idmap[parent_input_id] = output_id;
                                     }
-                                aleft = l;
-                                aright = r;
-                                anode = v;
-                                for (auto& x : X)
+                                ancestry_node = output_id;
+                                for (auto x = o.overlapping.begin();
+                                     x < o.overlapping_end; ++x)
                                     {
-                                        E.emplace_back(
-                                            edge{ l, r, v, x.node });
-                                        if (x.right > r)
-                                            {
-                                                x.left = r;
-                                                added_to_queue = add_to_queue(
-                                                    x.left, x.right, x.node,
-                                                    added_to_queue);
-                                            }
+                                        buffer_edge(buffered_edges, o.left,
+                                                    o.right, output_id,
+                                                    x->node);
                                     }
                             }
-                        if (added_to_queue)
+                        if (is_sample && o.left != previous_right)
                             {
-                                sort_queue(current_queue_size);
-                                added_to_queue = false;
+                                assert(previous_right < o.left);
+                                add_ancestry(parent_input_id, previous_right,
+                                             o.left, ancestry_node);
                             }
-                        // need to make sure this variable is up to date
-                        current_queue_size = segment_queue.size();
-                        Ancestry[parent_input_id].emplace_back(aleft, aright,
-                                                               anode);
-                        defrag_required |= zright == aleft && znode == anode;
-                        zright = aright;
-                        znode = anode;
+                        if (!(o.left < o.right))
+                            {
+                                std::cerr << o.left << ' ' << o.right
+                                          << std::endl;
+                            }
+                        assert(o.left < o.right);
+                        add_ancestry(parent_input_id, o.left, o.right,
+                                     ancestry_node);
+                        previous_right = o.right;
                     }
-                assert(current_queue_size == 0);
-                if (defrag_required)
+                if (is_sample && previous_right != L)
                     {
-                        defragment(Ancestry[parent_input_id]);
+                        add_ancestry(parent_input_id, previous_right, L,
+                                     output_id);
                     }
-                // remove redundant info from
-                // edge data for this parent
-                squash_and_flush_edges();
+                if (output_id != -1)
+                    {
+                        auto n = squash_and_flush_edges(buffered_edges);
+                        if (!n && !is_sample)
+                            {
+                                new_node_table.erase(new_node_table.begin()
+                                                         + output_id,
+                                                     new_node_table.end());
+                                idmap[parent_input_id] = -1;
+                            }
+                    }
             }
 
-            void
-            squash_and_flush_edges()
+            int
+            squash_and_flush_edges(
+                const std::map<std::int32_t, std::vector<edge>>&
+                    buffered_edges)
             // Implementation copied from msprime.
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
@@ -332,36 +361,16 @@ namespace fwdpp
             // by Jerome Kelleher, version 0.5.0 of that code.
             // http://github.com/jeromekelleher/msprime.
             {
-                if (!E.empty())
+                int n = 0;
+                for (auto& i : buffered_edges)
                     {
-                        std::sort(E.begin(), E.end(),
-                                  [](const edge& a, const edge& b) {
-                                      return std::tie(a.child, a.left)
-                                             < std::tie(b.child, b.left);
-                                  });
-                        std::size_t j = 0, k, l = 0;
-                        for (k = 1; k < E.size(); ++k)
+                        for (auto& e : i.second)
                             {
-                                assert(E[k - 1].parent == E[k].parent);
-                                if (E[j].child != E[k].child
-                                    || E[k - 1].right != E[k].left)
-                                    {
-                                        auto e = E[j];
-                                        e.right = E[k - 1].right;
-                                        E[l] = e;
-                                        j = k;
-                                        ++l;
-                                    }
+                                new_edge_table.emplace_back(std::move(e));
+                                ++n;
                             }
-                        auto e = E[j];
-                        e.right = E[k - 1].right;
-                        E[l] = e;
-                        new_edge_table.insert(
-                            new_edge_table.end(),
-                            std::make_move_iterator(E.begin()),
-                            std::make_move_iterator(E.begin() + l + 1));
-                        E.clear();
                     }
+                return n;
             }
 
             void
