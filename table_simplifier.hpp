@@ -42,26 +42,39 @@ namespace fwdpp
               private:
                 std::vector<segment>::const_iterator sbeg, send;
 
-                inline void
+                inline double
                 set_partition()
                 {
-                    overlapping_end = std::stable_partition(
-                        overlapping.begin(), overlapping_end,
-                        [this](const segment& seg) {
-                            return seg.right > left;
-                        });
+                    double tright = std::numeric_limits<double>::max();
+                    auto b = overlapping.begin();
+                    for(auto i = overlapping.begin() ; i < overlapping_end; ++i)
+                    {
+                        if(i->right > left)
+                        {
+                            *b = *i;
+                            tright = std::min(tright,b->right);
+                            ++b;
+                        }
+                    }
+                    overlapping_end=b;
+                    return tright;
+                    //overlapping_end = std::stable_partition(
+                    //    overlapping.begin(), overlapping_end,
+                    //    [this](const segment& seg) {
+                    //        return seg.right > left;
+                    //    });
                 }
 
-                inline double
-                min_right_overlap()
-                {
-                    return std::min_element(
-                               overlapping.begin(), overlapping_end,
-                               [](const segment& a, const segment& b) {
-                                   return a.right < b.right;
-                               })
-                        ->right;
-                }
+                //inline double
+                //min_right_overlap()
+                //{
+                //    return std::min_element(
+                //               overlapping.begin(), overlapping_end,
+                //               [](const segment& a, const segment& b) {
+                //                   return a.right < b.right;
+                //               })
+                //        ->right;
+                //}
 
               public:
                 std::vector<segment> overlapping;
@@ -81,30 +94,31 @@ namespace fwdpp
                     if (sbeg < send)
                         {
                             left = right;
-                            set_partition();
+                            auto tright = set_partition();
                             if (num_overlaps() == 0)
                                 {
                                     left = sbeg->left;
                                 }
                             while (sbeg < send && sbeg->left == left)
                                 {
+                                    tright=std::min(tright,sbeg->right);
                                     overlapping_end
                                         = overlapping.insert(overlapping_end,
                                                              *sbeg)
                                           + 1;
                                     ++sbeg;
                                 }
-                            right = std::min(sbeg->left, min_right_overlap());
+                            right = std::min(sbeg->left, tright);
                             rv = true;
                         }
                     else
                         {
                             left = right;
                             right = std::numeric_limits<double>::max();
-                            set_partition();
+                            auto tright=set_partition();
                             if (num_overlaps() > 0)
                                 {
-                                    right = min_right_overlap();
+                                    right = tright;
                                     rv = true;
                                 }
                         }
@@ -212,31 +226,53 @@ namespace fwdpp
                              std::numeric_limits<double>::max(), -1 });
                 return edge_ptr;
             }
+
             void
             buffer_edge(
-                std::map<std::int32_t, std::vector<edge>>& buffered_edges,
-                const double left, const double right,
-                const std::int32_t parent, const std::int32_t child)
+                //std::map<std::int32_t, std::vector<edge>>& buffered_edges,
+                std::vector<edge>& buffered_edges, const double left,
+                const double right, const std::int32_t parent,
+                const std::int32_t child)
             {
-                auto itr = buffered_edges.find(child);
-                if (itr == buffered_edges.end())
+                auto itr = std::find_if(
+                    buffered_edges.rbegin(), buffered_edges.rend(),
+                    [child](const edge& e) { return e.child == child; });
+                if (itr == buffered_edges.rend())
                     {
-                        buffered_edges[child].emplace_back(
+                        buffered_edges.emplace_back(
                             edge{ left, right, parent, child });
                     }
                 else
                     {
-                        auto& last = itr->second.back();
-                        if (last.right == left)
+                        if (itr->right == left)
                             {
-                                last.right = right;
+                                itr->right = right;
                             }
                         else
                             {
-                                itr->second.emplace_back(
+                                buffered_edges.emplace_back(
                                     edge{ left, right, parent, child });
                             }
                     }
+                //auto itr = buffered_edges.find(child);
+                //if (itr == buffered_edges.end())
+                //    {
+                //        buffered_edges[child].emplace_back(
+                //            edge{ left, right, parent, child });
+                //    }
+                //else
+                //    {
+                //        auto& last = itr->second.back();
+                //        if (last.right == left)
+                //            {
+                //                last.right = right;
+                //            }
+                //        else
+                //            {
+                //                itr->second.emplace_back(
+                //                    edge{ left, right, parent, child });
+                //            }
+                //    }
             }
 
             void
@@ -245,7 +281,7 @@ namespace fwdpp
             {
                 if (Ancestry[input_id].empty())
                     {
-                        assert(left < right);
+                        //assert(left < right);
                         Ancestry[input_id].emplace_back(left, right, node);
                     }
                 else
@@ -257,7 +293,7 @@ namespace fwdpp
                             }
                         else
                             {
-                                assert(left < right);
+                                //assert(left < right);
                                 Ancestry[input_id].emplace_back(left, right,
                                                                 node);
                             }
@@ -280,7 +316,9 @@ namespace fwdpp
                 double previous_right = 0.0;
                 segment_overlapper o(segment_queue);
                 std::int32_t ancestry_node = -1;
-                std::map<std::int32_t, std::vector<edge>> buffered_edges;
+                //std::map<std::int32_t, std::vector<edge>> buffered_edges;
+                //std::vector<edge> buffered_edges;
+                E.clear();
                 while (o() == true)
                     {
                         if (o.num_overlaps() == 1)
@@ -288,9 +326,8 @@ namespace fwdpp
                                 ancestry_node = o.overlapping[0].node;
                                 if (is_sample)
                                     {
-                                        buffer_edge(buffered_edges, o.left,
-                                                    o.right, output_id,
-                                                    ancestry_node);
+                                        buffer_edge(E, o.left, o.right,
+                                                    output_id, ancestry_node);
                                         ancestry_node = output_id;
                                     }
                             }
@@ -311,14 +348,13 @@ namespace fwdpp
                                 for (auto x = o.overlapping.begin();
                                      x < o.overlapping_end; ++x)
                                     {
-                                        buffer_edge(buffered_edges, o.left,
-                                                    o.right, output_id,
-                                                    x->node);
+                                        buffer_edge(E, o.left, o.right,
+                                                    output_id, x->node);
                                     }
                             }
                         if (is_sample && o.left != previous_right)
                             {
-                                assert(previous_right < o.left);
+                                //assert(previous_right < o.left);
                                 add_ancestry(parent_input_id, previous_right,
                                              o.left, ancestry_node);
                             }
@@ -327,7 +363,7 @@ namespace fwdpp
                                 std::cerr << o.left << ' ' << o.right
                                           << std::endl;
                             }
-                        assert(o.left < o.right);
+                        //assert(o.left < o.right);
                         add_ancestry(parent_input_id, o.left, o.right,
                                      ancestry_node);
                         previous_right = o.right;
@@ -339,7 +375,7 @@ namespace fwdpp
                     }
                 if (output_id != -1)
                     {
-                        auto n = squash_and_flush_edges(buffered_edges);
+                        auto n = squash_and_flush_edges(E);
                         if (!n && !is_sample)
                             {
                                 new_node_table.erase(new_node_table.begin()
@@ -352,8 +388,8 @@ namespace fwdpp
 
             int
             squash_and_flush_edges(
-                const std::map<std::int32_t, std::vector<edge>>&
-                    buffered_edges)
+                //const std::map<std::int32_t, std::vector<edge>>&
+                std::vector<edge>& buffered_edges)
             // Implementation copied from msprime.
             // Squashes identical edges on a per-parent
             // basis and adds them to the output list of edges.
@@ -361,16 +397,22 @@ namespace fwdpp
             // by Jerome Kelleher, version 0.5.0 of that code.
             // http://github.com/jeromekelleher/msprime.
             {
-                int n = 0;
-                for (auto& i : buffered_edges)
-                    {
-                        for (auto& e : i.second)
-                            {
-                                new_edge_table.emplace_back(std::move(e));
-                                ++n;
-                            }
-                    }
-                return n;
+                std::stable_sort(buffered_edges.begin(), buffered_edges.end(),
+                                 [](const edge& a, const edge& b) {
+                                     return a.child < b.child;
+                                 });
+                new_edge_table.insert(
+                    new_edge_table.end(),buffered_edges.begin(),buffered_edges.end());
+                return buffered_edges.size();
+                //for (auto& i : buffered_edges)
+                //    {
+                //        for (auto& e : i.second)
+                //            {
+                //                new_edge_table.emplace_back(std::move(e));
+                //                ++n;
+                //            }
+                //    }
+                //return n;
             }
 
             void
