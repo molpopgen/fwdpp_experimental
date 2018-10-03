@@ -133,33 +133,6 @@ namespace fwdpp
             // region length
             const double L;
 
-            bool
-            add_to_queue(const double left, const double right,
-                         const std::int32_t node, const bool added)
-            {
-                bool rv = added;
-                if (!segment_queue.empty() && left > segment_queue.back().left)
-                    {
-                        return false;
-                    }
-                segment_queue.emplace_back(left, right, node);
-                return rv;
-            }
-
-            void
-            sort_queue(std::size_t beg) noexcept
-            {
-                std::sort(segment_queue.begin() + beg, segment_queue.end(),
-                          [](const segment& a, const segment& b) {
-                              return a.left > b.left;
-                          });
-                assert(std::is_sorted(segment_queue.begin(),
-                                      segment_queue.end(),
-                                      [](const segment& a, const segment& b) {
-                                          return a.left > b.left;
-                                      }));
-            }
-
             void
             cleanup() noexcept
             // Clears out data from
