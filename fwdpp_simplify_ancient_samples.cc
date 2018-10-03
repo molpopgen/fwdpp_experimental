@@ -208,6 +208,11 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                         }
                 }
         }
+    //TODO: deal with the next two calls.
+    //The cleansing of fixations from the 
+    //mutation table will not be correct if
+    //an ancient sample contains a variant.
+    //Same with the call to gamete_cleaner.
     tables.mutation_table.erase(
         std::remove_if(
             tables.mutation_table.begin(), tables.mutation_table.end(),
