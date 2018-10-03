@@ -86,7 +86,7 @@ namespace fwdpp
                         // breakpoints to only those seen
                         // an odd number of times.
                         // Even numbers of the same breakpoint
-                        // are "double x-overs" and thus 
+                        // are "double x-overs" and thus
                         // cannot affect the genealogy.
                         std::vector<double> odd_breakpoints;
                         auto start = breakpoints.begin();
@@ -103,11 +103,10 @@ namespace fwdpp
                                                        start, itr + 1 - even);
                                 start = not_equal;
                                 itr = std::adjacent_find(
-                                    start,
-                                    std::end(breakpoints));
+                                    start, std::end(breakpoints));
                             }
-                        odd_breakpoints.insert(odd_breakpoints.end(),
-                                start,breakpoints.end());
+                        odd_breakpoints.insert(odd_breakpoints.end(), start,
+                                               breakpoints.end());
                         split_breakpoints_add_edges(odd_breakpoints, parents,
                                                     next_index);
                     }
@@ -229,6 +228,11 @@ namespace fwdpp
 
             bool
             edges_are_sorted() const noexcept
+            /// Test the MINIMAL sorting requirement.
+            /// This minimal condition is important, 
+            /// as ancient sample tracking will not 
+            /// guarantee a sort order on the parental
+            /// node IDs.
             {
                 return std::is_sorted(
                     edge_table.begin(), edge_table.end(),
@@ -236,10 +240,8 @@ namespace fwdpp
                         auto ga = this->node_table[a.parent].generation;
                         auto gb = this->node_table[b.parent].generation;
                         return ga > gb
-                               || (ga == gb
-                                   && std::tie(a.parent, a.child, a.left)
-                                          < std::tie(b.parent, b.child,
-                                                     b.left));
+                               && (std::tie(a.child, a.left)
+                                   < std::tie(b.child, b.left));
                     });
             }
 
