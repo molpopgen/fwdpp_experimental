@@ -156,10 +156,11 @@ main(int argc, char** argv)
         }
     out.close();
     out.open(edgeoutfile.c_str());
+    out.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    out.precision(6);
     for (auto& n : tables.edge_table)
         {
-            out << n.left << ' ' << n.right << ' ' << n.parent << ' '
-                << n.child << '\n';
+            out << n.parent<<' '<<n.child<<' ' <<n.left << ' ' << n.right << '\n';
         }
     out.close();
 }

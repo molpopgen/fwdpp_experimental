@@ -65,7 +65,7 @@ print("Simplifying: ",C-B,"seconds")
 
 with open(sys.argv[4],'w') as f:
     for i in edges:
-        f.write("{} {} {} {}\n".format(i.parent,i.child,i.left,i.right,nodes[i.parent].time))
+        f.write("{} {} {:.6f} {:.6f}\n".format(i.parent,i.child,i.left,i.right,nodes[i.parent].time))
 with open(sys.argv[5],'w') as f:
     for i in nodes:
         f.write("{}\n".format(i.time))
