@@ -208,37 +208,6 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                         }
                 }
         }
-#ifndef NDEBUG
-    decltype(pop.mcounts) mc;
-    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
-    //assert(pop.mcounts == mc);
-    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
-        {
-            if (!pop.mutations[i].neutral && pop.mcounts[i] > 0)
-                {
-                    // We only want to assert this for a mutation whose
-                    // mutation node is not an ancient sample node!
-                    auto mti = std::find_if(
-                        tables.mutation_table.begin(),
-                        tables.mutation_table.end(),
-                        [i](const fwdpp::ts::mutation_record& mr) {
-                            return mr.key == i;
-                        });
-                    assert(mti != tables.mutation_table.end());
-                    if (std::find(ancient_nodes.begin(), ancient_nodes.end(),
-                                  mti->node)
-                        == ancient_nodes.end())
-                        {
-                            if (pop.mcounts[i] != mc[i])
-                                {
-                                    std::cout << pop.mcounts[i] << ' ' << mc[i]
-                                              << std::endl;
-                                }
-                            assert(pop.mcounts[i] == mc[i]);
-                        }
-                }
-        }
-#endif
     tables.mutation_table.erase(
         std::remove_if(
             tables.mutation_table.begin(), tables.mutation_table.end(),
