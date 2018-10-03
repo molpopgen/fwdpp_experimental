@@ -57,7 +57,7 @@ with open(ofname, 'w') as f:
 with open(ofname2, 'w') as f:
     for left, right, X in overlapping_segments(segs):
         #f.write("{} {} {}\n".format(left,right,X))
-        f.write("{} {}-> ".format(left, right))
+        f.write("{:.6f} {:.6f}-> ".format(left, right))
         for x in X:
-            f.write("{},{},{} |".format(x.left, x.right, int(x.node)))
+            f.write("{:.6f},{:.6f},{} |".format(x.left, x.right, int(x.node)))
         f.write("\n")

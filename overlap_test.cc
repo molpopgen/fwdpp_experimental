@@ -19,23 +19,33 @@ class segment_overlapper
   private:
     vector<segment>::const_iterator sbeg, send;
 
-    inline void
+    inline double
     set_partition()
     {
-        overlapping_end = stable_partition(
-            overlapping.begin(), overlapping_end,
-            [this](const segment& seg) { return seg.right > left; });
+        double tright = numeric_limits<double>::max();
+        auto b = overlapping.begin();
+        for (auto i = overlapping.begin(); i < overlapping_end; ++i)
+            {
+                if (i->right > left)
+                    {
+                        *b = *i;
+                        tright = min(tright, b->right);
+                        ++b;
+                    }
+            }
+        overlapping_end = b;
+        return tright;
     }
 
-    inline double
-    min_right_overlap()
-    {
-        return min_element(overlapping.begin(), overlapping_end,
-                           [](const segment& a, const segment& b) {
-                               return a.right < b.right;
-                           })
-            ->right;
-    }
+    //inline double
+    //min_right_overlap()
+    //{
+    //    return min_element(overlapping.begin(), overlapping_end,
+    //                       [](const segment& a, const segment& b) {
+    //                           return a.right < b.right;
+    //                       })
+    //        ->right;
+    //}
 
   public:
     vector<segment> overlapping;
@@ -55,33 +65,38 @@ class segment_overlapper
         if (sbeg < send)
             {
                 left = right;
-                set_partition();
-                if (distance(overlapping.begin(), overlapping_end) == 0)
+                auto tright = set_partition();
+                if (num_overlaps() == 0)
                     {
                         left = sbeg->left;
                     }
                 while (sbeg < send && sbeg->left == left)
                     {
+                        tright = std::min(tright, sbeg->right);
                         overlapping_end
                             = overlapping.insert(overlapping_end, *sbeg) + 1;
                         ++sbeg;
                     }
-                right = sbeg->left;
-                right = min(sbeg->left, min_right_overlap());
+                right = min(sbeg->left, tright);
                 rv = true;
             }
         else
             {
                 left = right;
                 right = numeric_limits<double>::max();
-                set_partition();
-                if (distance(overlapping.begin(), overlapping_end) > 0)
+                auto tright = set_partition();
+                if (num_overlaps() > 0)
                     {
-                        right = min_right_overlap();
+                        right = tright;
                         rv = true;
                     }
             }
         return rv;
+    }
+    std::int64_t
+    num_overlaps()
+    {
+        return std::distance(overlapping.begin(), overlapping_end);
     }
 };
 
@@ -179,15 +194,18 @@ main(int argc, char** argv)
     segs.emplace_back(segment{ numeric_limits<double>::max(),
                                numeric_limits<double>::max(), -1 });
     segment_overlapper o(segs);
+    ofstream out(outfile);
+    out.setf(std::ios_base::fixed, std::ios_base::floatfield);
+    out.precision(6);
     while (o())
         {
-            cout << o.left << ' ' << o.right << " -> ";
+            out << o.left << ' ' << o.right << "-> ";
             for (auto i = o.overlapping.begin(); i < o.overlapping_end; ++i)
                 {
-                    cout << i->left << ',' << i->right << ',' << i->node
-                         << " | ";
+                    out << i->left << ',' << i->right << ',' << i->node
+                         << " |";
                 }
-            cout << '\n';
+            out << '\n';
         }
     //calculate_overlaps(segs, outfile);
 }
