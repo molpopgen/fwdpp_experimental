@@ -318,7 +318,7 @@ namespace fwdpp
                         if (is_sample && o.left != previous_right)
                             {
                                 add_ancestry(parent_input_id, previous_right,
-                                             o.left, ancestry_node);
+                                             o.left, output_id);
                             }
                         add_ancestry(parent_input_id, o.left, o.right,
                                      ancestry_node);
