@@ -124,8 +124,9 @@ main(int argc, char** argv)
     std::cerr << tables.node_table.size() << " nodes, "
               << tables.edge_table.size() << " edges\n";
     std::vector<std::int32_t> samples;
-    for (unsigned i = tables.node_table.size() - 2 * N;
-         i < tables.node_table.size(); ++i)
+    //for (unsigned i = tables.node_table.size() - 2 * N;
+    for (unsigned i = 0;
+         i < tables.node_table.size(); i+=132)
         {
             samples.push_back(i);
         }

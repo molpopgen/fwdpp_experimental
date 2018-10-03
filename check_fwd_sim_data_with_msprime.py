@@ -50,7 +50,8 @@ edges.set_columns(parent=p,child=c,left=l,right=r)
 
 
 N=int(sys.argv[3])
-samples=[i for i in range(len(times)-2*N,len(times))] 
+#samples=[i for i in range(len(times)-2*N,len(times))] 
+samples=[i for i in range(0,len(times),132)]
 ts=None
 
 A=time.time()
