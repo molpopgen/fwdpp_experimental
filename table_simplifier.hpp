@@ -528,6 +528,11 @@ namespace fwdpp
                      std::vector<std::uint32_t>& mcounts)
             /// Simplify algorithm is approximately the same
             /// logic as used in msprime 0.6.0
+            ///
+            /// \param tables A table_collection
+            /// \param samples A list of sample (node) ids.
+            /// \param mutations A container of mutations
+            /// \param mcounts Vector for storing mutation counts
             {
                 Ancestry.resize(tables.node_table.size());
 
