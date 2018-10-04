@@ -37,10 +37,13 @@ namespace fwdpp
             };
 
             class segment_overlapper
-            //TODO: this class should have an "init"
-            //function to reset all variables,
-            //allowing for memory to be re-used
-            //for each set of parental edges, etc.
+            /// This class is an iterable object
+            /// over [left, right) -> segment
+            /// mappings, where the segments
+            /// are the genomic intervals in
+            /// child nodes overlapping with
+            /// the current parent in the
+            /// current genomic interval.
             {
               private:
                 std::vector<segment>::const_iterator sbeg, send;
@@ -75,15 +78,16 @@ namespace fwdpp
                 {
                 }
 
-                void init(std::vector<segment> & segs)
+                void
+                init(std::vector<segment>& segs)
                 {
-                    sbeg=segs.begin();
+                    sbeg = segs.begin();
                     // The - 1 for send assumes a "cap"/sentinel value.
-                    send=segs.end()-1;
+                    send = segs.end() - 1;
                     overlapping.clear();
-                    overlapping_end=overlapping.end();
-                    left=0.0;
-                    right=std::numeric_limits<double>::max();
+                    overlapping_end = overlapping.end();
+                    left = 0.0;
+                    right = std::numeric_limits<double>::max();
                 }
 
                 bool
@@ -400,13 +404,13 @@ namespace fwdpp
                     }
                 // TODO: when processing the mutation map,
                 // we should treat mutations on ancient samples
-                // differently.  We do not want them to 
+                // differently.  We do not want them to
                 // be counted, as counting should be redefined w.r.to
                 // alive samples only.  Thus, we need to preserve them
                 // in the table (somehow), and only count w.r.to the alive samples.
                 // It appears that the best method to do this is to augment
                 // the mutation table to augment the concept of mutation_record
-                // to include a boolean field on_ancient, signifying that 
+                // to include a boolean field on_ancient, signifying that
                 // the mutation is found on a preserved node.  The loop below would
                 // be responsible for keeping that field updated.
                 // Then, back in the simulation itself, we need cleanup code that will
@@ -507,7 +511,7 @@ namespace fwdpp
           public:
             table_simplifier(const double maxpos)
                 : new_edge_table{}, new_node_table{},
-                  segment_queue{}, Ancestry{}, E{}, L{ maxpos },o{}
+                  segment_queue{}, Ancestry{}, E{}, L{ maxpos }, o{}
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
