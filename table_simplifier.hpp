@@ -438,6 +438,7 @@ namespace fwdpp
                                        return mr.node == -1;
                                    }),
                     tables.mutation_table.end());
+                //TODO: replace assert with exception
                 assert(std::is_sorted(
                     tables.mutation_table.begin(), tables.mutation_table.end(),
                     [&mutations](const mutation_record& a,
