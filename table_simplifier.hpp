@@ -398,6 +398,23 @@ namespace fwdpp
                     {
                         mr.node = -1;
                     }
+                // TODO: when processing the mutation map,
+                // we should treat mutations on ancient samples
+                // differently.  We do not want them to 
+                // be counted, as counting should be redefined w.r.to
+                // alive samples only.  Thus, we need to preserve them
+                // in the table (somehow), and only count w.r.to the alive samples.
+                // It appears that the best method to do this is to augment
+                // the mutation table to augment the concept of mutation_record
+                // to include a boolean field on_ancient, signifying that 
+                // the mutation is found on a preserved node.  The loop below would
+                // be responsible for keeping that field updated.
+                // Then, back in the simulation itself, we need cleanup code that will
+                // not flag such mutations for recycling.
+                // The inherent difficulty is that the mutation table and the population
+                // mutation vector will diverge in length.  Same for pop.mcounts.  The
+                // length divergence implies that we need a method for setting up mutation
+                // recycling bins that are specific to simulations with tree sequences.
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
