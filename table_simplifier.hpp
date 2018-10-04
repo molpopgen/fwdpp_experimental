@@ -68,13 +68,24 @@ namespace fwdpp
                 std::vector<segment> overlapping;
                 std::vector<segment>::iterator overlapping_end;
                 double left, right;
-                segment_overlapper(const std::vector<segment>& segs)
+                segment_overlapper()
                     // The - 1 for send assumes a "cap"/sentinel value.
-                    : sbeg(segs.begin()), send(segs.end() - 1), overlapping{},
+                    : sbeg(), send(), overlapping{},
                       overlapping_end(overlapping.end()), left(0),
                       right(std::numeric_limits<double>::max())
                 {
                 }
+
+                void init(std::vector<segment> & segs)
+                {
+                    sbeg=segs.begin();
+                    send=segs.end()-1;
+                    overlapping.clear();
+                    overlapping_end=overlapping.end();
+                    left=0.0;
+                    right=std::numeric_limits<double>::max();
+                }
+
                 bool
                 operator()()
                 {
@@ -132,6 +143,7 @@ namespace fwdpp
             edge_vector E;
             // region length
             const double L;
+            segment_overlapper o;
 
             void
             cleanup() noexcept
@@ -252,7 +264,7 @@ namespace fwdpp
                         Ancestry[parent_input_id].clear();
                     }
                 double previous_right = 0.0;
-                segment_overlapper o(segment_queue);
+                o.init(segment_queue);
                 std::int32_t ancestry_node = -1;
                 E.clear();
                 while (o() == true)
@@ -477,7 +489,7 @@ namespace fwdpp
           public:
             table_simplifier(const double maxpos)
                 : new_edge_table{}, new_node_table{},
-                  segment_queue{}, Ancestry{}, E{}, L{ maxpos }
+                  segment_queue{}, Ancestry{}, E{}, L{ maxpos },o{}
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
