@@ -69,7 +69,6 @@ namespace fwdpp
                 std::vector<segment>::iterator overlapping_end;
                 double left, right;
                 segment_overlapper()
-                    // The - 1 for send assumes a "cap"/sentinel value.
                     : sbeg(), send(), overlapping{},
                       overlapping_end(overlapping.end()), left(0),
                       right(std::numeric_limits<double>::max())
@@ -79,6 +78,7 @@ namespace fwdpp
                 void init(std::vector<segment> & segs)
                 {
                     sbeg=segs.begin();
+                    // The - 1 for send assumes a "cap"/sentinel value.
                     send=segs.end()-1;
                     overlapping.clear();
                     overlapping_end=overlapping.end();
