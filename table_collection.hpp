@@ -123,9 +123,11 @@ namespace fwdpp
             // newly-added nodes.
             std::ptrdiff_t edge_offset;
             const double L;
+            std::vector<std::int32_t> preserved_nodes;
             table_collection(const double maxpos)
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
-                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
+                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos },
+                  preserved_nodes{}
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -138,7 +140,8 @@ namespace fwdpp
                              const double initial_time, std::int32_t pop,
                              const double maxpos)
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
-                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos }
+                  input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos },
+                  preserved_nodes{}
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -229,8 +232,8 @@ namespace fwdpp
             bool
             edges_are_sorted() const noexcept
             /// Test the MINIMAL sorting requirement.
-            /// This minimal condition is important, 
-            /// as ancient sample tracking will not 
+            /// This minimal condition is important,
+            /// as ancient sample tracking will not
             /// guarantee a sort order on the parental
             /// node IDs.
             {
@@ -255,6 +258,29 @@ namespace fwdpp
                 node_table.clear();
                 edge_table.clear();
                 mutation_table.clear();
+                preserved_nodes.clear();
+            }
+
+            void
+            record_preserved_nodes(const std::vector<std::int32_t>& node_ids)
+            {
+                for (auto i : node_ids)
+                    {
+                        if (i >= node_table.size())
+                            {
+                                throw std::invalid_argument(
+                                    "node id larger than node table size");
+                            }
+                        if (std::find(preserved_nodes.begin(),
+                                      preserved_nodes.end(), i)
+                            != preserved_nodes.end())
+                            {
+                                throw std::invalid_argument(
+                                    "node already recorded as a "
+                                    "preserved_node");
+                            }
+                        preserved_nodes.push_back(i);
+                    }
             }
 
             void
