@@ -1,6 +1,7 @@
 #ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 #define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 
+#include <iostream>
 #include <cmath>
 #include <map>
 #include <vector>
@@ -373,6 +374,14 @@ namespace fwdpp
                                 return mutations[a.first].pos
                                        < mutations[b.first].pos;
                             });
+                        for (auto x : mm.second)
+                            {
+                                if (x.first == 42)
+                                    {
+                                        std::cout << "mut 42 on input node "
+                                                  << mm.first << '\n';
+                                    }
+                            }
                     }
 
                 return mutation_map;
@@ -419,6 +428,14 @@ namespace fwdpp
                 // mutation vector will diverge in length.  Same for pop.mcounts.  The
                 // length divergence implies that we need a method for setting up mutation
                 // recycling bins that are specific to simulations with tree sequences.
+
+                // NOTE When we are done with this part of the algorithm,
+                // the mutations are simplified.  Thus, we can
+                // use the existence of a key in the mutation table
+                // to mean "do not recycle".  What we cannot do
+                // is prune fixations from gametes, etc..  To do
+                // that, we need to get just the extant variant counts,
+                // which is what is done after this loop.
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
@@ -432,8 +449,31 @@ namespace fwdpp
                                     {
                                         assert(mut < mute);
                                         assert(mut->first < mutations.size());
+                                        if (mut->first == 42)
+                                            {
+                                                std::cout
+                                                    << "remapping "
+                                                    << mut->first << " from "
+                                                    << tables.mutation_table[mut->second].node << " to "
+                                                    << seg->node << '\n';
+                                            }
                                         tables.mutation_table[mut->second].node
                                             = seg->node;
+                                        if (std::find(
+                                                tables.preserved_nodes.begin(),
+                                                tables.preserved_nodes.end(),
+                                                seg->node)
+                                            != tables.preserved_nodes.end())
+                                            {
+                                                std::cout
+                                                    << "mutation on "
+                                                       "preserved node "
+                                                    << tables
+                                                           .mutation_table
+                                                               [mut->second]
+                                                           .key
+                                                    << ' ' << std::endl;
+                                            }
                                         ++mut;
                                     }
                                 else if (pos >= seg->right)
@@ -466,6 +506,7 @@ namespace fwdpp
                                  const mutation_record& b) {
                         return mutations[a.key].pos < mutations[b.key].pos;
                     }));
+                std::cout << "number of samples is " << samples.size() << '\n';
 
                 // 2. Now, we use Kelleher et al. (2016)'s Algorithm L
                 // to march through each marginal tree and its leaf
@@ -474,6 +515,14 @@ namespace fwdpp
                 std::fill(mcounts.begin(), mcounts.end(), 0);
                 mcounts.resize(mutations.size(), 0);
 
+                std::vector<std::size_t> keys;
+                for (auto& mr : tables.mutation_table)
+                    {
+                        keys.push_back(mr.key);
+                    }
+                std::sort(keys.begin(), keys.end());
+                auto ki = std::unique(keys.begin(), keys.end());
+                //assert(ki==keys.end());
                 auto mtable_itr = tables.mutation_table.begin();
                 auto mtable_end = tables.mutation_table.end();
                 auto mutation_counter = [&mutations, &mtable_itr, mtable_end,
@@ -484,6 +533,7 @@ namespace fwdpp
                         {
                             ++mtable_itr;
                         }
+                    bool printed=false;
                     while (mtable_itr < mtable_end
                            && mutations[mtable_itr->key].pos < marginal.right)
                         {
@@ -491,8 +541,28 @@ namespace fwdpp
                                    >= marginal.left);
                             assert(mutations[mtable_itr->key].pos
                                    < marginal.right);
+                            if (mtable_itr->key == 42
+                                || mtable_itr->key == 168)
+                                {
+                                    std::cout
+                                        << "assigning count of "
+                                        << marginal
+                                               .leaf_counts[mtable_itr->node]
+                                        << " to " << mtable_itr->key
+                                        << " on tree " << marginal.left << ' '
+                                        << marginal.right << " at node "
+                            << mtable_itr->node << '\n';            
+                                }
                             mcounts[mtable_itr->key]
                                 = marginal.leaf_counts[mtable_itr->node];
+                            if(mtable_itr->key==42 && ! printed)
+                            {
+                                for(std::size_t i=0;i<marginal.parents.size();++i)
+                                {
+                                    std::cout<<"the tree: "<< i<<' '<<marginal.parents[i]  << ' ' << marginal.leaf_counts[i] << ' ' << marginal.is_sample[i] << '\n'; 
+                                }
+                                printed=true;
+                            }
                             ++mtable_itr;
                         }
                 };
@@ -502,6 +572,10 @@ namespace fwdpp
                 for (std::size_t i = 0; i < samples.size(); ++i)
                     {
                         remapped_samples[i] = idmap[samples[i]];
+                        assert(std::find(tables.preserved_nodes.begin(),
+                                         tables.preserved_nodes.end(),
+                                         remapped_samples[i])
+                               == tables.preserved_nodes.end());
                     }
                 algorithmL(tables.input_left, tables.output_right,
                            remapped_samples, tables.node_table.size(),
@@ -559,6 +633,22 @@ namespace fwdpp
                             new_node_table.size() - 1);
                     }
 
+                // Add samples for any preserved nodes in the tables:
+                for (const auto& s : tables.preserved_nodes)
+                    {
+                        assert(idmap[s] == -1);
+                        assert(Ancestry[s].empty());
+                        new_node_table.emplace_back(
+                            node{ tables.node_table[s].population,
+                                  tables.node_table[s].generation });
+                        Ancestry[s].emplace_back(
+                            0, L,
+                            static_cast<std::int32_t>(new_node_table.size()
+                                                      - 1));
+                        idmap[s] = static_cast<std::int32_t>(
+                            new_node_table.size() - 1);
+                    }
+
                 // At this point, our edges are sorted by birth
                 // order of parents, from present to past.
                 // We can now work our way up the pedigree.
@@ -574,6 +664,18 @@ namespace fwdpp
                         merge_ancestors(tables.node_table, u, idmap);
                     }
 
+                // When there are preserved nodes, we need to re map
+                // their input ids to output ids
+                for (auto& p : tables.preserved_nodes)
+                    {
+                        if (idmap[p] == -1)
+                            {
+                                throw std::runtime_error(
+                                    "preserved node output id mapps to null");
+                            }
+                        p = idmap[p];
+                    }
+
                 assert(static_cast<std::size_t>(std::count_if(
                            idmap.begin(), idmap.end(),
                            [](const std::int32_t i) { return i != -1; }))
@@ -585,6 +687,11 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
+                if (idmap.size() > 4156)
+                    {
+                        std::cout << "3599 -> " << idmap[3599] << '\n';
+                        std::cout << "4156 -> " << idmap[4156] << '\n';
+                    }
 
                 simplify_mutations(mutations, mcounts, samples, idmap, tables,
                                    mutation_map);
@@ -592,8 +699,8 @@ namespace fwdpp
                 cleanup();
                 return idmap;
             }
-        };
-    } // namespace ts
+        }; // namespace ts
+    }      // namespace ts
 } // namespace fwdpp
 
 #endif
