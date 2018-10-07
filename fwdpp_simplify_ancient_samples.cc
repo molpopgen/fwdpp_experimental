@@ -146,6 +146,13 @@ make_mut_queue(const mcont_t& mutations,
                 }
             else
                 {
+                    assert(std::find_if(
+                               tables.mutation_table.begin(),
+                               tables.mutation_table.end(),
+                               [i](const fwdpp::ts::mutation_record& mr) {
+                                   return mr.key == i;
+                               })
+                           == tables.mutation_table.end());
                     rv.push(i);
                 }
         }
@@ -214,7 +221,42 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     auto gamete_recycling_bin
         = fwdpp::fwdpp_internal::make_gamete_queue(pop.gametes);
     auto mutation_recycling_bin = make_mut_queue(pop.mutations, tables);
-
+#ifndef NDEBUG
+    auto xx(mutation_recycling_bin);
+    std::vector<std::size_t> foo;
+    while (!xx.empty())
+        {
+            foo.push_back(xx.front());
+            xx.pop();
+        }
+    for (auto& g : pop.gametes)
+        {
+            if (g.n > 0)
+                {
+                    for (auto f : foo)
+                        {
+                            auto ni = std::find(g.mutations.begin(),
+                                                g.mutations.end(), f);
+                            auto si = std::find(g.smutations.begin(),
+                                                g.smutations.end(), f);
+                            if (ni != g.mutations.end())
+                                {
+                                    std::cout << "neutral: " << f << ' '
+                                              << pop.mutations[f].g << ' '
+                                              << generation << '\n';
+                                }
+                            if (si != g.smutations.end())
+                                {
+                                    std::cout << "selected: " << f << ' '
+                                              << pop.mutations[f].g << ' '
+                                              << generation << '\n';
+                                }
+                            assert(si == g.smutations.end());
+                            assert(ni == g.mutations.end());
+                        }
+                }
+        }
+#endif
     auto lookup = w(pop, fwdpp::multiplicative_diploid());
     decltype(pop.diploids) offspring(N_next);
 
@@ -268,6 +310,9 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     for (auto& s : samples)
         {
             s = idmap[s];
+            assert(std::find(tables.preserved_nodes.begin(),
+                             tables.preserved_nodes.end(), s)
+                   == tables.preserved_nodes.end());
             assert(s != -1);
         }
     tables.build_indexes();
@@ -290,6 +335,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 }
         }
 #endif
+    // NOTE the ancient sample indexes are wrong.
     if (generation > 0 && generation % 100 == 0.0)
         {
             //record every 50th node of the current generation
@@ -306,6 +352,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                                    == generation + 1);
                         }
                 }
+            std::cerr << '\n';
         }
     //TODO: deal with the next three calls.
     //The cleansing of fixations from the
