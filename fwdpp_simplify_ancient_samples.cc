@@ -335,7 +335,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 }
         }
 #endif
-    // NOTE the ancient sample indexes are wrong.
+    // NOTE the ancient sample indexes are wrong?
     if (generation > 0 && generation % 100 == 0.0)
         {
             //record every 50th node of the current generation
