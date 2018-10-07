@@ -487,11 +487,8 @@ namespace fwdpp
                             }
                     }
 
-                // 1. Remove all mutations whose output nodes are simply gone.
-                // Note this does not remove mutations where the node still exists
-                // somewhere in the pedigree, but the mutation is on a marginal tree
-                // where the node is not an ancestor.
-                // This is a fast O(n).
+                // Any mutations with null node values do not have
+                // ancestry and may be removed.
                 tables.mutation_table.erase(
                     std::remove_if(tables.mutation_table.begin(),
                                    tables.mutation_table.end(),
