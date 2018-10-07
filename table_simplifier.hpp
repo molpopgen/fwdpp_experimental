@@ -381,8 +381,6 @@ namespace fwdpp
             template <typename mcont_t>
             void
             simplify_mutations(const mcont_t& mutations,
-                               std::vector<std::uint32_t>& mcounts,
-                               const std::vector<std::int32_t>& samples,
                                const std::vector<std::int32_t>& idmap,
                                table_collection& tables,
                                mutation_map_t& mutation_map) const
@@ -471,46 +469,6 @@ namespace fwdpp
                                  const mutation_record& b) {
                         return mutations[a.key].pos < mutations[b.key].pos;
                     }));
-
-                // 2. Now, we use Kelleher et al. (2016)'s Algorithm L
-                // to march through each marginal tree and its leaf
-                // counts. At the same time, we march through our mutation
-                // table, which is sorted by position.
-                std::fill(mcounts.begin(), mcounts.end(), 0);
-                mcounts.resize(mutations.size(), 0);
-
-                auto mtable_itr = tables.mutation_table.begin();
-                auto mtable_end = tables.mutation_table.end();
-                auto mutation_counter = [&mutations, &mtable_itr, mtable_end,
-                                         &mcounts](
-                                            const marginal_tree& marginal) {
-                    while (mtable_itr < mtable_end
-                           && mutations[mtable_itr->key].pos < marginal.left)
-                        {
-                            ++mtable_itr;
-                        }
-                    while (mtable_itr < mtable_end
-                           && mutations[mtable_itr->key].pos < marginal.right)
-                        {
-                            assert(mutations[mtable_itr->key].pos
-                                   >= marginal.left);
-                            assert(mutations[mtable_itr->key].pos
-                                   < marginal.right);
-                            mcounts[mtable_itr->key]
-                                = marginal.leaf_counts[mtable_itr->node];
-                            ++mtable_itr;
-                        }
-                };
-
-                tables.build_indexes(); // Expensive!!!
-                std::vector<std::int32_t> remapped_samples(samples.size());
-                for (std::size_t i = 0; i < samples.size(); ++i)
-                    {
-                        remapped_samples[i] = idmap[samples[i]];
-                    }
-                algorithmL(tables.input_left, tables.output_right,
-                           remapped_samples, tables.node_table.size(),
-                           tables.L, mutation_counter);
             }
 
           public:
@@ -529,15 +487,13 @@ namespace fwdpp
             std::vector<std::int32_t>
             simplify(table_collection& tables,
                      const std::vector<std::int32_t>& samples,
-                     const mutation_container& mutations,
-                     std::vector<std::uint32_t>& mcounts)
+                     const mutation_container& mutations)
             /// Simplify algorithm is approximately the same
             /// logic as used in msprime 0.6.0
             ///
             /// \param tables A table_collection
             /// \param samples A list of sample (node) ids.
             /// \param mutations A container of mutations
-            /// \param mcounts Vector for storing mutation counts
             {
                 Ancestry.resize(tables.node_table.size());
 
@@ -618,7 +574,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
-                simplify_mutations(mutations, mcounts, samples, idmap, tables,
+                simplify_mutations(mutations, idmap, tables,
                                    mutation_map);
 
                 cleanup();
