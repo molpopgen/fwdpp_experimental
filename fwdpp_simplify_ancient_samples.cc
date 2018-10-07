@@ -119,10 +119,90 @@ generate_offspring(const GSLrng_t& rng, const breakpoint_function& recmodel,
     return next_index + 1;
 }
 
+template <typename mcont_t>
+std::queue<std::size_t>
+make_mut_queue(const mcont_t& mutations,
+               const fwdpp::ts::table_collection& tables)
+/// TODO: put this in fwdpp!
+/// A new mutation recycling bin function that
+/// uses the mutation table to identify extinct
+/// variants.
+{
+    std::queue<std::size_t> rv;
+    for (std::size_t i = 0; i < mutations.size(); ++i)
+        {
+            auto itr = std::lower_bound(
+                tables.mutation_table.begin(), tables.mutation_table.end(), i,
+                [&mutations](const fwdpp::ts::mutation_record& mr,
+                             const std::size_t i) {
+                    return mutations[mr.key].pos < mutations[i].pos;
+                });
+            if (itr < tables.mutation_table.end())
+                {
+                    if (itr->key != i)
+                        {
+                            rv.push(i);
+                        }
+                }
+            else
+                {
+                    rv.push(i);
+                }
+        }
+    return rv;
+}
+
+//template <typename poptype>
+//void
+//update_mutations(poptype& pop, const table_collection& tables,
+//                 const unsigned generation)
+//{
+//    for (std::size_t i = 0; i < pop.mutations.size(); ++i)
+//        {
+//            auto itr = std::lower_bound(
+//                tables.mutation_table.begin(), tables.mutation_table.end(), i,
+//                [&pop](const fwdpp::ts::mutation_record& mr,
+//                             const std::size_t i) {
+//                    return pop.mutations[mr.key].pos < pop.mutations[i].pos;
+//                });
+//            if (itr < tables.mutation_table.end())
+//                {
+//                    if (itr->key != i)
+//                        {
+//                            auto litr = pop.mut_lookup.equal_range(pop.mutations[i].pos);
+//                            while (litr.first != litr.second)
+//                                {
+//                                    if (litr.first->second == i)
+//                                        {
+//                                            pop.mut_lookup.erase(litr.first);
+//                                            break;
+//                                        }
+//                                    ++litr.first;
+//                                }
+//                        }
+//                }
+//            else
+//                {
+//                    if (itr->key != i)
+//                        {
+//                            auto litr = pop.mut_lookup.equal_range(pop.mutations[i].pos);
+//                            while (litr.first != litr.second)
+//                                {
+//                                    if (litr.first->second == i)
+//                                        {
+//                                            pop.mut_lookup.erase(litr.first);
+//                                            break;
+//                                        }
+//                                    ++litr.first;
+//                                }
+//                        }
+//                }
+//        }
+//}
+
 template <typename breakpoint_function, typename mutation_model>
 void
 evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
-                  std::vector<std::int32_t>& ancient_nodes,
                   const fwdpp::uint_t N_next, const double mu,
                   const mutation_model& mmodel,
                   const breakpoint_function& recmodel,
@@ -133,8 +213,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
 
     auto gamete_recycling_bin
         = fwdpp::fwdpp_internal::make_gamete_queue(pop.gametes);
-    auto mutation_recycling_bin
-        = fwdpp::fwdpp_internal::make_mut_queue(pop.mcounts);
+    auto mutation_recycling_bin = make_mut_queue(pop.mutations, tables);
 
     auto lookup = w(pop, fwdpp::multiplicative_diploid());
     decltype(pop.diploids) offspring(N_next);
@@ -185,15 +264,32 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     std::vector<std::int32_t> samples(2 * pop.diploids.size());
     std::iota(samples.begin(), samples.end(),
               tables.num_nodes() - 2 * pop.diploids.size());
-    samples.insert(samples.end(), ancient_nodes.begin(), ancient_nodes.end());
-    auto idmap
-        = simplifier.simplify(tables, samples, pop.mutations);
-    // remap ancient nodes
-    for (auto& a : ancient_nodes)
+    auto idmap = simplifier.simplify(tables, samples, pop.mutations);
+    for (auto& s : samples)
         {
-            assert(idmap[a] != -1);
-            a = idmap[a];
+            s = idmap[s];
+            assert(s != -1);
         }
+    tables.build_indexes();
+    tables.count_mutations(pop.mutations, samples, pop.mcounts);
+#ifndef NDEBUG
+    decltype(pop.mcounts) mc;
+    fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
+    //assert(pop.mcounts == mc);
+    for (std::size_t i = 0; i < pop.mcounts.size(); ++i)
+        {
+            if (!pop.mutations[i].neutral)
+                {
+                    if (pop.mcounts[i] != mc[i])
+                        {
+                            std::cout << pop.mcounts[i] << ' ' << mc[i] << ' '
+                                      << pop.mutations[i].g << ' '
+                                      << generation << '\n';
+                        }
+                    assert(pop.mcounts[i] == mc[i]);
+                }
+        }
+#endif
     if (generation > 0 && generation % 100 == 0.0)
         {
             //record every 50th node of the current generation
@@ -202,14 +298,17 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                 {
                     if (i && i % 50 == 0.0)
                         {
-                            ancient_nodes.push_back(i);
+                            assert(std::find(tables.preserved_nodes.begin(),
+                                             tables.preserved_nodes.end(), i)
+                                   == tables.preserved_nodes.end());
+                            tables.preserved_nodes.push_back(i);
                             assert(tables.node_table[i].generation
                                    == generation + 1);
                         }
                 }
         }
     //TODO: deal with the next three calls.
-    //The cleansing of fixations from the 
+    //The cleansing of fixations from the
     //mutation table will not be correct if
     //an ancient sample contains a variant.
     //Same with the calls to gamete_cleaner
@@ -223,9 +322,10 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
         tables.mutation_table.end());
     fwdpp::fwdpp_internal::gamete_cleaner(
         pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
-    fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
-                            pop.mut_lookup, pop.mcounts, generation,
-                            2 * pop.diploids.size());
+    //update_mutations(pop, tables, generation);
+    //fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
+    //                        pop.mut_lookup, pop.mcounts, generation,
+    //                        2 * pop.diploids.size());
     if (generation && generation % 100 == 0.0)
         {
             auto new_mut_indexes = fwdpp::compact_mutations(pop);
@@ -286,13 +386,11 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
     table_collection tables(2 * pop.diploids.size(), 0, 0, 1.0);
     std::int32_t first_parental_index = 0,
                  next_index = 2 * pop.diploids.size();
-    std::vector<std::int32_t> ancient_nodes;
     for (; generation < generations; ++generation)
         {
             const auto N_next = popsizes[generation];
-            evolve_generation(rng, pop, ancient_nodes, N_next,
-                              mu_neutral + mu_selected, mmodel, recmap,
-                              generation, tables, simplifier,
+            evolve_generation(rng, pop, N_next, mu_neutral + mu_selected,
+                              mmodel, recmap, generation, tables, simplifier,
                               first_parental_index, next_index);
             if (generation && generation % 10 == 0.0)
                 {
