@@ -229,8 +229,13 @@ apply_simplifier(slocuspop_t& pop, table_collection& tables,
     std::vector<std::int32_t> samples(2 * pop.diploids.size());
     std::iota(samples.begin(), samples.end(),
               tables.num_nodes() - 2 * pop.diploids.size());
-    auto idmap
-        = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
+    auto idmap = simplifier.simplify(tables, samples, pop.mutations);
+    for (auto& s : samples)
+        {
+            s = idmap[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(pop.mutations, samples, pop.mcounts);
 #ifndef NDEBUG
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);

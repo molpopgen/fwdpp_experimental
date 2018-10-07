@@ -141,8 +141,7 @@ main(int argc, char** argv)
     table_simplifier ancestry(1.0);
     start = std::chrono::steady_clock::now();
     std::vector<fwdpp::popgenmut> dummy;
-    std::vector<std::uint32_t> mcounts;
-    ancestry.simplify(tables, samples, dummy, mcounts);
+    ancestry.simplify(tables, samples, dummy);
     end = std::chrono::steady_clock::now();
     diff = end - start;
     std::cerr

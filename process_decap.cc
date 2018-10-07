@@ -77,7 +77,13 @@ main(int argc, char** argv)
     tables.sort_tables(mutations);
     table_simplifier simplifier(1.0);
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for (auto& s : samples)
+        {
+            s = res[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(mutations, samples, mcounts);
     tables.mutation_table.erase(
         remove_if(tables.mutation_table.begin(), tables.mutation_table.end(),
                   [&mcounts, &samples](const mutation_record& mr) {

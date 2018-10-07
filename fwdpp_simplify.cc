@@ -185,7 +185,10 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     std::iota(samples.begin(), samples.end(),
               tables.num_nodes() - 2 * pop.diploids.size());
     auto idmap
-        = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
+        = simplifier.simplify(tables, samples, pop.mutations);
+    tables.build_indexes();
+    for(auto & s : samples){s=idmap[s];}
+    tables.count_mutations(pop.mutations,samples,pop.mcounts);
 #ifndef NDEBUG
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);

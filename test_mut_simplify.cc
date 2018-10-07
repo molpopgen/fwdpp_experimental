@@ -38,7 +38,13 @@ test1()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for (auto &s : samples)
+        {
+            s = res[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(mutations, samples, mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts
@@ -75,7 +81,13 @@ test2()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for (auto &s : samples)
+        {
+            s = res[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(mutations, samples, mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts
@@ -107,7 +119,13 @@ test3()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for (auto &s : samples)
+        {
+            s = res[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(mutations, samples, mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts
@@ -143,7 +161,13 @@ test4()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for (auto &s : samples)
+        {
+            s = res[s];
+        }
+    tables.build_indexes();
+    tables.count_mutations(mutations, samples, mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts
@@ -181,7 +205,10 @@ test5()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for(auto&s:samples){s=res[s];}
+    tables.build_indexes();
+    tables.count_mutations(mutations,samples,mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts
@@ -226,7 +253,10 @@ test6()
     table_simplifier simplifier(1.0); // max length
     std::vector<std::int32_t> samples{ 1, 2 };
     std::vector<std::uint32_t> mcounts;
-    auto res = simplifier.simplify(tables, samples, mutations, mcounts);
+    auto res = simplifier.simplify(tables, samples, mutations);
+    for(auto&s:samples){s=res[s];}
+    tables.build_indexes();
+    tables.count_mutations(mutations,samples,mcounts);
 
     // res is the node remapping,
     // and mcounts contains mutation counts

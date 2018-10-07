@@ -187,7 +187,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
               tables.num_nodes() - 2 * pop.diploids.size());
     samples.insert(samples.end(), ancient_nodes.begin(), ancient_nodes.end());
     auto idmap
-        = simplifier.simplify(tables, samples, pop.mutations, pop.mcounts);
+        = simplifier.simplify(tables, samples, pop.mutations);
     // remap ancient nodes
     for (auto& a : ancient_nodes)
         {
