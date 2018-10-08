@@ -415,7 +415,6 @@ namespace fwdpp
                                 auto pos = mutations[mut->first].pos;
                                 if (seg->left <= pos && pos < seg->right)
                                     {
-                                        assert(mut < mute);
                                         assert(mut->first < mutations.size());
                                         tables.mutation_table[mut->second].node
                                             = seg->node;
