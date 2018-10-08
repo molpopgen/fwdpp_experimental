@@ -530,9 +530,10 @@ namespace fwdpp
                         if (idmap[p] == -1)
                             {
                                 throw std::runtime_error(
-                                    "preserved node output id mapps to null");
+                                    "preserved node output id maps to null");
                             }
                         p = idmap[p];
+
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
