@@ -135,53 +135,88 @@ make_mut_queue(const std::vector<std::uint32_t>& mcounts,
     return mutation_recycling_bin;
 }
 
-//template <typename poptype>
-//void
-//update_mutations(poptype& pop, const table_collection& tables,
-//                 const unsigned generation)
-//{
-//    for (std::size_t i = 0; i < pop.mutations.size(); ++i)
-//        {
-//            auto itr = std::lower_bound(
-//                tables.mutation_table.begin(), tables.mutation_table.end(), i,
-//                [&pop](const fwdpp::ts::mutation_record& mr,
-//                             const std::size_t i) {
-//                    return pop.mutations[mr.key].pos < pop.mutations[i].pos;
-//                });
-//            if (itr < tables.mutation_table.end())
-//                {
-//                    if (itr->key != i)
-//                        {
-//                            auto litr = pop.mut_lookup.equal_range(pop.mutations[i].pos);
-//                            while (litr.first != litr.second)
-//                                {
-//                                    if (litr.first->second == i)
-//                                        {
-//                                            pop.mut_lookup.erase(litr.first);
-//                                            break;
-//                                        }
-//                                    ++litr.first;
-//                                }
-//                        }
-//                }
-//            else
-//                {
-//                    if (itr->key != i)
-//                        {
-//                            auto litr = pop.mut_lookup.equal_range(pop.mutations[i].pos);
-//                            while (litr.first != litr.second)
-//                                {
-//                                    if (litr.first->second == i)
-//                                        {
-//                                            pop.mut_lookup.erase(litr.first);
-//                                            break;
-//                                        }
-//                                    ++litr.first;
-//                                }
-//                        }
-//                }
-//        }
-//}
+template <typename poptype>
+void
+gamete_cleaner(poptype& pop, const std::vector<std::uint32_t>& acounts,
+               const fwdpp::uint_t twoN)
+{
+    bool fixations_exist = false;
+    for (std::size_t i = 0; !fixations_exist && i < pop.mcounts.size(); ++i)
+        {
+            if (pop.mcounts[i] == twoN && acounts[i] == 0)
+                {
+                    fixations_exist = true;
+                }
+        }
+    if (fixations_exist)
+        {
+            for (auto& g : pop.gametes)
+                {
+                    if (g.n)
+                        {
+                            auto itr = std::remove_if(
+                                g.mutations.begin(), g.mutations.end(),
+                                [&pop, &acounts,
+                                 twoN](const fwdpp::uint_t& key) {
+                                    return pop.mcounts[key] == twoN
+                                           && acounts[key] == 0;
+                                });
+                            g.mutations.erase(itr, g.mutations.end());
+                            itr = std::remove_if(
+                                g.smutations.begin(), g.smutations.end(),
+                                [&pop, &acounts,
+                                 twoN](const fwdpp::uint_t& key) {
+                                    return pop.mcounts[key] == twoN
+                                           && acounts[key] == 0;
+                                });
+                            g.smutations.erase(itr, g.smutations.end());
+                        }
+                }
+        }
+}
+
+template <typename poptype>
+void
+update_mutations(poptype& pop, const std::vector<fwdpp::uint_t>& acounts,
+                 const unsigned generation)
+{
+    assert(pop.mcounts.size() == acounts.size());
+    for (std::size_t i = 0; i < pop.mutations.size(); ++i)
+        {
+#ifndef NDEBUG
+            if (pop.mcounts[i] > 2 * pop.diploids.size())
+                {
+                    throw std::runtime_error(
+                        "FWDPP DEBUG: mutation count out of range");
+                }
+#endif
+            if (pop.mcounts[i] == 2 * pop.diploids.size()
+                || pop.mcounts[i] == 0)
+                {
+                    if (acounts[i] == 0)
+                        {
+                            if (pop.mcounts[i] == 2 * pop.diploids.size())
+                                {
+                                    pop.fixations.push_back(pop.mutations[i]);
+                                    pop.fixation_times.push_back(generation);
+                                }
+                            auto itr = pop.mut_lookup.equal_range(
+                                pop.mutations[i].pos);
+                            while (itr.first != itr.second)
+                                {
+                                    if (itr.first->second == i)
+                                        {
+                                            pop.mut_lookup.erase(itr.first);
+                                            pop.mcounts[i] = 0;
+                                            break;
+                                        }
+                                    ++itr.first;
+                                }
+                            assert(pop.mcounts[i] == 0);
+                        }
+                }
+        }
+}
 
 template <typename breakpoint_function, typename mutation_model>
 void
@@ -296,6 +331,16 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     tables.count_mutations(pop.mutations, samples, pop.mcounts);
     tables.count_mutations(pop.mutations, tables.preserved_nodes, acounts);
 #ifndef NDEBUG
+    std::vector<std::size_t> keys;
+    for(auto & mr:tables.mutation_table){keys.push_back(mr.key);}
+    std::sort(keys.begin(),keys.end());
+    auto u = std::unique(keys.begin(),keys.end());;
+    if(u != keys.end())
+    {
+        std::cout<<"redundant keys " << generation << '\n';
+    }
+    assert(u==keys.end());
+
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
     //assert(pop.mcounts == mc);
@@ -308,6 +353,17 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                             std::cout << pop.mcounts[i] << ' ' << mc[i] << ' '
                                       << pop.mutations[i].g << ' '
                                       << generation << '\n';
+                            for (auto& mr : tables.mutation_table)
+                                {
+                                    if (mr.key == i)
+                                        {
+                                            std::cout << "variant in mutation "
+                                                         "table "
+                                                      << mr.key << ' '
+                                                      << mr.node << '\n';
+                                        }
+                                }
+                            std::cout<<tables.mutation_table.size()<<' '<<pop.mutations.size()<<std::endl;
                         }
                     assert(pop.mcounts[i] == mc[i]);
                 }
@@ -337,19 +393,22 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     //an ancient sample contains a variant.
     //Same with the calls to gamete_cleaner
     //and update_mutations.
-    //tables.mutation_table.erase(
-    //    std::remove_if(
-    //        tables.mutation_table.begin(), tables.mutation_table.end(),
-    //        [&pop,&acounts](const fwdpp::ts::mutation_record& mr) {
-    //            return pop.mcounts[mr.key] == 2 * pop.diploids.size() && acounts[mr.key]==0;
-    //        }),
-    //    tables.mutation_table.end());
+    tables.mutation_table.erase(
+        std::remove_if(
+            tables.mutation_table.begin(), tables.mutation_table.end(),
+            [&pop, &acounts](const fwdpp::ts::mutation_record& mr) {
+                return pop.mcounts[mr.key] == 2 * pop.diploids.size()
+                       && acounts[mr.key] == 0;
+            }),
+        tables.mutation_table.end());
     //fwdpp::fwdpp_internal::gamete_cleaner(
     //    pop.gametes, pop.mutations, pop.mcounts, 2 * N_next, std::true_type());
     //update_mutations(pop, tables, generation);
     //fwdpp::update_mutations(pop.mutations, pop.fixations, pop.fixation_times,
     //                        pop.mut_lookup, pop.mcounts, generation,
     //                        2 * pop.diploids.size());
+    gamete_cleaner(pop, acounts, 2 * pop.diploids.size());
+    update_mutations(pop, acounts, generation);
     if (generation && generation % 100 == 0.0)
         {
             auto new_mut_indexes = fwdpp::compact_mutations(pop);
@@ -418,49 +477,62 @@ evolve(const GSLrng_t& rng, slocuspop_t& pop,
                               mu_neutral + mu_selected, mmodel, recmap,
                               generation, tables, simplifier,
                               first_parental_index, next_index);
-            if (generation && generation % 10 == 0.0)
-                {
-                    std::vector<std::int32_t> nodes(2 * pop.diploids.size());
-                    std::iota(nodes.begin(), nodes.end(), 0);
-                    //std::vector<std::int32_t> samples(2 * pop.diploids.size()
-                    //                                  / 10);
-                    std::vector<std::int32_t> samples(2 * pop.diploids.size());
+            //if (generation && generation % 10 == 0.0)
+            //    {
+            //        std::vector<std::int32_t> nodes(2 * pop.diploids.size());
+            //        std::iota(nodes.begin(), nodes.end(), 0);
+            //        //std::vector<std::int32_t> samples(2 * pop.diploids.size()
+            //        //                                  / 10);
+            //        std::vector<std::int32_t> samples(2 * pop.diploids.size());
 
-                    gsl_ran_choose(rng.get(), samples.data(), samples.size(),
-                                   nodes.data(), nodes.size(),
-                                   sizeof(int32_t));
-                    auto gm = fwdpp::ts::create_data_matrix(
-                        pop.mutations, tables, samples, false, true);
-                    auto x = std::move(gm.second);
-                    if (!x.positions.empty())
-                        {
-                            assert(std::is_sorted(x.positions.begin(),
-                                                  x.positions.end()));
-                            auto nrow = x.positions.size();
-                            auto ncol = x.genotypes.size() / nrow;
-                            assert(ncol == samples.size());
-                            decltype(pop.mcounts) mc;
-                            fwdpp::fwdpp_internal::process_gametes(
-                                pop.gametes, pop.mutations, mc);
-                            for (std::size_t i = 0; i < nrow; ++i)
-                                {
-                                    unsigned nd = 0;
-                                    for (std::size_t j = i * ncol;
-                                         j < i * ncol + ncol; ++j)
-                                        {
-                                            if (x.genotypes[j] == 1)
-                                                {
-                                                    ++nd;
-                                                }
-                                        }
-                                    if (mc[x.mut_indexes[i]] != nd)
-                                        {
-                                            throw std::runtime_error(
-                                                "bad counts from matrix");
-                                        }
-                                }
-                        }
-                }
+            //        gsl_ran_choose(rng.get(), samples.data(), samples.size(),
+            //                       nodes.data(), nodes.size(),
+            //                       sizeof(int32_t));
+            //        auto gm = fwdpp::ts::create_data_matrix(
+            //            pop.mutations, tables, samples, false, true);
+            //        auto x = std::move(gm.second);
+            //        if (!x.positions.empty())
+            //            {
+            //                assert(std::is_sorted(x.positions.begin(),
+            //                                      x.positions.end()));
+            //                auto nrow = x.positions.size();
+            //                auto ncol = x.genotypes.size() / nrow;
+            //                assert(ncol == samples.size());
+            //                decltype(pop.mcounts) mc;
+            //                fwdpp::fwdpp_internal::process_gametes(
+            //                    pop.gametes, pop.mutations, mc);
+            //                //for (std::size_t i = 0; i < mc.size(); ++i)
+            //                //    {
+            //                //        assert(mc[i] == pop.mcounts[i]);
+            //                //    }
+            //                for (std::size_t i = 0; i < nrow; ++i)
+            //                    {
+            //                        unsigned nd = 0;
+            //                        for (std::size_t j = i * ncol;
+            //                             j < i * ncol + ncol; ++j)
+            //                            {
+            //                                if (x.genotypes[j] == 1)
+            //                                    {
+            //                                        ++nd;
+            //                                    }
+            //                            }
+            //                        if (pop.mcounts[x.mut_indexes[i]] != nd)
+            //                            {
+            //                                std::cout
+            //                                    << pop.mcounts
+            //                                           [x.mut_indexes[i]]
+            //                                    << ' ' << mc[x.mut_indexes[i]]
+            //                                    << ' '
+            //                                    << acounts[x.mut_indexes[i]]
+            //                                    << ' ' << nd << ' '
+            //                                    << tables.preserved_nodes.size() << ' '
+            //                                    << generation << std::endl;
+            //                                throw std::runtime_error(
+            //                                    "bad counts from matrix");
+            //                            }
+            //                    }
+            //            }
+            //    }
             next_index = tables.num_nodes();
             first_parental_index = 0;
         }
