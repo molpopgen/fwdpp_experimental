@@ -400,7 +400,7 @@ namespace fwdpp
                         mr.node = -1;
                     }
 
-                // Here, we map the input node id of a mutation to 
+                // Here, we map the input node id of a mutation to
                 // its output node id.  If no output ID exists,
                 // then the mutation will be removed by the
                 // call to erase below.
@@ -450,6 +450,24 @@ namespace fwdpp
                     }));
             }
 
+            void
+            record_sample_nodes(const std::vector<std::int32_t>& samples,
+                                const table_collection& tables,
+                                std::vector<std::int32_t>& idmap)
+            {
+                for (const auto& s : samples)
+                    {
+                        new_node_table.emplace_back(
+                            node{ tables.node_table[s].population,
+                                  tables.node_table[s].generation });
+                        add_ancestry(s, 0, L,
+                                     static_cast<std::int32_t>(
+                                         new_node_table.size() - 1));
+                        idmap[s] = static_cast<std::int32_t>(
+                            new_node_table.size() - 1);
+                    }
+            }
+
           public:
             table_simplifier(const double maxpos)
                 : new_edge_table{}, new_node_table{},
@@ -486,32 +504,9 @@ namespace fwdpp
                 // We take our samples and add them to both the output
                 // node list and initialize their ancestry with
                 // a segment on [0,L).
-                for (const auto& s : samples)
-                    {
-                        new_node_table.emplace_back(
-                            node{ tables.node_table[s].population,
-                                  tables.node_table[s].generation });
-                        add_ancestry(s, 0, L,
-                                     static_cast<std::int32_t>(
-                                         new_node_table.size() - 1));
-                        idmap[s] = static_cast<std::int32_t>(
-                            new_node_table.size() - 1);
-                    }
-
+                record_sample_nodes(samples, tables, idmap);
                 // Add samples for any preserved nodes in the tables:
-                for (const auto& s : tables.preserved_nodes)
-                    {
-                        assert(idmap[s] == -1);
-                        assert(Ancestry[s].empty());
-                        new_node_table.emplace_back(
-                            node{ tables.node_table[s].population,
-                                  tables.node_table[s].generation });
-                        add_ancestry(s, 0, L,
-                                     static_cast<std::int32_t>(
-                                         new_node_table.size() - 1));
-                        idmap[s] = static_cast<std::int32_t>(
-                            new_node_table.size() - 1);
-                    }
+                record_sample_nodes(tables.preserved_nodes, tables, idmap);
 
                 // At this point, our edges are sorted by birth
                 // order of parents, from present to past.
