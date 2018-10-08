@@ -197,10 +197,7 @@ namespace fwdpp
                               return a.left < b.left;
                           });
                 // Add sentinel
-                segment_queue.emplace_back(
-                    segment{ std::numeric_limits<double>::max()
-                                 / 2., //TODO fix this ugly hack
-                             std::numeric_limits<double>::max(), -1 });
+                segment_queue.emplace_back(segment{ L, L + 1.0, -1 });
                 return edge_ptr;
             }
 
@@ -532,7 +529,6 @@ namespace fwdpp
                                     "preserved node output id maps to null");
                             }
                         p = idmap[p];
-
                     }
 
                 assert(static_cast<std::size_t>(std::count_if(
