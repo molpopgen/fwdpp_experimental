@@ -511,10 +511,9 @@ namespace fwdpp
                         new_node_table.emplace_back(
                             node{ tables.node_table[s].population,
                                   tables.node_table[s].generation });
-                        Ancestry[s].emplace_back(
-                            0, L,
-                            static_cast<std::int32_t>(new_node_table.size()
-                                                      - 1));
+                        add_ancestry(s, 0, L,
+                                     static_cast<std::int32_t>(
+                                         new_node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             new_node_table.size() - 1);
                     }
@@ -527,10 +526,9 @@ namespace fwdpp
                         new_node_table.emplace_back(
                             node{ tables.node_table[s].population,
                                   tables.node_table[s].generation });
-                        Ancestry[s].emplace_back(
-                            0, L,
-                            static_cast<std::int32_t>(new_node_table.size()
-                                                      - 1));
+                        add_ancestry(s, 0, L,
+                                     static_cast<std::int32_t>(
+                                         new_node_table.size() - 1));
                         idmap[s] = static_cast<std::int32_t>(
                             new_node_table.size() - 1);
                     }
@@ -573,8 +571,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
-                simplify_mutations(mutations, tables,
-                                   mutation_map);
+                simplify_mutations(mutations, tables, mutation_map);
 
                 cleanup();
                 return idmap;
