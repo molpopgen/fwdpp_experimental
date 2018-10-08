@@ -381,7 +381,6 @@ namespace fwdpp
             template <typename mcont_t>
             void
             simplify_mutations(const mcont_t& mutations,
-                               const std::vector<std::int32_t>& idmap,
                                table_collection& tables,
                                mutation_map_t& mutation_map) const
             {
@@ -458,7 +457,7 @@ namespace fwdpp
                 tables.mutation_table.erase(
                     std::remove_if(tables.mutation_table.begin(),
                                    tables.mutation_table.end(),
-                                   [&idmap](const mutation_record& mr) {
+                                   [](const mutation_record& mr) {
                                        return mr.node == -1;
                                    }),
                     tables.mutation_table.end());
@@ -574,7 +573,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
-                simplify_mutations(mutations, idmap, tables,
+                simplify_mutations(mutations, tables,
                                    mutation_map);
 
                 cleanup();
