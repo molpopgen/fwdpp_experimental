@@ -399,31 +399,11 @@ namespace fwdpp
                     {
                         mr.node = -1;
                     }
-                // TODO: when processing the mutation map,
-                // we should treat mutations on ancient samples
-                // differently.  We do not want them to
-                // be counted, as counting should be redefined w.r.to
-                // alive samples only.  Thus, we need to preserve them
-                // in the table (somehow), and only count w.r.to the alive samples.
-                // It appears that the best method to do this is to augment
-                // the mutation table to augment the concept of mutation_record
-                // to include a boolean field on_ancient, signifying that
-                // the mutation is found on a preserved node.  The loop below would
-                // be responsible for keeping that field updated.
-                // Then, back in the simulation itself, we need cleanup code that will
-                // not flag such mutations for recycling.
-                // The inherent difficulty is that the mutation table and the population
-                // mutation vector will diverge in length.  Same for pop.mcounts.  The
-                // length divergence implies that we need a method for setting up mutation
-                // recycling bins that are specific to simulations with tree sequences.
 
-                // NOTE When we are done with this part of the algorithm,
-                // the mutations are simplified.  Thus, we can
-                // use the existence of a key in the mutation table
-                // to mean "do not recycle".  What we cannot do
-                // is prune fixations from gametes, etc..  To do
-                // that, we need to get just the extant variant counts,
-                // which is what is done after this loop.
+                // Here, we map the input node id of a mutation to 
+                // its output node id.  If no output ID exists,
+                // then the mutation will be removed by the
+                // call to erase below.
                 for (auto& mm : mutation_map)
                     {
                         auto seg = Ancestry[mm.first].cbegin();
