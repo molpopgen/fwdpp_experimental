@@ -1,6 +1,7 @@
 #ifndef FWDPP_TS_MARGINAL_TREE_HPP
 #define FWDPP_TS_MARGINAL_TREE_HPP
 
+#include <stdexcept>
 #include <vector>
 #include <limits>
 #include <cstdint>
