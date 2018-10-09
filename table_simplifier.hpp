@@ -1,6 +1,7 @@
 #ifndef FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 #define FWDPP_ANCESTRY_TABLE_SIMPLIFIER_HPP
 
+#include <iostream>
 #include <cmath>
 #include <map>
 #include <vector>
@@ -33,6 +34,17 @@ namespace fwdpp
                             throw std::invalid_argument(
                                 "right must be > left");
                         }
+                }
+            };
+
+            struct mutation_node_map_entry
+            {
+                std::int32_t node;
+                std::size_t key, location;
+                mutation_node_map_entry(std::int32_t n, std::size_t k,
+                                        std::size_t l)
+                    : node(n), key(k), location(l)
+                {
                 }
             };
 
@@ -342,44 +354,35 @@ namespace fwdpp
                 return buffered_edges.size();
             }
 
-            using mutation_map_t = std::unordered_map<
-                std::int32_t,
-                std::vector<std::pair<std::size_t, std::size_t>>>;
-            using mutation_node_map_t = std::vector<std::int32_t>;
-
             template <typename mcont_t>
-            mutation_map_t
+            std::vector<mutation_node_map_entry>
             prep_mutation_simplification(
                 const mcont_t& mutations,
                 const mutation_key_vector& mutation_table) const
             {
-                mutation_map_t mutation_map;
+                std::vector<mutation_node_map_entry> mutation_map;
+                mutation_map.reserve(mutation_table.size());
                 for (std::size_t i = 0; i < mutation_table.size(); ++i)
                     {
-                        mutation_map[mutation_table[i].node].emplace_back(
-                            mutation_table[i].key, i);
+                        mutation_map.emplace_back(mutation_table[i].node,
+                                                  mutation_table[i].key, i);
                     }
 
-                for (auto& mm : mutation_map)
-                    {
-                        std::sort(
-                            mm.second.begin(), mm.second.end(),
-                            [&mutations](
-                                const std::pair<std::size_t, std::size_t>& a,
-                                const std::pair<std::size_t, std::size_t>& b) {
-                                return mutations[a.first].pos
-                                       < mutations[b.first].pos;
-                            });
-                    }
+                std::sort(mutation_map.begin(), mutation_map.end(),
+                          [&mutations](const mutation_node_map_entry& a,
+                                       const mutation_node_map_entry& b) {
+                              return std::tie(a.node, mutations[a.key].pos)
+                                     < std::tie(b.node, mutations[b.key].pos);
+                          });
 
                 return mutation_map;
             }
 
             template <typename mcont_t>
             void
-            simplify_mutations(const mcont_t& mutations,
-                               table_collection& tables,
-                               mutation_map_t& mutation_map) const
+            simplify_mutations(
+                const mcont_t& mutations, table_collection& tables,
+                std::vector<mutation_node_map_entry>& mutation_map) const
             {
                 if (tables.mutation_table.empty())
                     // This skips index building, which
@@ -401,33 +404,53 @@ namespace fwdpp
                 // its output node id.  If no output ID exists,
                 // then the mutation will be removed by the
                 // call to erase below.
-                for (auto& mm : mutation_map)
+
+                auto map_itr = mutation_map.begin();
+                const auto map_end = mutation_map.end();
+
+                while (map_itr < map_end)
                     {
-                        auto seg = Ancestry[mm.first].cbegin();
-                        const auto seg_e = Ancestry[mm.first].cend();
-                        auto mut = mm.second.cbegin();
-                        const auto mute = mm.second.cend();
-                        while (seg < seg_e && mut < mute)
+                        auto n = map_itr->node;
+                        auto seg = Ancestry[n].cbegin();
+                        const auto seg_e = Ancestry[n].cend();
+                        for (; map_itr < map_end
+                               && map_itr->node == n;) //++map_itr)
                             {
-                                auto pos = mutations[mut->first].pos;
-                                if (seg->left <= pos && pos < seg->right)
+                                if (seg == seg_e)
                                     {
-                                        assert(mut->first < mutations.size());
-                                        tables.mutation_table[mut->second].node
-                                            = seg->node;
-                                        ++mut;
-                                    }
-                                else if (pos >= seg->right)
-                                    {
-                                        ++seg;
+                                        ++map_itr;
                                     }
                                 else
                                     {
-                                        ++mut;
+                                        while (seg < seg_e && map_itr < map_end
+                                               && map_itr->node == n)
+                                            {
+                                                auto pos
+                                                    = mutations[map_itr->key]
+                                                          .pos;
+                                                if (seg->left <= pos
+                                                    && pos < seg->right)
+                                                    {
+                                                        tables
+                                                            .mutation_table
+                                                                [map_itr
+                                                                     ->location]
+                                                            .node
+                                                            = seg->node;
+                                                        ++map_itr;
+                                                    }
+                                                else if (pos >= seg->right)
+                                                    {
+                                                        ++seg;
+                                                    }
+                                                else
+                                                    {
+                                                        ++map_itr;
+                                                    }
+                                            }
                                     }
                             }
                     }
-
                 // Any mutations with null node values do not have
                 // ancestry and may be removed.
                 tables.mutation_table.erase(
