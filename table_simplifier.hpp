@@ -160,6 +160,7 @@ namespace fwdpp
             // region length
             const double L;
             segment_overlapper o;
+            std::vector<mutation_node_map_entry> mutation_map;
 
             void
             cleanup() noexcept
@@ -355,12 +356,12 @@ namespace fwdpp
             }
 
             template <typename mcont_t>
-            std::vector<mutation_node_map_entry>
+            void
             prep_mutation_simplification(
                 const mcont_t& mutations,
-                const mutation_key_vector& mutation_table) const
+                const mutation_key_vector& mutation_table)
             {
-                std::vector<mutation_node_map_entry> mutation_map;
+                mutation_map.clear();
                 mutation_map.reserve(mutation_table.size());
                 for (std::size_t i = 0; i < mutation_table.size(); ++i)
                     {
@@ -374,15 +375,12 @@ namespace fwdpp
                               return std::tie(a.node, mutations[a.key].pos)
                                      < std::tie(b.node, mutations[b.key].pos);
                           });
-
-                return mutation_map;
             }
 
             template <typename mcont_t>
             void
-            simplify_mutations(
-                const mcont_t& mutations, table_collection& tables,
-                std::vector<mutation_node_map_entry>& mutation_map) const
+            simplify_mutations(const mcont_t& mutations,
+                               table_collection& tables) const
             {
                 if (tables.mutation_table.empty())
                     // This skips index building, which
@@ -419,34 +417,29 @@ namespace fwdpp
                                 if (seg == seg_e)
                                     {
                                         ++map_itr;
+                                        break;
                                     }
-                                else
+                                while (seg < seg_e && map_itr < map_end
+                                       && map_itr->node == n)
                                     {
-                                        while (seg < seg_e && map_itr < map_end
-                                               && map_itr->node == n)
+                                        auto pos = mutations[map_itr->key].pos;
+                                        if (seg->left <= pos
+                                            && pos < seg->right)
                                             {
-                                                auto pos
-                                                    = mutations[map_itr->key]
-                                                          .pos;
-                                                if (seg->left <= pos
-                                                    && pos < seg->right)
-                                                    {
-                                                        tables
-                                                            .mutation_table
-                                                                [map_itr
-                                                                     ->location]
-                                                            .node
-                                                            = seg->node;
-                                                        ++map_itr;
-                                                    }
-                                                else if (pos >= seg->right)
-                                                    {
-                                                        ++seg;
-                                                    }
-                                                else
-                                                    {
-                                                        ++map_itr;
-                                                    }
+                                                tables
+                                                    .mutation_table
+                                                        [map_itr->location]
+                                                    .node
+                                                    = seg->node;
+                                                ++map_itr;
+                                            }
+                                        else if (pos >= seg->right)
+                                            {
+                                                ++seg;
+                                            }
+                                        else
+                                            {
+                                                ++map_itr;
                                             }
                                     }
                             }
@@ -489,8 +482,8 @@ namespace fwdpp
 
           public:
             table_simplifier(const double maxpos)
-                : new_edge_table{}, new_node_table{},
-                  segment_queue{}, Ancestry{}, E{}, L{ maxpos }, o{}
+                : new_edge_table{}, new_node_table{}, segment_queue{},
+                  Ancestry{}, E{}, L{ maxpos }, o{}, mutation_map{}
             {
                 if (maxpos < 0 || !std::isfinite(maxpos))
                     {
@@ -514,8 +507,7 @@ namespace fwdpp
                 Ancestry.resize(tables.node_table.size());
 
                 // Set some things up for later mutation simplification
-                auto mutation_map = prep_mutation_simplification(
-                    mutations, tables.mutation_table);
+                prep_mutation_simplification(mutations, tables.mutation_table);
 
                 // Relates input node ids to output node ids
                 std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
@@ -565,7 +557,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
-                simplify_mutations(mutations, tables, mutation_map);
+                simplify_mutations(mutations, tables);
 
                 cleanup();
                 return idmap;
