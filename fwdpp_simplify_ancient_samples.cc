@@ -426,16 +426,16 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     //                        2 * pop.diploids.size());
     gamete_cleaner(pop, acounts, 2 * pop.diploids.size());
     update_mutations(pop, acounts, generation);
-    if (generation && generation % 100 == 0.0)
-        {
-            auto new_mut_indexes = fwdpp::compact_mutations(pop);
-            // Mutation compacting re-orders the data, so we need to
-            // re-index our mutation table
-            for (auto& mr : tables.mutation_table)
-                {
-                    mr.key = new_mut_indexes[mr.key];
-                }
-        }
+    //if (generation && generation % 100 == 0.0)
+    //    {
+    //        auto new_mut_indexes = fwdpp::compact_mutations(pop);
+    //        // Mutation compacting re-orders the data, so we need to
+    //        // re-index our mutation table
+    //        for (auto& mr : tables.mutation_table)
+    //            {
+    //                mr.key = new_mut_indexes[mr.key];
+    //            }
+    //    }
 }
 
 table_collection
