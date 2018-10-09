@@ -561,8 +561,8 @@ namespace fwdpp
                 cleanup();
                 return idmap;
             }
-        }; // namespace ts
-    }      // namespace ts
+        };
+    } // namespace ts
 } // namespace fwdpp
 
 #endif
