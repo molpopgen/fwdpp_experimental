@@ -341,8 +341,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
             assert(s != -1);
         }
     tables.build_indexes();
-    tables.count_mutations(pop.mutations, samples, pop.mcounts);
-    tables.count_mutations(pop.mutations, tables.preserved_nodes, acounts);
+    tables.count_mutations(pop.mutations, samples, pop.mcounts, acounts);
+    //tables.count_mutations(pop.mutations, tables.preserved_nodes, acounts);
 #ifndef NDEBUG
     //std::vector<std::size_t> keys;
     //for (auto& mr : tables.mutation_table)

@@ -51,6 +51,19 @@ namespace fwdpp
 
         template <typename visitor>
         void
+        algorithmL(const indexed_edge_container& input_left,
+                   const indexed_edge_container& output_right,
+                   const std::vector<std::int32_t>& sample_indexes,
+                   const std::vector<std::int32_t>& preserved_nodes,
+                   const std::int32_t nnodes, const double maxpos, visitor v)
+        {
+            marginal_tree marginal(nnodes, sample_indexes, preserved_nodes);
+            iterate_marginal_trees(marginal, input_left, output_right, maxpos,
+                                   v, std::true_type(), std::false_type());
+        }
+
+        template <typename visitor>
+        void
         algorithmS(const indexed_edge_container& input_left,
                    const indexed_edge_container& output_right,
                    const std::vector<std::int32_t>& sample_indexes,

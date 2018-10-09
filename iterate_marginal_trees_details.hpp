@@ -32,10 +32,13 @@ namespace fwdpp
             {
                 auto p = parent;
                 auto lc = marginal.leaf_counts[child];
+                auto plc = marginal.preserved_leaf_counts[child];
                 while (p != -1)
                     {
                         marginal.leaf_counts[p] -= lc;
+                        marginal.preserved_leaf_counts[p] -= plc;
                         assert(marginal.leaf_counts[p] >= 0);
+                        assert(marginal.preserved_leaf_counts[p] >= 0);
                         p = marginal.parents[p];
                     }
             }
@@ -48,9 +51,11 @@ namespace fwdpp
             {
                 auto p = parent;
                 auto lc = marginal.leaf_counts[child];
+                auto plc = marginal.preserved_leaf_counts[child];
                 while (p != -1)
                     {
                         marginal.leaf_counts[p] += lc;
+                        marginal.preserved_leaf_counts[p] += plc;
                         p = marginal.parents[p];
                     }
             }
