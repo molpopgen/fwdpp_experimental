@@ -246,42 +246,42 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     auto gamete_recycling_bin
         = fwdpp::fwdpp_internal::make_gamete_queue(pop.gametes);
     auto mutation_recycling_bin = make_mut_queue(pop.mcounts, acounts);
-#ifndef NDEBUG
-    auto xx(mutation_recycling_bin);
-    std::vector<std::size_t> foo;
-    while (!xx.empty())
-        {
-            foo.push_back(xx.front());
-            xx.pop();
-        }
-    for (auto& g : pop.gametes)
-        {
-            if (g.n > 0)
-                {
-                    for (auto f : foo)
-                        {
-                            auto ni = std::find(g.mutations.begin(),
-                                                g.mutations.end(), f);
-                            auto si = std::find(g.smutations.begin(),
-                                                g.smutations.end(), f);
-                            if (ni != g.mutations.end())
-                                {
-                                    std::cout << "neutral: " << f << ' '
-                                              << pop.mutations[f].g << ' '
-                                              << generation << '\n';
-                                }
-                            if (si != g.smutations.end())
-                                {
-                                    std::cout << "selected: " << f << ' '
-                                              << pop.mutations[f].g << ' '
-                                              << generation << '\n';
-                                }
-                            assert(si == g.smutations.end());
-                            assert(ni == g.mutations.end());
-                        }
-                }
-        }
-#endif
+    //#ifndef NDEBUG
+    //    auto xx(mutation_recycling_bin);
+    //    std::vector<std::size_t> foo;
+    //    while (!xx.empty())
+    //        {
+    //            foo.push_back(xx.front());
+    //            xx.pop();
+    //        }
+    //    for (auto& g : pop.gametes)
+    //        {
+    //            if (g.n > 0)
+    //                {
+    //                    for (auto f : foo)
+    //                        {
+    //                            auto ni = std::find(g.mutations.begin(),
+    //                                                g.mutations.end(), f);
+    //                            auto si = std::find(g.smutations.begin(),
+    //                                                g.smutations.end(), f);
+    //                            if (ni != g.mutations.end())
+    //                                {
+    //                                    std::cout << "neutral: " << f << ' '
+    //                                              << pop.mutations[f].g << ' '
+    //                                              << generation << '\n';
+    //                                }
+    //                            if (si != g.smutations.end())
+    //                                {
+    //                                    std::cout << "selected: " << f << ' '
+    //                                              << pop.mutations[f].g << ' '
+    //                                              << generation << '\n';
+    //                                }
+    //                            assert(si == g.smutations.end());
+    //                            assert(ni == g.mutations.end());
+    //                        }
+    //                }
+    //        }
+    //#endif
     auto lookup = w(pop, fwdpp::multiplicative_diploid());
     decltype(pop.diploids) offspring(N_next);
 
@@ -344,18 +344,18 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     tables.count_mutations(pop.mutations, samples, pop.mcounts);
     tables.count_mutations(pop.mutations, tables.preserved_nodes, acounts);
 #ifndef NDEBUG
-    std::vector<std::size_t> keys;
-    for (auto& mr : tables.mutation_table)
-        {
-            keys.push_back(mr.key);
-        }
-    std::sort(keys.begin(), keys.end());
-    auto u = std::unique(keys.begin(), keys.end());
-    if (u != keys.end())
-        {
-            std::cout << "redundant keys " << generation << '\n';
-        }
-    assert(u == keys.end());
+    //std::vector<std::size_t> keys;
+    //for (auto& mr : tables.mutation_table)
+    //    {
+    //        keys.push_back(mr.key);
+    //    }
+    //std::sort(keys.begin(), keys.end());
+    //auto u = std::unique(keys.begin(), keys.end());
+    //if (u != keys.end())
+    //    {
+    //        std::cout << "redundant keys " << generation << '\n';
+    //    }
+    //assert(u == keys.end());
 
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
