@@ -5,6 +5,7 @@
 #include <vector>
 #include <limits>
 #include <cstdint>
+#include "definitions.hpp"
 
 namespace fwdpp
 {
@@ -18,11 +19,11 @@ namespace fwdpp
             double left, right;
             marginal_tree(std::int32_t nnodes,
                           const std::vector<std::int32_t>& samples)
-                : parents(nnodes, -1), leaf_counts(nnodes, 0),
-                  preserved_leaf_counts(nnodes, 0), left_sib(nnodes, -1),
-                  right_sib(nnodes, -1), left_child(nnodes, -1),
-                  right_child(nnodes, -1), left_sample(nnodes, -1),
-                  right_sample(nnodes, -1), next_sample(nnodes, -1),
+                : parents(nnodes, TS_NULL_NODE), leaf_counts(nnodes, 0),
+                  preserved_leaf_counts(nnodes, 0), left_sib(nnodes, TS_NULL_NODE),
+                  right_sib(nnodes, TS_NULL_NODE), left_child(nnodes, TS_NULL_NODE),
+                  right_child(nnodes, TS_NULL_NODE), left_sample(nnodes, TS_NULL_NODE),
+                  right_sample(nnodes, TS_NULL_NODE), next_sample(nnodes, TS_NULL_NODE),
                   is_sample(nnodes, 0),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
@@ -43,11 +44,11 @@ namespace fwdpp
             marginal_tree(std::int32_t nnodes,
                           const std::vector<std::int32_t>& samples,
                           const std::vector<std::int32_t>& preserved_nodes)
-                : parents(nnodes, -1), leaf_counts(nnodes, 0),
-                  preserved_leaf_counts(nnodes, 0), left_sib(nnodes, -1),
-                  right_sib(nnodes, -1), left_child(nnodes, -1),
-                  right_child(nnodes, -1), left_sample(nnodes, -1),
-                  right_sample(nnodes, -1), next_sample(nnodes, -1),
+                : parents(nnodes, TS_NULL_NODE), leaf_counts(nnodes, 0),
+                  preserved_leaf_counts(nnodes, 0), left_sib(nnodes, TS_NULL_NODE),
+                  right_sib(nnodes, TS_NULL_NODE), left_child(nnodes, TS_NULL_NODE),
+                  right_child(nnodes, TS_NULL_NODE), left_sample(nnodes, TS_NULL_NODE),
+                  right_sample(nnodes, TS_NULL_NODE), next_sample(nnodes, TS_NULL_NODE),
                   is_sample(nnodes, 0),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
@@ -77,11 +78,11 @@ namespace fwdpp
                     }
             }
             marginal_tree(std::int32_t nnodes)
-                : parents(nnodes, -1), leaf_counts{}, preserved_leaf_counts{},
-                  left_sib(nnodes, -1), right_sib(nnodes, -1),
-                  left_child(nnodes, -1), right_child(nnodes, -1),
-                  left_sample(nnodes, -1), right_sample(nnodes, -1),
-                  next_sample(nnodes, -1), is_sample(nnodes, 0),
+                : parents(nnodes, TS_NULL_NODE), leaf_counts{}, preserved_leaf_counts{},
+                  left_sib(nnodes, TS_NULL_NODE), right_sib(nnodes, TS_NULL_NODE),
+                  left_child(nnodes, TS_NULL_NODE), right_child(nnodes, TS_NULL_NODE),
+                  left_sample(nnodes, TS_NULL_NODE), right_sample(nnodes, TS_NULL_NODE),
+                  next_sample(nnodes, TS_NULL_NODE), is_sample(nnodes, 0),
                   left{ std::numeric_limits<double>::quiet_NaN() }, right{
                       std::numeric_limits<double>::quiet_NaN()
                   }

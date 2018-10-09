@@ -37,7 +37,7 @@ namespace fwdpp
             create_data_matrix_details(
                 mutation_key_vector::const_iterator b,
                 mutation_key_vector::const_iterator e,
-                const std::vector<std::int32_t>& samples,
+                const std::vector<TS_NODE_INT>& samples,
                 const std::int32_t nnodes)
                 : neutral_genotypes(), selected_genotypes(),
                   neutral_positions(), selected_positions(), neutral_indexes(),
@@ -54,7 +54,7 @@ namespace fwdpp
             template <typename mcont_t>
             inline void
             update_data(const mcont_t& mutations,
-                        const marginal_tree& marginal, const std::int32_t node,
+                        const marginal_tree& marginal, const TS_NODE_INT node,
                         const std::size_t key,
                         std::vector<std::int8_t>& genotypes,
                         std::vector<double>& positions,
@@ -106,7 +106,7 @@ namespace fwdpp
         std::pair<genotype_matrix, genotype_matrix>
         create_data_matrix(const mcont_t& mutations,
                            const table_collection& tables,
-                           const std::vector<std::int32_t>& samples,
+                           const std::vector<TS_NODE_INT>& samples,
                            const bool record_neutral,
                            const bool record_selected)
         {

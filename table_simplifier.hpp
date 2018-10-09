@@ -25,8 +25,8 @@ namespace fwdpp
             struct segment
             {
                 double left, right;
-                std::int32_t node;
-                segment(double l, double r, std::int32_t n)
+                TS_NODE_INT node;
+                segment(double l, double r, TS_NODE_INT n)
                     : left{ l }, right{ r }, node{ n }
                 {
                     if (right <= left)
@@ -39,9 +39,9 @@ namespace fwdpp
 
             struct mutation_node_map_entry
             {
-                std::int32_t node;
+                TS_NODE_INT node;
                 std::size_t key, location;
-                mutation_node_map_entry(std::int32_t n, std::size_t k,
+                mutation_node_map_entry(TS_NODE_INT n, std::size_t k,
                                         std::size_t l)
                     : node(n), key(k), location(l)
                 {
@@ -179,7 +179,7 @@ namespace fwdpp
 
             edge_vector::const_iterator
             step_S3(edge_vector::const_iterator edge_ptr,
-                    const edge_vector::const_iterator edge_end, std::int32_t u)
+                    const edge_vector::const_iterator edge_end, TS_NODE_INT u)
             {
                 segment_queue.clear();
                 for (; edge_ptr < edge_end && edge_ptr->parent == u;
@@ -210,14 +210,15 @@ namespace fwdpp
                               return a.left < b.left;
                           });
                 // Add sentinel
-                segment_queue.emplace_back(segment{ L, L + 1.0, -1 });
+                segment_queue.emplace_back(
+                    segment{ L, L + 1.0, TS_NULL_NODE });
                 return edge_ptr;
             }
 
             void
             buffer_edge(std::vector<edge>& buffered_edges, const double left,
-                        const double right, const std::int32_t parent,
-                        const std::int32_t child)
+                        const double right, const TS_NODE_INT parent,
+                        const TS_NODE_INT child)
             {
                 auto itr = std::find_if(
                     buffered_edges.rbegin(), buffered_edges.rend(),
@@ -242,8 +243,8 @@ namespace fwdpp
             }
 
             void
-            add_ancestry(std::int32_t input_id, double left, double right,
-                         std::int32_t node)
+            add_ancestry(TS_NODE_INT input_id, double left, double right,
+                         TS_NODE_INT node)
             {
                 if (Ancestry[input_id].empty())
                     {
@@ -266,20 +267,20 @@ namespace fwdpp
 
             void
             merge_ancestors(const node_vector& input_node_table,
-                            const std::int32_t parent_input_id,
-                            std::vector<std::int32_t>& idmap)
+                            const TS_NODE_INT parent_input_id,
+                            std::vector<TS_NODE_INT>& idmap)
             // TODO: will have to be made aware of sample labels.
             // in order to handle ancient samples.
             {
                 auto output_id = idmap[parent_input_id];
-                bool is_sample = (output_id != -1);
+                bool is_sample = (output_id != TS_NULL_NODE);
                 if (is_sample == true)
                     {
                         Ancestry[parent_input_id].clear();
                     }
                 double previous_right = 0.0;
                 o.init(segment_queue);
-                std::int32_t ancestry_node = -1;
+                TS_NODE_INT ancestry_node = TS_NULL_NODE;
                 E.clear();
                 while (o() == true)
                     {
@@ -295,7 +296,7 @@ namespace fwdpp
                             }
                         else
                             {
-                                if (output_id == -1)
+                                if (output_id == TS_NULL_NODE)
                                     {
                                         new_node_table.emplace_back(node{
                                             input_node_table[parent_input_id]
@@ -328,7 +329,7 @@ namespace fwdpp
                         add_ancestry(parent_input_id, previous_right, L,
                                      output_id);
                     }
-                if (output_id != -1)
+                if (output_id != TS_NULL_NODE)
                     {
                         auto n = output_buffered_edges(E);
                         if (!n && !is_sample)
@@ -336,7 +337,7 @@ namespace fwdpp
                                 new_node_table.erase(new_node_table.begin()
                                                          + output_id,
                                                      new_node_table.end());
-                                idmap[parent_input_id] = -1;
+                                idmap[parent_input_id] = TS_NULL_NODE;
                             }
                     }
             }
@@ -389,7 +390,7 @@ namespace fwdpp
                 // Set all output nodes to null for now.
                 for (auto& mr : mt)
                     {
-                        mr.node = -1;
+                        mr.node = TS_NULL_NODE;
                     }
 
                 // Map the input node id of a mutation to
@@ -439,7 +440,7 @@ namespace fwdpp
                 // ancestry and may be removed.
                 mt.erase(std::remove_if(mt.begin(), mt.end(),
                                         [](const mutation_record& mr) {
-                                            return mr.node == -1;
+                                            return mr.node == TS_NULL_NODE;
                                         }),
                          mt.end());
                 //TODO: replace assert with exception
@@ -452,9 +453,9 @@ namespace fwdpp
             }
 
             void
-            record_sample_nodes(const std::vector<std::int32_t>& samples,
+            record_sample_nodes(const std::vector<TS_NODE_INT>& samples,
                                 const table_collection& tables,
-                                std::vector<std::int32_t>& idmap)
+                                std::vector<TS_NODE_INT>& idmap)
             {
                 for (const auto& s : samples)
                     {
@@ -462,9 +463,9 @@ namespace fwdpp
                             node{ tables.node_table[s].population,
                                   tables.node_table[s].generation });
                         add_ancestry(s, 0, L,
-                                     static_cast<std::int32_t>(
+                                     static_cast<TS_NODE_INT>(
                                          new_node_table.size() - 1));
-                        idmap[s] = static_cast<std::int32_t>(
+                        idmap[s] = static_cast<TS_NODE_INT>(
                             new_node_table.size() - 1);
                     }
             }
@@ -482,9 +483,9 @@ namespace fwdpp
             }
 
             template <typename mutation_container>
-            std::vector<std::int32_t>
+            std::vector<TS_NODE_INT>
             simplify(table_collection& tables,
-                     const std::vector<std::int32_t>& samples,
+                     const std::vector<TS_NODE_INT>& samples,
                      const mutation_container& mutations)
             /// Simplify algorithm is approximately the same
             /// logic as used in msprime 0.6.0
@@ -499,7 +500,8 @@ namespace fwdpp
                 prep_mutation_simplification(mutations, tables.mutation_table);
 
                 // Relates input node ids to output node ids
-                std::vector<std::int32_t> idmap(tables.node_table.size(), -1);
+                std::vector<TS_NODE_INT> idmap(tables.node_table.size(),
+                                               TS_NULL_NODE);
 
                 // We take our samples and add them to both the output
                 // node list and initialize their ancestry with
@@ -527,7 +529,7 @@ namespace fwdpp
                 // their input ids to output ids
                 for (auto& p : tables.preserved_nodes)
                     {
-                        if (idmap[p] == -1)
+                        if (idmap[p] == TS_NULL_NODE)
                             {
                                 throw std::runtime_error(
                                     "preserved node output id maps to null");
@@ -535,10 +537,11 @@ namespace fwdpp
                         p = idmap[p];
                     }
 
-                assert(static_cast<std::size_t>(std::count_if(
-                           idmap.begin(), idmap.end(),
-                           [](const std::int32_t i) { return i != -1; }))
-                       == new_node_table.size());
+                assert(
+                    static_cast<std::size_t>(std::count_if(
+                        idmap.begin(), idmap.end(),
+                        [](const TS_NODE_INT i) { return i != TS_NULL_NODE; }))
+                    == new_node_table.size());
                 // After swapping, new_node_table
                 // contains the input nodes
                 tables.edge_table.swap(new_edge_table);

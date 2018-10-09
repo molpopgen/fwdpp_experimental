@@ -4,7 +4,7 @@
 #ifndef FWDPP_ANCESTRY_EDGE_HPP
 #define FWDPP_ANCESTRY_EDGE_HPP
 
-#include <cstdint>
+#include "definitions.hpp"
 
 namespace fwdpp
 {
@@ -13,7 +13,7 @@ namespace fwdpp
         struct edge
         {
             double left, right;
-            std::int32_t parent, child;
+            TS_NODE_INT parent, child;
         };
     }
 }

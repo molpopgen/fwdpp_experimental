@@ -7,8 +7,8 @@ namespace fwdpp
 {
     namespace ts
     {
-        using NODE_INT = std::int32_t;
-        constexpr NODE_INT NULL_NODE = -1;
+        using TS_NODE_INT = std::int32_t;
+        constexpr TS_NODE_INT TS_NULL_NODE = -1;
     } // namespace ts
 } // namespace fwdpp
 

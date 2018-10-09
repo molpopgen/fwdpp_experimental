@@ -33,7 +33,7 @@ namespace fwdpp
                 auto p = parent;
                 auto lc = marginal.leaf_counts[child];
                 auto plc = marginal.preserved_leaf_counts[child];
-                while (p != -1)
+                while (p != TS_NULL_NODE)
                     {
                         marginal.leaf_counts[p] -= lc;
                         marginal.preserved_leaf_counts[p] -= plc;
@@ -52,7 +52,7 @@ namespace fwdpp
                 auto p = parent;
                 auto lc = marginal.leaf_counts[child];
                 auto plc = marginal.preserved_leaf_counts[child];
-                while (p != -1)
+                while (p != TS_NULL_NODE)
                     {
                         marginal.leaf_counts[p] += lc;
                         marginal.preserved_leaf_counts[p] += plc;
@@ -64,7 +64,8 @@ namespace fwdpp
             update_sample_list(marginal_tree& marginal,
                                const std::int32_t parent, const std::true_type)
             {
-                for (auto n = parent; n != -1; n = marginal.parents[n])
+                for (auto n = parent; n != TS_NULL_NODE;
+                     n = marginal.parents[n])
                     {
                         if (marginal.is_sample[n] == 1)
                             {
@@ -74,15 +75,17 @@ namespace fwdpp
                         else
                             {
                                 marginal.left_sample[n]
-                                    = marginal.right_sample[n] = -1;
+                                    = marginal.right_sample[n] = TS_NULL_NODE;
                             }
-                        for (auto v = marginal.left_child[n]; v != -1;
-                             v = marginal.right_sib[v])
+                        for (auto v = marginal.left_child[n];
+                             v != TS_NULL_NODE; v = marginal.right_sib[v])
                             {
-                                if (marginal.left_sample[v] != -1)
+                                if (marginal.left_sample[v] != TS_NULL_NODE)
                                     {
-                                        assert(marginal.right_sample[v] != -1);
-                                        if (marginal.left_sample[n] == -1)
+                                        assert(marginal.right_sample[v]
+                                               != TS_NULL_NODE);
+                                        if (marginal.left_sample[n]
+                                            == TS_NULL_NODE)
                                             {
                                                 marginal.left_sample[n]
                                                     = marginal.left_sample[v];

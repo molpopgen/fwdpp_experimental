@@ -30,7 +30,7 @@ namespace fwdpp
                             const auto c = k->child;
                             const auto lsib = marginal.left_sib[c];
                             const auto rsib = marginal.right_sib[c];
-                            if (lsib == -1)
+                            if (lsib == TS_NULL_NODE)
                                 {
                                     marginal.left_child[p] = rsib;
                                 }
@@ -38,7 +38,7 @@ namespace fwdpp
                                 {
                                     marginal.right_sib[lsib] = rsib;
                                 }
-                            if (rsib == -1)
+                            if (rsib == TS_NULL_NODE)
                                 {
                                     marginal.right_child[p] = lsib;
                                 }
@@ -46,9 +46,9 @@ namespace fwdpp
                                 {
                                     marginal.left_sib[rsib] = lsib;
                                 }
-                            marginal.parents[c] = -1;
-                            marginal.left_sib[c] = -1;
-                            marginal.right_sib[c] = -1;
+                            marginal.parents[c] = TS_NULL_NODE;
+                            marginal.left_sib[c] = TS_NULL_NODE;
+                            marginal.right_sib[c] = TS_NULL_NODE;
 							detail::outgoing_leaf_counts(marginal, k->parent, k->child,
                                                  lp);
 							detail::update_sample_list(marginal, k->parent, slp);
@@ -59,17 +59,17 @@ namespace fwdpp
                             const auto p = j->parent;
                             const auto c = j->child;
                             const auto rchild = marginal.right_child[p];
-                            if (rchild == -1)
+                            if (rchild == TS_NULL_NODE)
                                 {
                                     marginal.left_child[p] = c;
-                                    marginal.left_sib[c] = -1;
-                                    marginal.right_sib[c] = -1;
+                                    marginal.left_sib[c] = TS_NULL_NODE;
+                                    marginal.right_sib[c] = TS_NULL_NODE;
                                 }
                             else
                                 {
                                     marginal.right_sib[rchild] = c;
                                     marginal.left_sib[c] = rchild;
-                                    marginal.right_sib[c] = -1;
+                                    marginal.right_sib[c] = TS_NULL_NODE;
                                 }
                             // The entry for the child refers to
                             // the parent's location in the node table.

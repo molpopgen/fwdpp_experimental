@@ -207,7 +207,7 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
 
     for (auto& mr : tables.mutation_table)
         {
-            assert(mr.node != -1);
+            assert(mr.node != fwdpp::ts::TS_NULL_NODE);
             assert(tables.node_table[mr.node].generation
                    >= pop.mutations[mr.key].g);
         }

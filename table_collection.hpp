@@ -31,8 +31,8 @@ namespace fwdpp
             void
             split_breakpoints_add_edges(
                 const std::vector<double>& breakpoints,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
-                const std::int32_t next_index)
+                const std::tuple<TS_NODE_INT, TS_NODE_INT>& parents,
+                const TS_NODE_INT next_index)
             {
                 if (breakpoints.front() != 0.0)
                     {
@@ -66,8 +66,8 @@ namespace fwdpp
             void
             split_breakpoints(
                 const std::vector<double>& breakpoints,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
-                const std::int32_t next_index)
+                const std::tuple<TS_NODE_INT, TS_NODE_INT>& parents,
+                const TS_NODE_INT next_index)
             {
                 if (breakpoints.empty())
                     {
@@ -125,7 +125,7 @@ namespace fwdpp
             // newly-added nodes.
             std::ptrdiff_t edge_offset;
             const double L;
-            std::vector<std::int32_t> preserved_nodes;
+            std::vector<TS_NODE_INT> preserved_nodes;
             table_collection(const double maxpos)
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos },
@@ -138,8 +138,8 @@ namespace fwdpp
                     }
             }
 
-            table_collection(const std::int32_t num_initial_nodes,
-                             const double initial_time, std::int32_t pop,
+            table_collection(const TS_NODE_INT num_initial_nodes,
+                             const double initial_time, TS_NODE_INT pop,
                              const double maxpos)
                 : temp_edges{}, node_table{}, edge_table{}, mutation_table{},
                   input_left{}, output_right{}, edge_offset{ 0 }, L{ maxpos },
@@ -150,7 +150,7 @@ namespace fwdpp
                         throw std::invalid_argument(
                             "maxpos must be > 0 and finite");
                     }
-                for (std::int32_t i = 0; i < num_initial_nodes; ++i)
+                for (TS_NODE_INT i = 0; i < num_initial_nodes; ++i)
                     {
                         node_table.push_back(node{ pop, initial_time });
                     }
@@ -264,7 +264,7 @@ namespace fwdpp
             }
 
             void
-            record_preserved_nodes(const std::vector<std::int32_t>& node_ids)
+            record_preserved_nodes(const std::vector<TS_NODE_INT>& node_ids)
             {
                 for (auto i : node_ids)
                     {
@@ -299,8 +299,8 @@ namespace fwdpp
             }
 
             void
-            push_back_edge(double l, double r, std::int32_t parent,
-                           std::int32_t child)
+            push_back_edge(double l, double r, TS_NODE_INT parent,
+                           TS_NODE_INT child)
             {
                 edge_table.push_back(edge{ l, r, parent, child });
             }
@@ -337,9 +337,9 @@ namespace fwdpp
 
             void
             add_offspring_data(
-                const std::int32_t next_index,
+                const TS_NODE_INT next_index,
                 const std::vector<double>& breakpoints,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::tuple<TS_NODE_INT, TS_NODE_INT>& parents,
                 const double generation)
             {
                 emplace_back_node(0, generation + 1);
@@ -348,10 +348,10 @@ namespace fwdpp
 
             void
             add_offspring_data(
-                const std::int32_t next_index,
+                const TS_NODE_INT next_index,
                 const std::vector<double>& breakpoints,
                 const std::vector<std::uint32_t>& new_mutations,
-                const std::tuple<std::int32_t, std::int32_t>& parents,
+                const std::tuple<TS_NODE_INT, TS_NODE_INT>& parents,
                 const double generation)
             {
                 add_offspring_data(next_index, breakpoints, parents,
@@ -380,7 +380,7 @@ namespace fwdpp
             template <typename mcont_t>
             void
             count_mutations(const mcont_t& mutations,
-                            const std::vector<std::int32_t>& samples,
+                            const std::vector<TS_NODE_INT>& samples,
                             std::vector<fwdpp::uint_t>& mcounts)
             {
                 // Use Kelleher et al. (2016)'s Algorithm L
@@ -419,7 +419,7 @@ namespace fwdpp
             template <typename mcont_t>
             void
             count_mutations(const mcont_t& mutations,
-                            const std::vector<std::int32_t>& samples,
+                            const std::vector<TS_NODE_INT>& samples,
                             std::vector<fwdpp::uint_t>& mcounts,
                             std::vector<fwdpp::uint_t>& acounts)
             {
