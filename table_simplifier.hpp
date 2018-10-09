@@ -380,9 +380,9 @@ namespace fwdpp
             template <typename mcont_t>
             void
             simplify_mutations(const mcont_t& mutations,
-                               table_collection& tables) const
+                               mutation_key_vector& mutation_table) const
             {
-                if (tables.mutation_table.empty())
+                if (mutation_table.empty())
                     // This skips index building, which
                     // is expensive an un-necessary if there's
                     // nothing to simplify...
@@ -393,7 +393,7 @@ namespace fwdpp
                 // 0. Remap mutation input node ids.  To do this, we use
                 // the data stored in Ancestry, which allows us to "push"
                 // mutation nodes down the tree.
-                for (auto& mr : tables.mutation_table)
+                for (auto& mr : mutation_table)
                     {
                         mr.node = -1;
                     }
@@ -426,9 +426,8 @@ namespace fwdpp
                                         if (seg->left <= pos
                                             && pos < seg->right)
                                             {
-                                                tables
-                                                    .mutation_table
-                                                        [map_itr->location]
+                                                mutation_table[map_itr
+                                                                   ->location]
                                                     .node
                                                     = seg->node;
                                                 ++map_itr;
@@ -446,16 +445,16 @@ namespace fwdpp
                     }
                 // Any mutations with null node values do not have
                 // ancestry and may be removed.
-                tables.mutation_table.erase(
-                    std::remove_if(tables.mutation_table.begin(),
-                                   tables.mutation_table.end(),
+                mutation_table.erase(
+                    std::remove_if(mutation_table.begin(),
+                                   mutation_table.end(),
                                    [](const mutation_record& mr) {
                                        return mr.node == -1;
                                    }),
-                    tables.mutation_table.end());
+                    mutation_table.end());
                 //TODO: replace assert with exception
                 assert(std::is_sorted(
-                    tables.mutation_table.begin(), tables.mutation_table.end(),
+                    mutation_table.begin(), mutation_table.end(),
                     [&mutations](const mutation_record& a,
                                  const mutation_record& b) {
                         return mutations[a.key].pos < mutations[b.key].pos;
@@ -557,7 +556,7 @@ namespace fwdpp
                 // TODO: allow for exception instead of assert
                 assert(tables.edges_are_sorted());
                 tables.update_offset();
-                simplify_mutations(mutations, tables);
+                simplify_mutations(mutations, tables.mutation_table);
 
                 cleanup();
                 return idmap;
