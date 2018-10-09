@@ -190,16 +190,13 @@ update_mutations(poptype& pop, const std::vector<fwdpp::uint_t>& acounts,
                         "FWDPP DEBUG: mutation count out of range");
                 }
 #endif
-            if (pop.mcounts[i] == 2 * pop.diploids.size()
-                || pop.mcounts[i] == 0)
+            if (acounts[i] == 0)
                 {
-                    if (acounts[i] == 0)
+                    if (pop.mcounts[i] == 2 * pop.diploids.size())
                         {
-                            if (pop.mcounts[i] == 2 * pop.diploids.size())
-                                {
-                                    pop.fixations.push_back(pop.mutations[i]);
-                                    pop.fixation_times.push_back(generation);
-                                }
+                            pop.fixations.push_back(pop.mutations[i]);
+                            pop.fixation_times.push_back(generation);
+                            pop.mcounts[i] = 0;
                             auto itr = pop.mut_lookup.equal_range(
                                 pop.mutations[i].pos);
                             while (itr.first != itr.second)
@@ -207,12 +204,28 @@ update_mutations(poptype& pop, const std::vector<fwdpp::uint_t>& acounts,
                                     if (itr.first->second == i)
                                         {
                                             pop.mut_lookup.erase(itr.first);
-                                            pop.mcounts[i] = 0;
                                             break;
                                         }
                                     ++itr.first;
                                 }
-                            assert(pop.mcounts[i] == 0);
+                        }
+                    else if (pop.mcounts[i] == 0)
+                        {
+                            auto itr = pop.mut_lookup.equal_range(
+                                pop.mutations[i].pos);
+                            if (itr.first != pop.mut_lookup.end())
+                                {
+                                    while (itr.first != itr.second)
+                                        {
+                                            if (itr.first->second == i)
+                                                {
+                                                    pop.mut_lookup.erase(
+                                                        itr.first);
+                                                    break;
+                                                }
+                                            ++itr.first;
+                                        }
+                                }
                         }
                 }
         }
@@ -332,14 +345,18 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
     tables.count_mutations(pop.mutations, tables.preserved_nodes, acounts);
 #ifndef NDEBUG
     std::vector<std::size_t> keys;
-    for(auto & mr:tables.mutation_table){keys.push_back(mr.key);}
-    std::sort(keys.begin(),keys.end());
-    auto u = std::unique(keys.begin(),keys.end());;
-    if(u != keys.end())
-    {
-        std::cout<<"redundant keys " << generation << '\n';
-    }
-    assert(u==keys.end());
+    for (auto& mr : tables.mutation_table)
+        {
+            keys.push_back(mr.key);
+        }
+    std::sort(keys.begin(), keys.end());
+    auto u = std::unique(keys.begin(), keys.end());
+    ;
+    if (u != keys.end())
+        {
+            std::cout << "redundant keys " << generation << '\n';
+        }
+    assert(u == keys.end());
 
     decltype(pop.mcounts) mc;
     fwdpp::fwdpp_internal::process_gametes(pop.gametes, pop.mutations, mc);
@@ -363,7 +380,8 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
                                                       << mr.node << '\n';
                                         }
                                 }
-                            std::cout<<tables.mutation_table.size()<<' '<<pop.mutations.size()<<std::endl;
+                            std::cout << tables.mutation_table.size() << ' '
+                                      << pop.mutations.size() << std::endl;
                         }
                     assert(pop.mcounts[i] == mc[i]);
                 }
