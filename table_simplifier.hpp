@@ -380,29 +380,22 @@ namespace fwdpp
             template <typename mcont_t>
             void
             simplify_mutations(const mcont_t& mutations,
-                               mutation_key_vector& mutation_table) const
+                               mutation_key_vector& mt) const
+            // Remove all mutations that do not map to nodes
+            // in the simplified tree.  The key here is
+            // that Ancestry contains the history of
+            // each node, which we use for the remapping.
             {
-                if (mutation_table.empty())
-                    // This skips index building, which
-                    // is expensive an un-necessary if there's
-                    // nothing to simplify...
-                    {
-                        return;
-                    }
-
-                // 0. Remap mutation input node ids.  To do this, we use
-                // the data stored in Ancestry, which allows us to "push"
-                // mutation nodes down the tree.
-                for (auto& mr : mutation_table)
+                // Set all output nodes to null for now.
+                for (auto& mr : mt)
                     {
                         mr.node = -1;
                     }
 
-                // Here, we map the input node id of a mutation to
+                // Map the input node id of a mutation to
                 // its output node id.  If no output ID exists,
                 // then the mutation will be removed by the
                 // call to erase below.
-
                 auto map_itr = mutation_map.begin();
                 const auto map_end = mutation_map.end();
 
@@ -426,9 +419,7 @@ namespace fwdpp
                                         if (seg->left <= pos
                                             && pos < seg->right)
                                             {
-                                                mutation_table[map_itr
-                                                                   ->location]
-                                                    .node
+                                                mt[map_itr->location].node
                                                     = seg->node;
                                                 ++map_itr;
                                             }
@@ -443,22 +434,21 @@ namespace fwdpp
                                     }
                             }
                     }
+
                 // Any mutations with null node values do not have
                 // ancestry and may be removed.
-                mutation_table.erase(
-                    std::remove_if(mutation_table.begin(),
-                                   mutation_table.end(),
-                                   [](const mutation_record& mr) {
-                                       return mr.node == -1;
-                                   }),
-                    mutation_table.end());
+                mt.erase(std::remove_if(mt.begin(), mt.end(),
+                                        [](const mutation_record& mr) {
+                                            return mr.node == -1;
+                                        }),
+                         mt.end());
                 //TODO: replace assert with exception
-                assert(std::is_sorted(
-                    mutation_table.begin(), mutation_table.end(),
-                    [&mutations](const mutation_record& a,
-                                 const mutation_record& b) {
-                        return mutations[a.key].pos < mutations[b.key].pos;
-                    }));
+                assert(std::is_sorted(mt.begin(), mt.end(),
+                                      [&mutations](const mutation_record& a,
+                                                   const mutation_record& b) {
+                                          return mutations[a.key].pos
+                                                 < mutations[b.key].pos;
+                                      }));
             }
 
             void
