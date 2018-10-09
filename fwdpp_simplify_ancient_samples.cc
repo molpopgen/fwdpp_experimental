@@ -351,7 +351,6 @@ evolve_generation(const GSLrng_t& rng, slocuspop_t& pop,
         }
     std::sort(keys.begin(), keys.end());
     auto u = std::unique(keys.begin(), keys.end());
-    ;
     if (u != keys.end())
         {
             std::cout << "redundant keys " << generation << '\n';
